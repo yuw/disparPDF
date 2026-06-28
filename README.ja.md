@@ -2,9 +2,9 @@
 
 2つのPDFファイルのテキストまたは外観を比較するツールです。
 
-**disparPDF** は Luca Bellonda による [ConfrontaPDF](https://github.com/lbellonda/ConfrontaPDF)（2015年）を Qt6 に移植したものです。ConfrontaPDF 自体は Mark Summerfield による [DiffPDF](http://www.qtrac.eu/diffpdf-foss.html)（2008–2013年）のフォークです。
+**disparPDF**はLuca Bellondaによる[ConfrontaPDF](https://github.com/lbellonda/ConfrontaPDF)（2015年）をQt6に移植したものです。ConfrontaPDF自体はMark Summerfield による[DiffPDF](http://www.qtrac.eu/diffpdf-foss.html)（2008–2013年）のフォークです。
 
-この Qt6 移植版は Yuwsuke Kieda が 2026 年に AI ツール（Claude by Anthropic）の支援を受けて作成しました。
+このQt6移植版はYuwsuke Kiedaが2026年にAIツール（Claude by Anthropic）の支援を受けて作成しました。
 
 ## 機能
 
@@ -16,8 +16,8 @@
 
 ## 依存関係のインストール（macOS / Homebrew）
 
-Homebrew の `poppler` は Qt6 バインディングを含まないため、
-このリポジトリの `packaging/homebrew/poppler-qt6.rb` を使って個人 tap からインストールします。
+Homebrewの`poppler`はQt6バインディングを含まないため、
+このリポジトリの`packaging/homebrew/poppler-qt6.rb`を使って個人tapからインストールします。
 
 ```sh
 brew install qt@6
@@ -48,13 +48,13 @@ open build/disparPDF.app
 ## コマンドライン使用例
 
 ```sh
-# 同一なら 0、差異があれば非0 を返す
+# 同一なら0、差異があれば非0を返す
 disparPDFc -b a.pdf b.pdf
 
 # 詳細出力
 disparPDFc -b --outType=1 a.pdf b.pdf
 
-# XML 出力
+# XML出力
 disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
@@ -62,6 +62,6 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 
 GPL-2.0-or-later
 
-Copyright © 2026 Yuwsuke Kieda
-Based on ConfrontaPDF © 2015 Luca Bellonda
+Copyright © 2026 Yuwsuke Kieda  
+Based on ConfrontaPDF © 2015 Luca Bellonda  
 Based on DiffPDF © 2008–2013 Qtrac Ltd. (Mark Summerfield)

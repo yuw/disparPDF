@@ -65,6 +65,6 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 
 GPL-2.0-or-later
 
-Copyright © 2026 Yuwsuke Kieda
-Based on ConfrontaPDF © 2015 Luca Bellonda
+Copyright © 2026 Yuwsuke Kieda  
+Based on ConfrontaPDF © 2015 Luca Bellonda  
 Based on DiffPDF © 2008–2013 Qtrac Ltd. (Mark Summerfield)
