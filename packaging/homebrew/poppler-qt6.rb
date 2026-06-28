@@ -58,10 +58,8 @@ class PopplerQt6 < Formula
     system "cmake", "-S", ".", "-B", "build", *args
     system "cmake", "--build", "build", "--target", "poppler-qt6"
 
-    # ── ヘッダのインストール ──────────────────────────────────────────────
+    # ── ヘッダ ──────────────────────────────────────────────────────────
     qt6_inc = include/"poppler/qt6"
-
-    # ソースツリーの公開ヘッダ
     qt6_src = buildpath/"qt6/src"
     qt6_inc.install qt6_src/"poppler-qt6.h",
                     qt6_src/"poppler-annotation.h",
@@ -72,17 +70,34 @@ class PopplerQt6 < Formula
                     qt6_src/"poppler-optcontent.h",
                     qt6_src/"poppler-page-transition.h"
 
-    # cmake が生成するヘッダ（poppler-export.h, poppler-version.h）を
-    # ビルドディレクトリ全体から検索してインストール
     %w[poppler-export.h poppler-version.h].each do |hdr|
       found = Dir["#{buildpath}/build/**/#{hdr}"].first
       qt6_inc.install found if found
     end
 
-    # ── ライブラリ
+    # ── ライブラリ ───────────────────────────────────────────────────────
     lib.install Dir["build/qt6/src/libpoppler-qt6*"]
 
-    # ── pkg-config
+    # ── libpoppler-qt6 が @rpath で参照する libpoppler を
+    #    Homebrew の poppler 本体の絶対パスに書き換える。
+    #    同時に poppler 本体の dylib へのシンボリックリンクを lib/ に作成し、
+    #    macOS の dyld が rpath 解決時にこのフォーミュラの lib/ を見つけられるようにする。
+    poppler_lib = poppler_prefix/"lib"
+    Dir["#{poppler_lib}/libpoppler.*.dylib"].each do |src|
+      ln_sf src, lib/File.basename(src)
+    end
+
+    Dir["#{lib}/libpoppler-qt6.*.*.*.dylib"].each do |qt6_dylib|
+      MachO::Tools.change_install_name(
+        qt6_dylib,
+        "@rpath/libpoppler.161.dylib",
+        "#{poppler_lib}/libpoppler.161.dylib"
+      )
+      # 変更後に再署名（macOS 26以降はコード署名の変更を検出するため必須）
+      system "codesign", "--force", "--sign", "-", qt6_dylib
+    end
+
+    # ── pkg-config ───────────────────────────────────────────────────────
     (lib/"pkgconfig/poppler-qt6.pc").write <<~PC
       prefix=#{prefix}
       exec_prefix=${prefix}
