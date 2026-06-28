@@ -14,7 +14,16 @@
 - バッチ・コマンドラインモード（`disparPDFc`）
 - マージン除外
 
-## 依存関係のインストール（macOS / Homebrew）
+## Homebrewによるインストール（推奨）
+
+```sh
+brew tap yuw/disparPDF
+brew install yuw/disparPDF/disparPDF
+```
+
+## ソースからのビルド
+
+### 依存関係のインストール（macOS / Homebrew）
 
 Homebrewの`poppler`はQt6バインディングを含まないため、
 このリポジトリの`packaging/homebrew/poppler-qt6.rb`を使って個人tapからインストールします。
@@ -34,7 +43,7 @@ brew tap yuw/disparPDF ~/homebrew-disparPDF
 brew install yuw/disparPDF/poppler-qt6
 ```
 
-## ビルド
+### ビルド
 
 ```sh
 export PKG_CONFIG_PATH="/opt/homebrew/opt/poppler-qt6/lib/pkgconfig"
@@ -44,7 +53,7 @@ cmake -B build \
 cmake --build build -j$(sysctl -n hw.logicalcpu)
 ```
 
-## インストール
+### インストール
 
 ```sh
 # /usr/local にインストール

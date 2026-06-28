@@ -17,7 +17,16 @@ This Qt6 port was created by Yuwsuke Kieda in 2026 with the assistance of AI too
 - Batch/command line mode (`disparPDFc`)
 - Margin exclusion
 
-## Dependencies (macOS / Homebrew)
+## Install via Homebrew tap (recommended)
+
+```sh
+brew tap yuw/disparPDF
+brew install yuw/disparPDF/disparPDF
+```
+
+## Build from source
+
+### Dependencies (macOS / Homebrew)
 
 Homebrew's `poppler` does not include Qt6 bindings.
 Use the `poppler-qt6.rb` formula in `packaging/homebrew/` to install via a local tap.
@@ -37,7 +46,7 @@ brew tap yuw/disparPDF ~/homebrew-disparPDF
 brew install yuw/disparPDF/poppler-qt6
 ```
 
-## Build
+### Build
 
 ```sh
 export PKG_CONFIG_PATH="/opt/homebrew/opt/poppler-qt6/lib/pkgconfig"
@@ -47,7 +56,7 @@ cmake -B build \
 cmake --build build -j$(sysctl -n hw.logicalcpu)
 ```
 
-## Install
+### Install
 
 ```sh
 # Install to /usr/local
