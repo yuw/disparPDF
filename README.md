@@ -45,10 +45,37 @@ cmake -B build \
   -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@6" \
   -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(sysctl -n hw.logicalcpu)
-open build/disparPDF.app
 ```
 
-## Command line usage
+## Install
+
+```sh
+# Install to /usr/local
+sudo cmake --install build --prefix /usr/local
+
+# Re-sign after install (required on macOS 26+)
+codesign --force --sign - /usr/local/disparPDF.app/Contents/MacOS/disparPDF
+
+# Optional: add symlink for CLI use
+sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/disparPDF
+```
+
+## Usage
+
+### GUI
+
+```sh
+# Launch from Finder
+open /usr/local/disparPDF.app
+
+# Launch with files from terminal
+open /usr/local/disparPDF.app --args a.pdf b.pdf
+
+# If symlink is set up
+disparPDF a.pdf b.pdf
+```
+
+### Command line (batch mode)
 
 ```sh
 # Returns 0 if identical, non-0 if differences found
