@@ -34,9 +34,17 @@ class Disparpdf < Formula
     bin.install "build/disparPDFc"
 
     # GUI を bin からも呼び出せるようにラッパースクリプトを作成
+    # 引数を絶対パスに変換してから渡す（相対パスだと cannot load エラーになる）
     (bin/"disparPDF").write <<~SHELL
       #!/bin/sh
-      open "#{prefix}/disparPDF.app" --args "$@"
+      args=""
+      for f in "$@"; do
+        case "$f" in
+          -*) args="$args $f" ;;
+          *)  args="$args $(cd "$(dirname "$f")" 2>/dev/null && pwd)/$(basename "$f")" ;;
+        esac
+      done
+      exec open "#{prefix}/disparPDF.app" --args $args
     SHELL
     chmod 0755, bin/"disparPDF"
   end
