@@ -21,6 +21,13 @@ brew tap yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 ```
 
+インストール後、`/Applications` へのコピーを手動で行います：
+
+```sh
+cp -r /opt/homebrew/opt/disparpdf/disparPDF.app /Applications/
+codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
+```
+
 インストール後の配置：
 
 | 場所 | 説明 |
@@ -29,6 +36,35 @@ brew install yuw/disparPDF/disparPDF
 | `/opt/homebrew/opt/disparPDF/disparPDF.app` | Homebrew管理下のコピー |
 | `/opt/homebrew/bin/disparPDF` | CLIラッパー（GUIを起動） |
 | `/opt/homebrew/bin/disparPDFc` | CLIバッチモード |
+
+## 手動インストールからHomebrewへの移行
+
+手動でビルド・インストールした環境からHomebrewに移行する手順です。
+
+```sh
+# 1. Homebrew tapでインストール
+brew tap yuw/disparPDF
+brew install yuw/disparPDF/disparPDF
+
+# 2. インストールの確認
+brew info yuw/disparPDF/disparPDF
+ls /opt/homebrew/bin/disparPDF
+ls /opt/homebrew/bin/disparPDFc
+
+# 3. 手動インストール分を削除
+sudo rm -f /usr/local/bin/disparPDF
+sudo rm -f /usr/local/bin/disparPDFc
+sudo rm -rf /usr/local/disparPDF.app
+sudo rm -rf /Applications/disparPDF.app
+
+# 4. /Applications にコピー
+cp -r /opt/homebrew/opt/disparpdf/disparPDF.app /Applications/
+codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
+
+# 5. 動作確認
+open /Applications/disparPDF.app
+disparPDFc -b 2>&1 | head -1
+```
 
 ## ソースからのビルド
 

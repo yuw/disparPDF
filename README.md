@@ -24,6 +24,13 @@ brew tap yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 ```
 
+After installation, copy to `/Applications` manually (requires admin privileges):
+
+```sh
+cp -r /opt/homebrew/opt/disparpdf/disparPDF.app /Applications/
+codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
+```
+
 After installation:
 
 | Location | Description |
@@ -32,6 +39,35 @@ After installation:
 | `/opt/homebrew/opt/disparPDF/disparPDF.app` | Homebrew-managed copy |
 | `/opt/homebrew/bin/disparPDF` | CLI wrapper (launches GUI) |
 | `/opt/homebrew/bin/disparPDFc` | CLI batch mode |
+
+## Migrating from manual install to Homebrew tap
+
+If you have previously built and installed disparPDF manually, follow these steps:
+
+```sh
+# 1. Install via Homebrew tap
+brew tap yuw/disparPDF
+brew install yuw/disparPDF/disparPDF
+
+# 2. Verify the tap installation
+brew info yuw/disparPDF/disparPDF
+ls /opt/homebrew/bin/disparPDF
+ls /opt/homebrew/bin/disparPDFc
+
+# 3. Remove the manual install
+sudo rm -f /usr/local/bin/disparPDF
+sudo rm -f /usr/local/bin/disparPDFc
+sudo rm -rf /usr/local/disparPDF.app
+sudo rm -rf /Applications/disparPDF.app
+
+# 4. Copy to /Applications
+cp -r /opt/homebrew/opt/disparpdf/disparPDF.app /Applications/
+codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
+
+# 5. Verify
+open /Applications/disparPDF.app
+disparPDFc -b 2>&1 | head -1
+```
 
 ## Build from source
 
