@@ -24,6 +24,15 @@ brew tap yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 ```
 
+After installation:
+
+| Location | Description |
+|---|---|
+| `/Applications/disparPDF.app` | GUI app (Finder) |
+| `/opt/homebrew/opt/disparPDF/disparPDF.app` | Homebrew-managed copy |
+| `/opt/homebrew/bin/disparPDF` | CLI wrapper (launches GUI) |
+| `/opt/homebrew/bin/disparPDFc` | CLI batch mode |
+
 ## Build from source
 
 ### Dependencies (macOS / Homebrew)
@@ -65,6 +74,10 @@ sudo cmake --install build --prefix /usr/local
 # Re-sign after install (required on macOS 26+)
 codesign --force --sign - /usr/local/disparPDF.app/Contents/MacOS/disparPDF
 
+# Optional: copy to /Applications
+cp -r /usr/local/disparPDF.app /Applications/
+codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
+
 # Optional: add symlink for CLI use
 sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/disparPDF
 ```
@@ -75,12 +88,9 @@ sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/dis
 
 ```sh
 # Launch from Finder
-open /usr/local/disparPDF.app
+open /Applications/disparPDF.app
 
 # Launch with files from terminal
-open /usr/local/disparPDF.app --args a.pdf b.pdf
-
-# If symlink is set up
 disparPDF a.pdf b.pdf
 ```
 

@@ -21,6 +21,15 @@ brew tap yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 ```
 
+インストール後の配置：
+
+| 場所 | 説明 |
+|---|---|
+| `/Applications/disparPDF.app` | GUIアプリ（Finder用） |
+| `/opt/homebrew/opt/disparPDF/disparPDF.app` | Homebrew管理下のコピー |
+| `/opt/homebrew/bin/disparPDF` | CLIラッパー（GUIを起動） |
+| `/opt/homebrew/bin/disparPDFc` | CLIバッチモード |
+
 ## ソースからのビルド
 
 ### 依存関係のインストール（macOS / Homebrew）
@@ -62,6 +71,10 @@ sudo cmake --install build --prefix /usr/local
 # インストール後に再署名（macOS 26以降で必要）
 codesign --force --sign - /usr/local/disparPDF.app/Contents/MacOS/disparPDF
 
+# /Applications にコピー（任意）
+cp -r /usr/local/disparPDF.app /Applications/
+codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
+
 # CLIから呼び出せるようにシンボリックリンクを作成（任意）
 sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/disparPDF
 ```
@@ -72,12 +85,9 @@ sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/dis
 
 ```sh
 # Finderから起動
-open /usr/local/disparPDF.app
+open /Applications/disparPDF.app
 
 # ターミナルからファイルを指定して起動
-open /usr/local/disparPDF.app --args a.pdf b.pdf
-
-# シンボリックリンクを作成した場合
 disparPDF a.pdf b.pdf
 ```
 
