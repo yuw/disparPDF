@@ -19,9 +19,21 @@ This Qt6 port was created by Yuwsuke Kieda in 2026 with the assistance of AI too
 
 ## Dependencies (macOS / Homebrew)
 
+Homebrew's `poppler` does not include Qt6 bindings.
+Use the `poppler-qt6.rb` formula in `packaging/homebrew/` to install via a local tap.
+
 ```sh
 brew install qt@6
-brew tap yuw/disparPDF ~/src/homebrew-confrontapdf
+
+mkdir -p ~/homebrew-disparPDF/Formula
+cp packaging/homebrew/poppler-qt6.rb ~/homebrew-disparPDF/Formula/
+cd ~/homebrew-disparPDF
+git init
+git add Formula/poppler-qt6.rb
+git commit -m "Add poppler-qt6 formula"
+cd -
+
+brew tap yuw/disparPDF ~/homebrew-disparPDF
 brew install yuw/disparPDF/poppler-qt6
 ```
 
@@ -39,13 +51,13 @@ open build/disparPDF.app
 ## Command line usage
 
 ```sh
-# 同一なら 0、差異があれば非0 を返す
+# Returns 0 if identical, non-0 if differences found
 disparPDFc -b a.pdf b.pdf
 
-# 詳細出力
+# With description
 disparPDFc -b --outType=1 a.pdf b.pdf
 
-# XML 出力
+# XML output
 disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
@@ -53,6 +65,6 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 
 GPL-2.0-or-later
 
-Copyright © 2026 Yuwsuke Kieda  
-Based on ConfrontaPDF © 2015 Luca Bellonda  
+Copyright © 2026 Yuwsuke Kieda
+Based on ConfrontaPDF © 2015 Luca Bellonda
 Based on DiffPDF © 2008–2013 Qtrac Ltd. (Mark Summerfield)
