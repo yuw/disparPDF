@@ -22,7 +22,7 @@
 #include <QTabWidget>
 #include <QTextBrowser>
 
-const QString AboutForm::Version("1.0");
+const QString AboutForm::Version("1.0.1");
 #ifdef COMPARA_IS_CONSOLE
 const QString AboutForm::ProgramName("disparPDF");
 #else
