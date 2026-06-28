@@ -19,7 +19,7 @@ RangesPair computeRanges(SequenceMatcher *matcher)
     Ranges ranges1;
     Ranges ranges2;
     QList<Match> matches = matcher->get_matching_blocks();
-    foreach (const Match &match, matches) {
+    for (const Match &match : matches) {
         if (match.size == 0)
             continue;
         ranges1 |= unorderedRange(match.i + match.size, match.i);
@@ -103,7 +103,7 @@ void SequenceMatcher::chain_b()
             b2j[element].append(i);
     }
 
-    foreach (const Element &element, popular)
+    for (const Element &element : popular)
         b2j.remove(element);
 }
 
@@ -136,13 +136,13 @@ QList<Match> SequenceMatcher::get_matching_blocks()
                 offsets.append(Offsets(i + k, a_high, j + k, b_high));
         }
     }
-    qSort(matching_blocks.begin(), matching_blocks.end(), matchLessThan);
+    std::sort(matching_blocks.begin(), matching_blocks.end(), matchLessThan);
 
     int i1 = 0;
     int j1 = 0;
     int k1 = 0;
     QList<Match> non_adjacent;
-    foreach (const Match match, matching_blocks) {
+    for (const Match &match : matching_blocks) {
         const int i2 = match.i;
         const int j2 = match.j;
         const int k2 = match.size;
@@ -173,7 +173,7 @@ Match SequenceMatcher::find_longest_match(int a_low, int a_high,
     QHash<int, int> j2len;
     for (int i = a_low; i < a_high; ++i) {
         QHash<int, int> newj2len;
-        foreach (int j, b2j.value(a[i])) {
+        for (int j : b2j.value(a[i])) {
             if (j < b_low)
                 continue;
             if (j >= b_high)

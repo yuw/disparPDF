@@ -18,10 +18,10 @@
 #else
 #include <tr1/memory>
 #endif
-#if defined(USE_QT5)
-   #include <poppler-qt5.h>
+#ifdef USE_QT6
+#  include <poppler-qt6.h>
 #else
-    #include <poppler-qt4.h>
+#  include <poppler-qt5.h>
 #endif
 #include <QBrush>
 #include <QList>

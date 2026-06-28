@@ -20,7 +20,7 @@
 QStringList TextItems::texts() const
 {
     QStringList list;
-    foreach (const TextItem &item, items)
+    for (const TextItem &item : items)
         list << item.text;
     return list;
 }
@@ -29,7 +29,7 @@ QStringList TextItems::texts() const
 QList<QRectF> TextItems::rects() const
 {
     QList<QRectF> list;
-    foreach (const TextItem &item, items)
+    for (const TextItem &item : items)
         list << item.rect;
     return list;
 }
@@ -57,7 +57,7 @@ void TextItems::columnZoneYxOrder(const int Width, const int ToleranceR,
     QList<QPainterPath> zones = generateZones(Width, ToleranceR,
                                               ToleranceY, Columns);
     QMap<Key, TextItem> itemForZoneYx;
-    foreach (const TextItem &item, items) {
+    for (const TextItem &item : items) {
         const QRectF rect = item.rect.adjusted(-ToleranceR, -ToleranceR,
                                                ToleranceR, ToleranceR);
         const int y = normalizedY(static_cast<int>(item.rect.y()),
@@ -79,7 +79,7 @@ void TextItems::columnYxOrder(const int Width, const int ToleranceY,
     // Phase #1: Sort all the texts into (column, y, x) order
     const int Span = Width / Columns;
     QMap<Key, TextItem> itemForColumnYx;
-    foreach (const TextItem &item, items) {
+    for (const TextItem &item : items) {
         const QRect &rect = item.toRect();
         const int Column = ((Columns == 1) ? 0
             : (rect.width() > Span) ? Columns : rect.right() / Span);
@@ -96,7 +96,7 @@ const QList<QPainterPath> TextItems::generateZones(const int Width,
 { // Assumes that items are already in column, y, x order!
     // Phase #1: Generate the zones
     QList<QPainterPath> zones;
-    foreach (const TextItem &item, items) {
+    for (const TextItem &item : items) {
         if (zones.isEmpty()) { // First word becomes first zone
             QPainterPath zone;
             zone.addRect(item.rect);
@@ -125,12 +125,12 @@ const QList<QPainterPath> TextItems::generateZones(const int Width,
     // Phase #2: Order the zones by (column, y, x)
     const int Span = Width / Columns;
     QMultiMap<Key, QPainterPath> zonesForColumn;
-    foreach (const QPainterPath &zone, zones) {
+    for (const QPainterPath &zone : zones) {
         const QRect &rect = zone.boundingRect().toRect();
         const int Column = ((Columns == 1) ? 0
             : (rect.width() > Span) ? Columns : rect.right() / Span);
         const int y = normalizedY(static_cast<int>(rect.y()), ToleranceY);
-        zonesForColumn.insertMulti(Key(Column, y, rect.x()), zone);
+        zonesForColumn.insert(Key(Column, y, rect.x()), zone);
     }
     return zonesForColumn.values();
 }
@@ -152,15 +152,14 @@ void TextItems::debug(const int page, const int ToleranceY,
                                 .arg(file.errorString())));
     }
     QTextStream out(&file);
-    out.setCodec("UTF-8");
     out << "Page #" << page << ": "
         << (ComparingWords ? "Words" : "Characters") << " mode\n";
-    for (int i = 0; i < items.count(); ++i) {
+    for (int i = 0; i < items.size(); ++i) {
         const TextItem &item = items.at(i);
         const QRect rect = item.toRect();
         out << item.text;
         if (!ComparingWords)
-            out << QString(" %1").arg(item.text.at(0).unicode(), 4, 16,
+            out << QString(" %1").arg(static_cast<uint>(item.text.at(0).unicode()), 4, 16,
                                       QChar('0'));
         if (Yx) {
             const int y = normalizedY(static_cast<int>(item.rect.y()),
@@ -185,7 +184,7 @@ inline int normalizedY(const int y, const int ToleranceY)
 const TextItems getWords(const TextBoxList &list)
 {
     TextItems items;
-    foreach (const PdfTextBox &box, list) {
+    for (const auto &box : list) {
         QString word = box->text().trimmed();
         for (int i = 0; i < word.length(); ++i)
             word[i] = canonicalizedCharacter(word[i]);
@@ -200,9 +199,9 @@ const TextItems getWords(const TextBoxList &list)
 const TextItems getCharacters(const TextBoxList &list)
 {
     TextItems items;
-    foreach (const PdfTextBox &box, list) {
+    for (const auto &box : list) {
         const QString word = box->text();
-        int limit = word.count() - 1;
+        int limit = word.size() - 1;
         for (int i = limit; i >= 0; --i)
             if (!word[i].isSpace())
                 break;

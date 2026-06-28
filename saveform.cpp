@@ -114,7 +114,7 @@ void SaveForm::chooseFile()
 {
     QList<QByteArray> formats = QImageWriter::supportedImageFormats();
     QStringList suffixes;
-    foreach (const QByteArray &format, formats)
+    for (const QByteArray &format : formats)
         suffixes << "*." + QString(format.toLower());
     QString filename = QFileDialog::getSaveFileName(this,
             tr("%1 — Browse").arg(AboutForm::ProgramName), m_path,

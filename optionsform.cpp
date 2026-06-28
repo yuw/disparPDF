@@ -50,7 +50,7 @@ OptionsForm::OptionsForm(QPen *pen, QBrush *brush, qreal *ruleWidth,
 void OptionsForm::createWidgets()
 {
     colorComboBox = new QComboBox;
-    foreach (const QString &name, QColor::colorNames()) {
+    for (const QString &name : QColor::colorNames()) {
         QColor color(name);
         colorComboBox->addItem(colorSwatch(color), name, color);
     }
@@ -61,7 +61,7 @@ void OptionsForm::createWidgets()
 
     brushStyleComboBox = new QComboBox;
     typedef QPair<QString, Qt::BrushStyle> BrushPair;
-    foreach (const BrushPair &pair, QList<BrushPair>()
+    for (const BrushPair &pair : QList<BrushPair>()
             << qMakePair(tr("No Brush"), Qt::NoBrush)
             << qMakePair(tr("Solid"), Qt::SolidPattern)
             << qMakePair(tr("Dense #1"), Qt::Dense1Pattern)
@@ -83,7 +83,7 @@ void OptionsForm::createWidgets()
 
     penStyleComboBox = new QComboBox;
     typedef QPair<QString, Qt::PenStyle> PenPair;
-    foreach (const PenPair &pair, QList<PenPair>()
+    for (const PenPair &pair : QList<PenPair>()
             << qMakePair(tr("No Pen"), Qt::NoPen)
             << qMakePair(tr("Solid"), Qt::SolidLine)
             << qMakePair(tr("Dashed"), Qt::DashLine)

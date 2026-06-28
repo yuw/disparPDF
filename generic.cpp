@@ -75,11 +75,7 @@ QPixmap colorSwatch(const QColor &color)
 {
     QString key = QString("COLORSWATCH:%1").arg(color.name());
     QPixmap pixmap(SwatchSize);
-#if QT_VERSION >= 0x040600
     if (!QPixmapCache::find(key, &pixmap)) {
-#else
-    if (!QPixmapCache::find(key, pixmap)) {
-#endif
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
@@ -100,11 +96,7 @@ QPixmap brushSwatch(const Qt::BrushStyle style, const QColor &color)
     QString key = QString("BRUSHSTYLESWATCH:%1:%2:%3")
         .arg(static_cast<int>(style)).arg(color.name()).arg(color.alpha());
     QPixmap pixmap(SwatchSize);
-#if QT_VERSION >= 0x040600
     if (!QPixmapCache::find(key, &pixmap)) {
-#else
-    if (!QPixmapCache::find(key, pixmap)) {
-#endif
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
@@ -125,11 +117,7 @@ QPixmap penStyleSwatch(const Qt::PenStyle style, const QColor &color)
     QString key = QString("PENSTYLESWATCH:%1:%2")
         .arg(static_cast<int>(style)).arg(color.name());
     QPixmap pixmap(SwatchSize);
-#if QT_VERSION >= 0x040600
     if (!QPixmapCache::find(key, &pixmap)) {
-#else
-    if (!QPixmapCache::find(key, pixmap)) {
-#endif
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
@@ -149,10 +137,9 @@ QPixmap penStyleSwatch(const Qt::PenStyle style, const QColor &color)
 const TextBoxList getTextBoxes(PdfPage page, const QRectF &rect)
 {
     TextBoxList boxes;
-    foreach (Poppler::TextBox *box, page->textList()) {
-        PdfTextBox box_ptr(box);
-        if (rect.isEmpty() || rect.contains(box_ptr->boundingBox()))
-            boxes.append(box_ptr);
+    for (auto &box : page->textList()) {
+        if (rect.isEmpty() || rect.contains(box->boundingBox()))
+            boxes.push_back(std::move(box));
     }
     return boxes;
 }
@@ -164,7 +151,7 @@ const QString strippedFilename(const QString &filename)
     QString filename_ = filename;
     if (filename_.startsWith(FilePrefix))
         filename_ = filename_.mid(FilePrefix.length());
-#ifdef Q_WS_WIN
+#ifdef Q_OS_WIN
     if (filename_.startsWith("/"))
         filename_ = filename_.mid(1);
 #endif
@@ -175,9 +162,9 @@ const QStringList droppedFilenames(const QMimeData *mimeData)
 {
     QStringList filenames;
     if(mimeData->hasUrls()) {
-        foreach(QUrl url, mimeData->urls()) {
+        for (const QUrl &url : mimeData->urls()) {
             QString filePath = url.toLocalFile();
-            filenames.append(filePath);;
+            filenames.append(filePath);
         }
     }
     return filenames;

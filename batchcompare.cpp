@@ -226,12 +226,12 @@ void BatchCompare::computeTextHighlights(QPainterPath *highlighted1,
     rangesPair = invertRanges(rangesPair.first, items1.count(),
                               rangesPair.second, items2.count());
 
-    foreach (int index, rangesPair.first)
+    for (int index : rangesPair.first)
         addHighlighting(&rect1, highlighted1, items1.at(index).rect,
                         OVERLAP, DPI, COMBINE);
     if (!rect1.isNull() && !rangesPair.first.isEmpty())
         highlighted1->addRect(rect1);
-    foreach (int index, rangesPair.second)
+    for (int index : rangesPair.second)
         addHighlighting(&rect2, highlighted2, items2.at(index).rect,
                         OVERLAP, DPI, COMBINE);
     if (!rect2.isNull() && !rangesPair.second.isEmpty())
@@ -334,7 +334,7 @@ void BatchCompare::paintOnImage(const QPainterPath &path, QImage *image)
         if (!qFuzzyCompare(RULE_WIDTH, 0.0)) {
             painter.setPen(QPen(pen.color()));
             QList<QPolygonF> polygons = path_.toFillPolygons();
-            foreach (const QPolygonF &polygon, polygons) {
+            for (const QPolygonF &polygon : polygons) {
                 const QRectF rect = polygon.boundingRect();
                 painter.drawRect(0, rect.y(), RULE_WIDTH, rect.height());
             }
@@ -355,7 +355,7 @@ PdfDocument BatchCompare::getPdf(const QString &filename)
                                           tr("Cannot read a locked PDF ('%1').").arg(filename));
         _notifier->messageBox(tr("Cannot read a locked PDF ('%1').").arg(filename));
 #if QT_VERSION >= 0x040600
-        pdf.clear();
+        pdf.reset();
 #else
         pdf.reset();
 #endif
@@ -371,9 +371,9 @@ BatchCompare::Difference BatchCompare::getTheDifference(PdfPage page1,
         rect = pointRectForMargins(page1->pageSize());
     const TextBoxList list1 = getTextBoxes(page1, rect);
     const TextBoxList list2 = getTextBoxes(page2, rect);
-    if (list1.count() != list2.count())
+    if (list1.size() != list2.size())
         return TextualDifference;
-    for (int i = 0; i < list1.count(); ++i)
+    for (int i = 0; i < list1.size(); ++i)
         if (list1[i]->text() != list2[i]->text())
             return TextualDifference;
 //refactor prima di lanciare
@@ -446,7 +446,7 @@ void BatchCompare::batchOperation()
     }
 }
 
-QList<int> BatchCompare::getPageListBatch( const int which, PdfDocument pdf, const int startPageSet)
+QList<int> BatchCompare::getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet)
 {
     // Poppler has 0-based page numbers; the UI has 1-based page numbers
     QList<int> pages;
@@ -493,13 +493,13 @@ void BatchCompare::comparePagesBatch(
     results.setTotal(qMin(pages1.count(), pages2.count()));
     while (!pages1.isEmpty() && !pages2.isEmpty()) {
         int p1 = pages1.takeFirst();
-        PdfPage page1(pdf1->page(p1));
+        PdfPage page1 = pdf1->page(p1).release();
         if (!page1) {
             _status->setStatusWithDescription( ErrorLoadingPage, tr("Failed to read page %1 from '%2'.").arg(p1 + 1).arg(filename1));
             continue;
         }
         int p2 = pages2.takeFirst();
-        PdfPage page2(pdf2->page(p2));
+        PdfPage page2 = pdf2->page(p2).release();
         if (!page2) {
             _status->setStatusWithDescription( ErrorLoadingPage, tr("Failed to read page %1 from '%2'.").arg(p2 + 1).arg(filename2));
             continue;
@@ -535,8 +535,8 @@ void BatchCompare::saveAsPdfBatch(Status *status, CompareResults &results,
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setColorMode(QPrinter::Color);
     printer.setCreator(AboutForm::ProgramName);
-    printer.setOrientation(savePages == SaveBothPages
-            ? QPrinter::Landscape : QPrinter::Portrait);
+    printer.setPageOrientation(savePages == SaveBothPages
+            ? QPageLayout::Landscape : QPageLayout::Portrait);
     QPainter painter(&printer);
     painter.setRenderHints(QPainter::Antialiasing|
             QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
@@ -576,10 +576,10 @@ bool BatchCompare::paintSaveAsBatch(QPainter *painter, CompareResults &results, 
     PagePair pair = results.differences().at(index);
     if (pair.isNull())
         return false;
-    PdfPage page1(pdf1->page(pair.left));
+    PdfPage page1 = pdf1->page(pair.left).release();
     if (!page1)
         return false;
-    PdfPage page2(pdf2->page(pair.right));
+    PdfPage page2 = pdf2->page(pair.right).release();
     if (!page2)
         return false;
     const QPair<QString, QString> keys = cacheKeys(index, pair);
@@ -683,11 +683,11 @@ const QPair<QPixmap, QPixmap> BatchCompare::populatePixmaps(
     return qMakePair(pixmap1, pixmap2);
 }
 
-DocInfo *BatchCompare::docInfo(PdfDocument pdf, const QString &fileName)
+DocInfo *BatchCompare::docInfo(const PdfDocument &pdf, const QString &fileName)
 {
     DocInfo *info = new DocInfo();
     info->fileName = QFileInfo(fileName).canonicalPath();
-    foreach (const QString &key, pdf->infoKeys()) {
+    for (const QString &key : pdf->infoKeys()) {
         if (key == "CreationDate" || key == "ModDate")
             continue;
         info->infos.append(qMakePair( key, pdf->info(key)));
@@ -699,17 +699,17 @@ DocInfo *BatchCompare::docInfo(PdfDocument pdf, const QString &fileName)
     info->pageCount = pdf->numPages();
     if (info->pageCount > 0) {
         const double PointToMM = 0.3527777777;
-        PdfPage page1(pdf->page(0));
+        PdfPage page1 = pdf->page(0).release();
         QSize size = page1->pageSize();
         info->pageSize = QString("%1pt x %2pt (%3mm x %4mm)")
                   .arg(size.width()).arg(size.height())
                   .arg(qRound(size.width() * PointToMM))
                   .arg(qRound(size.height() * PointToMM));
     }
-    pdf->getPdfVersion(&info->pdfVersionMajor, &info->pdfVersionMinor);
+    { auto v = pdf->getPdfVersion(); info->pdfVersionMajor = v.major; info->pdfVersionMinor = v.minor; }
     // get fonts info
     QList<Poppler::FontInfo> fonts = pdf->fonts();
-    foreach(Poppler::FontInfo fi, fonts ) {
+    for (const Poppler::FontInfo &fi : fonts) {
         LFontInfo *fil = new LFontInfo();
         fil->name = fi.name();
         fil->embedded = fi.isEmbedded();
@@ -806,11 +806,11 @@ bool BatchCompare::compareFonts(DocInfo *doc1, DocInfo *doc2)
 {
     bool error = false ;
     QMultiHash<QString,LFontInfo*> fontsDoc2;
-    foreach( LFontInfo* f2, doc2->fonts ) {
-        fontsDoc2.insertMulti(makeFontKey(f2), f2);
+    for (LFontInfo *f2 : doc2->fonts) {
+        fontsDoc2.insert(makeFontKey(f2), f2);
     }
 
-    foreach( LFontInfo* f1, doc1->fonts ) {
+    for (LFontInfo *f1 : doc1->fonts) {
         QString keyFont1 = makeFontKey(f1);
         if( fontsDoc2.contains(keyFont1)) {
             fontsDoc2.remove(keyFont1, fontsDoc2.values(keyFont1).first());

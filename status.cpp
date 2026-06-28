@@ -249,7 +249,7 @@ void Status::writeInfo(QXmlStreamWriter &writer, DocInfo *info)
     }
     writer.writeEndElement();
     writer.writeStartElement("fonts");
-    foreach( LFontInfo *fi, info->fonts ) {
+    for (LFontInfo *fi : info->fonts) {
         writer.writeStartElement("font");
         writer.writeAttribute("name", fi->name);
         writer.writeAttribute("type", fi->typeName);

@@ -18,6 +18,8 @@
 #include "mainwindow.hpp"
 #include "sequence_matcher.hpp"
 #include "textitem.hpp"
+#include <QElapsedTimer>
+#include <QRegularExpression>
 #ifdef DEBUG
 #include <QtDebug>
 #endif
@@ -346,7 +348,7 @@ void MainWindow::createWidgets(const QString &filename1,
             << rightMarginLabel << rightMarginSpinBox << saveButton
             << helpButton << aboutButton << quitButton << logEdit
             << previousButton << nextButton << showZonesCheckBox;
-    foreach (QWidget *widget, widgets)
+    for (QWidget *widget : widgets)
         if (!widget->toolTip().isEmpty())
             widget->installEventFilter(this);
 }
@@ -553,12 +555,11 @@ void MainWindow::createConnections()
             this, SLOT(updateUi()));
     connect(showComboBox, SIGNAL(currentIndexChanged(int)),
             this, SLOT(updateViews()));
-    connect(previousButton, SIGNAL(clicked()),
-            this, SLOT(previousPages()));
-    connect(nextButton, SIGNAL(clicked()), this, SLOT(nextPages()));
-    connect(setFile1Button, SIGNAL(clicked()), this, SLOT(setFile1()));
-    connect(setFile2Button, SIGNAL(clicked()), this, SLOT(setFile2()));
-    connect(compareButton, SIGNAL(clicked()), this, SLOT(compare()));
+    connect(previousButton, &QPushButton::clicked, this, &MainWindow::previousPages);
+    connect(nextButton, &QPushButton::clicked, this, &MainWindow::nextPages);
+    connect(setFile1Button, &QPushButton::clicked, this, [this]() { setFile1(); });
+    connect(setFile2Button, &QPushButton::clicked, this, [this]() { setFile2(); });
+    connect(compareButton, &QPushButton::clicked, this, &MainWindow::compare);
     connect(zoomSpinBox, SIGNAL(valueChanged(int)),
             this, SLOT(updateViews()));
     connect(zoningGroupBox, SIGNAL(toggled(bool)),
@@ -590,11 +591,11 @@ void MainWindow::createConnections()
     connect(page2Label, SIGNAL(clicked(const QPoint&)),
             this, SLOT(setAMargin(const QPoint&)));
 
-    connect(optionsButton, SIGNAL(clicked()), this, SLOT(options()));
-    connect(saveButton, SIGNAL(clicked()), this, SLOT(save()));
-    connect(helpButton, SIGNAL(clicked()), this, SLOT(help()));
-    connect(aboutButton, SIGNAL(clicked()), this, SLOT(about()));
-    connect(quitButton, SIGNAL(clicked()), this, SLOT(close()));
+    connect(optionsButton, &QPushButton::clicked, this, &MainWindow::options);
+    connect(saveButton, &QPushButton::clicked, this, &MainWindow::save);
+    connect(helpButton, &QPushButton::clicked, this, &MainWindow::help);
+    connect(aboutButton, &QPushButton::clicked, this, &MainWindow::about);
+    connect(quitButton, &QPushButton::clicked, this, &MainWindow::close);
 
     connect(controlDockWidget,
             SIGNAL(dockLocationChanged(Qt::DockWidgetArea)),
@@ -813,7 +814,7 @@ void MainWindow::updateViews(int index)
     PdfDocument pdf1 = getPdf(filename1);
     if (!pdf1)
         return;
-    PdfPage page1(pdf1->page(pair.left));
+    PdfPage page1 = pdf1->page(pair.left).release();
     if (!page1)
         return;
 
@@ -821,7 +822,7 @@ void MainWindow::updateViews(int index)
     PdfDocument pdf2 = getPdf(filename2);
     if (!pdf2)
         return;
-    PdfPage page2(pdf2->page(pair.right));
+    PdfPage page2 = pdf2->page(pair.right).release();
     if (!page2)
         return;
 
@@ -988,12 +989,12 @@ void MainWindow::computeTextHighlights(QPainterPath *highlighted1,
     rangesPair = invertRanges(rangesPair.first, items1.count(),
                               rangesPair.second, items2.count());
 
-    foreach (int index, rangesPair.first)
+    for (int index : rangesPair.first)
         addHighlighting(&rect1, highlighted1, items1.at(index).rect,
                         OVERLAP, DPI, COMBINE);
     if (!rect1.isNull() && !rangesPair.first.isEmpty())
         highlighted1->addRect(rect1);
-    foreach (int index, rangesPair.second)
+    for (int index : rangesPair.second)
         addHighlighting(&rect2, highlighted2, items2.at(index).rect,
                         OVERLAP, DPI, COMBINE);
     if (!rect2.isNull() && !rangesPair.second.isEmpty())
@@ -1101,7 +1102,7 @@ void MainWindow::paintOnImage(const QPainterPath &path, QImage *image)
         if (!qFuzzyCompare(RULE_WIDTH, 0.0)) {
             painter.setPen(QPen(pen.color()));
             QList<QPolygonF> polygons = path_.toFillPolygons();
-            foreach (const QPolygonF &polygon, polygons) {
+            for (const QPolygonF &polygon : polygons) {
                 const QRectF rect = polygon.boundingRect();
                 painter.drawRect(0, rect.y(), RULE_WIDTH, rect.height());
             }
@@ -1183,7 +1184,8 @@ void MainWindow::setFile1(QString filename)
     if (filename.isEmpty())
         filename = QFileDialog::getOpenFileName(this,
                 tr("%1 — Choose File #1").arg(AboutForm::ProgramName), currentPath,
-                tr("PDF files (*.pdf)"));
+                tr("PDF files (*.pdf)"), nullptr,
+                QFileDialog::DontUseNativeDialog);
     if (!filename.isEmpty()) {
         if (filename == filename2LineEdit->text()) {
             QMessageBox::warning(this, tr("%1 — Error").arg(AboutForm::ProgramName),
@@ -1217,7 +1219,8 @@ void MainWindow::setFile2(QString filename)
     if (filename.isEmpty())
         filename = QFileDialog::getOpenFileName(this,
                 tr("%1 — Choose File #2").arg(AboutForm::ProgramName), currentPath,
-                tr("PDF files (*.pdf)"));
+                tr("PDF files (*.pdf)"), nullptr,
+                QFileDialog::DontUseNativeDialog);
     if (!filename.isEmpty()) {
         if (filename == filename1LineEdit->text()) {
             QMessageBox::warning(this, tr("%1 — Error").arg(AboutForm::ProgramName),
@@ -1257,7 +1260,7 @@ PdfDocument MainWindow::getPdf(const QString &filename)
             QMessageBox::warning(this, tr("%1 — Error").arg(AboutForm::ProgramName),
                     tr("Cannot read a locked PDF ('%1').").arg(filename));
     #if QT_VERSION >= 0x040600
-            pdf.clear();
+            pdf.reset();
     #else
             pdf.reset();
     #endif
@@ -1273,7 +1276,7 @@ int MainWindow::writeFileInfo(const QString &filename)
     if (!pdf)
         return page_count;
     writeLine(tr("<b>%1</b>").arg(filename));
-    foreach (const QString &key, pdf->infoKeys()) {
+    for (const QString &key : pdf->infoKeys()) {
         if (key == "CreationDate" || key == "ModDate")
             continue;
         writeLine(tr("%1: %2.").arg(key).arg(pdf->info(key)));
@@ -1290,7 +1293,7 @@ int MainWindow::writeFileInfo(const QString &filename)
     writeLine(tr("Page count: %1.").arg(page_count));
     if (page_count > 0) {
         const double PointToMM = 0.3527777777;
-        PdfPage page1(pdf->page(0));
+        PdfPage page1 = pdf->page(0).release();
         QSize size = page1->pageSize();
         writeLine(tr("Page size: %1pt x %2pt (%3mm x %4mm).")
                   .arg(size.width()).arg(size.height())
@@ -1319,17 +1322,17 @@ void MainWindow::writeError(const QString &text)
 }
 
 
-QList<int> MainWindow::getPageList(int which, PdfDocument pdf)
+QList<int> MainWindow::getPageList(int which, const PdfDocument &pdf)
 {
     // Poppler has 0-based page numbers; the UI has 1-based page numbers
     QLineEdit *pagesEdit = (which == 1 ? pages1LineEdit : pages2LineEdit);
     bool error = false;
     QList<int> pages;
     QString page_string = pagesEdit->text();
-    page_string = page_string.replace(QRegExp("\\s+"), "");
+    page_string = page_string.replace(QRegularExpression("\\s+"), "");
     QStringList page_list = page_string.split(",");
     bool ok;
-    foreach (const QString &page, page_list) {
+    for (const QString &page : page_list) {
         int hyphen = page.indexOf("-");
         if (hyphen > -1) {
             int p1 = page.left(hyphen).toInt(&ok);
@@ -1395,7 +1398,7 @@ void MainWindow::compare()
     }
 
     comparePrepareUi();
-    QTime time;
+    QElapsedTimer time;
     time.start();
     const QPair<int, int> pair = comparePages(filename1, pdf1, filename2,
                                               pdf2);
@@ -1427,14 +1430,14 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
     int index = 0;
     while (!pages1.isEmpty() && !pages2.isEmpty()) {
         int p1 = pages1.takeFirst();
-        PdfPage page1(pdf1->page(p1));
+        PdfPage page1 = pdf1->page(p1).release();
         if (!page1) {
             writeError(tr("Failed to read page %1 from '%2'.")
                           .arg(p1 + 1).arg(filename1));
             continue;
         }
         int p2 = pages2.takeFirst();
-        PdfPage page2(pdf2->page(p2));
+        PdfPage page2 = pdf2->page(p2).release();
         if (!page2) {
             writeError(tr("Failed to read page %1 from '%2'.")
                           .arg(p2 + 1).arg(filename2));
@@ -1517,9 +1520,9 @@ MainWindow::Difference MainWindow::getTheDifference(PdfPage page1,
         rect = pointRectForMargins(page1->pageSize());
     const TextBoxList list1 = getTextBoxes(page1, rect);
     const TextBoxList list2 = getTextBoxes(page2, rect);
-    if (list1.count() != list2.count())
+    if (list1.size() != list2.size())
         return TextualDifference;
-    for (int i = 0; i < list1.count(); ++i)
+    for (int i = 0; i < list1.size(); ++i)
         if (list1[i]->text() != list2[i]->text())
             return TextualDifference;
 //refactor prima di lanciare
@@ -1639,10 +1642,10 @@ void MainWindow::saveAsImages(const int start, const int end,
         const PdfDocument &pdf1, const PdfDocument &pdf2,
         const QString &header)
 {
-    PdfPage page1(pdf1->page(0));
+    PdfPage page1 = pdf1->page(0).release();
     if (!page1)
         return;
-    PdfPage page2(pdf2->page(0));
+    PdfPage page2 = pdf2->page(0).release();
     if (!page2)
         return;
     int width = 2 * (savePages == SaveBothPages
@@ -1693,8 +1696,8 @@ void MainWindow::saveAsPdf( const int start, const int end,
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setColorMode(QPrinter::Color);
     printer.setCreator(AboutForm::ProgramName);
-    printer.setOrientation(savePages == SaveBothPages
-            ? QPrinter::Landscape : QPrinter::Portrait);
+    printer.setPageOrientation(savePages == SaveBothPages
+            ? QPageLayout::Landscape : QPageLayout::Portrait);
     QPainter painter(&printer);
     painter.setRenderHints(QPainter::Antialiasing|
             QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
@@ -1729,10 +1732,10 @@ bool MainWindow::paintSaveAs(QPainter *painter, const int index,
         .value<PagePair>();
     if (pair.isNull())
         return false;
-    PdfPage page1(pdf1->page(pair.left));
+    PdfPage page1 = pdf1->page(pair.left).release();
     if (!page1)
         return false;
-    PdfPage page2(pdf2->page(pair.right));
+    PdfPage page2 = pdf2->page(pair.right).release();
     if (!page2)
         return false;
     const QPair<QString, QString> keys = cacheKeys(index, pair);
@@ -1789,7 +1792,7 @@ void MainWindow::showZones()
     PdfDocument pdf1 = getPdf(filename1);
     if (!pdf1)
         return;
-    PdfPage page1(pdf1->page(pair.left));
+    PdfPage page1 = pdf1->page(pair.left).release();
     if (!page1)
         return;
     const TextBoxList list1 = getTextBoxes(page1);
@@ -1799,7 +1802,7 @@ void MainWindow::showZones()
     PdfDocument pdf2 = getPdf(filename2);
     if (!pdf2)
         return;
-    PdfPage page2(pdf2->page(pair.right));
+    PdfPage page2 = pdf2->page(pair.right).release();
     if (!page2)
         return;
     const TextBoxList list2 = getTextBoxes(page2);
@@ -1810,7 +1813,7 @@ void MainWindow::showZones()
 void MainWindow::showZones(const int Width, const TextBoxList &list,
                            QLabel *label)
 {
-    if (!label || !label->pixmap() || label->pixmap()->isNull())
+    if (!label || !label->pixmap() || label->pixmap().isNull())
         return;
     const bool ComparingWords = compareComboBox->currentIndex() ==
                                 CompareWords;
@@ -1823,7 +1826,7 @@ void MainWindow::showZones(const int Width, const TextBoxList &list,
             columnsSpinBox->value());
     const int DPI = static_cast<int>(POINTS_PER_INCH *
             (zoomSpinBox->value() / 100.0));
-    QPixmap pixmap = label->pixmap()->copy();
+    QPixmap pixmap = label->pixmap().copy();
     QPainter painter(&pixmap);
     painter.setPen(Qt::green);
     for (int i = 0; i < paths.count(); ++i) {
@@ -1852,11 +1855,11 @@ void MainWindow::showMargins()
 
 void MainWindow::showMargins(QLabel *label)
 {
-    if (!label || !label->pixmap() || label->pixmap()->isNull())
+    if (!label || !label->pixmap() || label->pixmap().isNull())
         return;
     const int DPI = static_cast<int>(POINTS_PER_INCH *
                 (zoomSpinBox->value() / 100.0));
-    QPixmap pixmap = label->pixmap()->copy();
+    QPixmap pixmap = label->pixmap().copy();
     QPainter painter(&pixmap);
     painter.setPen(Qt::cyan);
     int left = leftMarginSpinBox->value();
@@ -1889,11 +1892,11 @@ void MainWindow::showMargins(QLabel *label)
 void MainWindow::setAMargin(const QPoint &pos)
 {
     if (!marginsGroupBox->isChecked() || !page1Label->pixmap() ||
-        page1Label->pixmap()->isNull())
+        page1Label->pixmap().isNull())
         return;
     const int DPI = static_cast<int>(POINTS_PER_INCH *
                 (zoomSpinBox->value() / 100.0));
-    const QSize &size = page1Label->pixmap()->size();
+    const QSize &size = page1Label->pixmap().size();
     int x = pos.x();
     int y = pos.y();
     const int HorizontalMiddle = size.width() / 2;

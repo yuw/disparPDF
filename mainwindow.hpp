@@ -15,14 +15,13 @@
 #include "generic.hpp"
 #include "saveform.hpp"
 #if QT_VERSION >= 0x040600
-#include <QSharedPointer>
 #else
 #include <tr1/memory>
 #endif
-#if defined(USE_QT5)
-   #include <poppler-qt5.h>
+#ifdef USE_QT6
+#  include <poppler-qt6.h>
 #else
-    #include <poppler-qt4.h>
+#  include <poppler-qt5.h>
 #endif
 #include <QBrush>
 #include <QList>
@@ -71,7 +70,7 @@ protected:
     void closeEvent(QCloseEvent *event);
     bool eventFilter(QObject *object, QEvent *event);
     QString finalFileName(const QString &filename);
-    DocInfo *docInfo(PdfDocument pdf, const QString &fileName);
+    DocInfo *docInfo(const PdfDocument &pdf, const QString &fileName);
     //void initCompareParams(BatchCompare &compare);
 
 private slots:
@@ -118,7 +117,7 @@ private:
     void writeLine(const QString &text);
     void writeError(const QString &text);
     PdfDocument getPdf(const QString &filename);
-    QList<int> getPageList(int which, PdfDocument pdf);
+    QList<int> getPageList(int which, const PdfDocument &pdf);
     Difference getTheDifference(PdfPage page1, PdfPage page2);
     void paintOnImage(const QPainterPath &path, QImage *image);
     const QPair<QPixmap, QPixmap> populatePixmaps(const PdfDocument &pdf1,

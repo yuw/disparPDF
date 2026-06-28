@@ -16,7 +16,6 @@
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QSettings>
-#include <QTextCodec>
 #include <QTextStream>
 #include <QTranslator>
 #include "aboutform.hpp"
@@ -27,16 +26,13 @@ int main(int argc, char *argv[])
 {
     StartupParameters startupParameters;
     QApplication app(argc, argv);
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MACOS
     app.setCursorFlashTime(0);
 #endif
     app.setOrganizationName("ConfrontaPDF");
     app.setOrganizationDomain("ConfrontaPDF");
     app.setApplicationName(AboutForm::ProgramName);
     app.setWindowIcon(QIcon(":/icon.png"));
-#if !defined(USE_QT5)
-    QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
-#endif
     QTextStream out(stdout);
     QStringList args = app.arguments().mid(1);
     QSettings settings;
@@ -56,7 +52,7 @@ int main(int argc, char *argv[])
 #ifdef  COMPARA_IS_CONSOLE
     startupParameters.setIsBatch(true);
 #endif
-    foreach (const QString arg, args) {
+    for (const QString &arg : std::as_const(args)) {
         if (optionsOK && (arg == "--appearance" || arg == "-a")) {
             comparisonMode = CompareAppearance;
             seenCompareType = true ;
@@ -133,8 +129,15 @@ int main(int argc, char *argv[])
     }
     if(!startupParameters.isBatch()) {
         QTranslator qtTranslator;
-        qtTranslator.load("qt_" + language,
-            QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+        {
+            QString translationsPath =
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+                QLibraryInfo::path(QLibraryInfo::TranslationsPath);
+#else
+                QLibraryInfo::location(QLibraryInfo::TranslationsPath);
+#endif
+            qtTranslator.load("qt_" + language, translationsPath);
+        }
         app.installTranslator(&qtTranslator);
         QTranslator appTranslator;
         appTranslator.load("confrontapdf_" + language, ":/");
@@ -146,7 +149,7 @@ int main(int argc, char *argv[])
             status.setParamError( true, errors.first());
             return status.returnOp(startupParameters.returnType(), &startupParameters);
         } else {
-            foreach( QString str, errors ) {
+            for (const QString &str : std::as_const(errors)) {
                 out << QObject::tr("unrecognized argument '") << str << "'\n";
             }
         }

@@ -17,14 +17,13 @@
 #include "generic.hpp"
 #include "saveform.hpp"
 #if QT_VERSION >= 0x040600
-#include <QSharedPointer>
 #else
 #include <tr1/memory>
 #endif
-#if defined(USE_QT5)
-   #include <poppler-qt5.h>
+#ifdef USE_QT6
+#  include <poppler-qt6.h>
 #else
-    #include <poppler-qt4.h>
+#  include <poppler-qt5.h>
 #endif
 #include <QBrush>
 #include <QList>
@@ -60,7 +59,7 @@ public:
     void writeToSettings(const QString &filePath);
 protected:
     QString finalFileName(const QString &filename);
-    DocInfo *docInfo(PdfDocument pdf, const QString &fileName);
+    DocInfo *docInfo(const PdfDocument &pdf, const QString &fileName);
     void initValues();
 
 private:
@@ -99,7 +98,7 @@ private:
     QRect pixelRectForMargins(const QSize &size);
 
     // batch operations
-    QList<int> getPageListBatch( const int which, PdfDocument pdf, const int startPageSet);
+    QList<int> getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet);
     void comparePagesBatch(
             Status *status,
             CompareResults &results,
