@@ -97,10 +97,10 @@ message(STATUS "Poppler version: ${POPPLER_VERSION_STR}")
 
 # ---- Translations (.ts → .qm) ----
 set(TS_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/confrontapdf_cz.ts
-    ${CMAKE_CURRENT_SOURCE_DIR}/confrontapdf_de.ts
-    ${CMAKE_CURRENT_SOURCE_DIR}/confrontapdf_es.ts
-    ${CMAKE_CURRENT_SOURCE_DIR}/confrontapdf_fr.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/disparPDF_cz.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/disparPDF_de.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/disparPDF_es.ts
+    ${CMAKE_CURRENT_SOURCE_DIR}/disparPDF_fr.ts
 )
 if(QT_VERSION_MAJOR EQUAL 6)
     qt6_add_translation(QM_FILES ${TS_FILES})

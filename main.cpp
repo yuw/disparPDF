@@ -29,8 +29,8 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_MACOS
     app.setCursorFlashTime(0);
 #endif
-    app.setOrganizationName("ConfrontaPDF");
-    app.setOrganizationDomain("ConfrontaPDF");
+    app.setOrganizationName("disparPDF");
+    app.setOrganizationDomain("disparPDF");
     app.setApplicationName(AboutForm::ProgramName);
     app.setWindowIcon(QIcon(":/icon.png"));
     QTextStream out(stdout);
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
         } else if (optionsOK && arg.startsWith(LanguageOption))
             language = arg.mid(LanguageOption.length());
         else if (optionsOK && (arg == "--help" || arg == "-h")) {
-            out << "usage: confrontapdf [options] [file1.pdf [file2.pdf]]\n\n"
+            out << "usage: disparPDF [options] [file1.pdf [file2.pdf]]\n\n"
                 "A program that compares two PDF files and shows "
                 "their differences.\n"
                 "\nThe files are optional and are normally set "
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
         }
         app.installTranslator(&qtTranslator);
         QTranslator appTranslator;
-        appTranslator.load("confrontapdf_" + language, ":/");
+        appTranslator.load("disparPDF_" + language, ":/");
         app.installTranslator(&appTranslator);
     }
 
