@@ -50,18 +50,22 @@ OptionsForm::OptionsForm(QPen *pen, QBrush *brush, qreal *ruleWidth,
 void OptionsForm::createWidgets()
 {
     colorComboBox = new QComboBox;
-    for (const QString &name : QColor::colorNames()) {
-        QColor color(name);
-        colorComboBox->addItem(colorSwatch(color), name, color);
+    {
+        const QStringList colorNames = QColor::colorNames();
+        for (const QString &name : colorNames) {
+            QColor color(name);
+            colorComboBox->addItem(colorSwatch(color), name, QVariant::fromValue(color));
+        }
     }
-    colorComboBox->setCurrentIndex(colorComboBox->findData(pen.color()));
+    colorComboBox->setCurrentIndex(colorComboBox->findData(QVariant::fromValue(pen.color())));
 
     QColor color = pen.color();
     color.setAlphaF(*m_alpha / 100.0);
 
     brushStyleComboBox = new QComboBox;
+    {
     typedef QPair<QString, Qt::BrushStyle> BrushPair;
-    for (const BrushPair &pair : QList<BrushPair>()
+    const QList<BrushPair> brushPairs = QList<BrushPair>()
             << qMakePair(tr("No Brush"), Qt::NoBrush)
             << qMakePair(tr("Solid"), Qt::SolidPattern)
             << qMakePair(tr("Dense #1"), Qt::Dense1Pattern)
@@ -75,25 +79,30 @@ void OptionsForm::createWidgets()
             << qMakePair(tr("Cross"), Qt::CrossPattern)
             << qMakePair(tr("Diagonal /"), Qt::BDiagPattern)
             << qMakePair(tr("Diagonal \\"), Qt::FDiagPattern)
-            << qMakePair(tr("Diagonal Cross"), Qt::DiagCrossPattern))
+            << qMakePair(tr("Diagonal Cross"), Qt::DiagCrossPattern);
+    for (const BrushPair &pair : brushPairs)
         brushStyleComboBox->addItem(brushSwatch(pair.second, color),
                                                 pair.first, static_cast<int>(pair.second));
     brushStyleComboBox->setCurrentIndex(brushStyleComboBox->findData(
                 static_cast<int>(brush.style())));
+    }
 
     penStyleComboBox = new QComboBox;
+    {
     typedef QPair<QString, Qt::PenStyle> PenPair;
-    for (const PenPair &pair : QList<PenPair>()
+    const QList<PenPair> penPairs = QList<PenPair>()
             << qMakePair(tr("No Pen"), Qt::NoPen)
             << qMakePair(tr("Solid"), Qt::SolidLine)
             << qMakePair(tr("Dashed"), Qt::DashLine)
             << qMakePair(tr("Dotted"), Qt::DotLine)
             << qMakePair(tr("Dash-Dotted"), Qt::DashDotLine)
-            << qMakePair(tr("Dash-Dot-Dotted"), Qt::DashDotDotLine))
+            << qMakePair(tr("Dash-Dot-Dotted"), Qt::DashDotDotLine);
+    for (const PenPair &pair : penPairs)
         penStyleComboBox->addItem(penStyleSwatch(pair.second, color),
                                   pair.first, static_cast<int>(pair.second));
     penStyleComboBox->setCurrentIndex(penStyleComboBox->findData(
                 static_cast<int>(pen.style())));
+    }
 
     alphaSpinBox = new QSpinBox;
     alphaSpinBox->setRange(1, 100);
