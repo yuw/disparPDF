@@ -21,6 +21,7 @@ This Qt6 port was created by Yuwsuke Kieda in 2026 with the assistance of AI too
 
 ```sh
 brew tap yuw/disparPDF
+brew trust yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 ```
 
@@ -47,6 +48,7 @@ If you have previously built and installed disparPDF manually, follow these step
 ```sh
 # 1. Install via Homebrew tap
 brew tap yuw/disparPDF
+brew trust yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 
 # 2. Verify the tap installation

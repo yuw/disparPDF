@@ -18,6 +18,7 @@
 
 ```sh
 brew tap yuw/disparPDF
+brew trust yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 ```
 
@@ -44,6 +45,7 @@ codesign --force --sign - /Applications/disparPDF.app/Contents/MacOS/disparPDF
 ```sh
 # 1. Homebrew tapでインストール
 brew tap yuw/disparPDF
+brew trust yuw/disparPDF
 brew install yuw/disparPDF/disparPDF
 
 # 2. インストールの確認
