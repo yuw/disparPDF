@@ -74,8 +74,9 @@ Ranges unorderedRange(int end, int start)
 QPixmap colorSwatch(const QColor &color)
 {
     QString key = QString("COLORSWATCH:%1").arg(color.name());
-    QPixmap pixmap(SwatchSize);
+    QPixmap pixmap;
     if (!QPixmapCache::find(key, &pixmap)) {
+        pixmap = QPixmap(SwatchSize);
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
@@ -95,8 +96,9 @@ QPixmap brushSwatch(const Qt::BrushStyle style, const QColor &color)
 {
     QString key = QString("BRUSHSTYLESWATCH:%1:%2:%3")
         .arg(static_cast<int>(style)).arg(color.name()).arg(color.alpha());
-    QPixmap pixmap(SwatchSize);
+    QPixmap pixmap;
     if (!QPixmapCache::find(key, &pixmap)) {
+        pixmap = QPixmap(SwatchSize);
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
@@ -116,8 +118,9 @@ QPixmap penStyleSwatch(const Qt::PenStyle style, const QColor &color)
 {
     QString key = QString("PENSTYLESWATCH:%1:%2")
         .arg(static_cast<int>(style)).arg(color.name());
-    QPixmap pixmap(SwatchSize);
+    QPixmap pixmap;
     if (!QPixmapCache::find(key, &pixmap)) {
+        pixmap = QPixmap(SwatchSize);
         pixmap.fill(Qt::transparent);
         {
             QPainter painter(&pixmap);
