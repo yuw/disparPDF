@@ -1426,43 +1426,51 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
         const PdfDocument &pdf1, const QString &filename2,
         const PdfDocument &pdf2)
 {
-    QList<int> pages1 = getPageList(1, pdf1);
-    QList<int> pages2 = getPageList(2, pdf2);
-    int total = qMin(pages1.count(), pages2.count());
+    const QList<int> pages1 = getPageList(1, pdf1);
+    const QList<int> pages2 = getPageList(2, pdf2);
+    const int total = qMin(pages1.count(), pages2.count());
+    PageCompareOptions options;
+    options.compareAppearance = currentCompareIndex == CompareAppearance;
+    options.excludeMargins = marginsGroupBox->isChecked();
+    options.topMargin = topMarginSpinBox->value();
+    options.bottomMargin = bottomMarginSpinBox->value();
+    options.leftMargin = leftMarginSpinBox->value();
+    options.rightMargin = rightMarginSpinBox->value();
+    const QVector<PagePairResult> results = comparePagesInParallel(
+            filename1, pdf1, pages1, filename2, pdf2, pages2, options,
+            &cancel, [this, total](int done) {
+                statusLabel->setText(tr("Comparing %1/%2").arg(done)
+                                                          .arg(total));
+                QApplication::processEvents();
+            });
     int number = 0;
     int index = 0;
-    while (!pages1.isEmpty() && !pages2.isEmpty()) {
-        int p1 = pages1.takeFirst();
-        PdfPage page1 = pdf1->page(p1);
-        if (!page1) {
-            writeError(tr("Failed to read page %1 from '%2'.")
-                          .arg(p1 + 1).arg(filename1));
+    for (int i = 0; i < total; ++i) {
+        const PagePairResult &result = results.at(i);
+        if (!result.compared)
             continue;
-        }
-        int p2 = pages2.takeFirst();
-        PdfPage page2 = pdf2->page(p2);
-        if (!page2) {
+        const int p1 = pages1.at(i);
+        const int p2 = pages2.at(i);
+        if (result.unreadableFile) {
             writeError(tr("Failed to read page %1 from '%2'.")
-                          .arg(p2 + 1).arg(filename2));
+                    .arg((result.unreadableFile == 1 ? p1 : p2) + 1)
+                    .arg(result.unreadableFile == 1 ? filename1
+                                                    : filename2));
             continue;
         }
         writeLine(tr("Comparing: %1 vs. %2.").arg(p1 + 1).arg(p2 + 1));
-        QApplication::processEvents();
-        if (cancel) {
-            writeError(tr("Cancelled."));
-            break;
-        }
-        Difference difference = getTheDifference(page1, page2);
-        if (difference != NoDifference) {
+        ++number;
+        if (result.difference != NoPageDifference) {
             QVariant v;
-            v.setValue(PagePair(p1, p2, difference == VisualDifference));
+            v.setValue(PagePair(p1, p2,
+                    result.difference == VisualPageDifference));
             viewDiffComboBox->addItem(tr("%1 vs. %2 %3 %4")
                     .arg(p1 + 1).arg(p2 + 1).arg(QChar(0x2022))
                     .arg(++index), v);
         }
-        statusLabel->setText(tr("Comparing %1/%2").arg(++number)
-                                                  .arg(total));
     }
+    if (cancel)
+        writeError(tr("Cancelled."));
     return qMakePair(number, total);
 }
 
@@ -1515,39 +1523,6 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
 }
 
 
-MainWindow::Difference MainWindow::getTheDifference(PdfPage page1,
-                                                    PdfPage page2)
-{
-    QRectF rect;
-    if (marginsGroupBox->isChecked())
-        rect = pointRectForMargins(page1->pageSize());
-    const TextBoxList list1 = getTextBoxes(page1, rect);
-    const TextBoxList list2 = getTextBoxes(page2, rect);
-    if (list1.size() != list2.size())
-        return TextualDifference;
-    for (int i = 0; i < list1.size(); ++i)
-        if (list1[i]->text() != list2[i]->text())
-            return TextualDifference;
-//refactor prima di lanciare
-    if (currentCompareIndex == CompareAppearance) {
-        int x = -1;
-        int y = -1;
-        int width = -1;
-        int height = -1;
-        if (marginsGroupBox->isChecked())
-            computeImageOffsets(page1->pageSize(), POINTS_PER_INCH,
-                    &x, &y, &width, &height);
-        QImage image1 = page1->renderToImage(POINTS_PER_INCH,
-                POINTS_PER_INCH, x, y, width, height);
-        QImage image2 = page2->renderToImage(POINTS_PER_INCH,
-                POINTS_PER_INCH, x, y, width, height);
-        if (image1 != image2)
-            return VisualDifference;
-    }
-    return NoDifference;
-}
-
-
 QRectF MainWindow::pointRectForMargins(const QSize &size)
 {
     return rectForMargins(size.width(), size.height(),
@@ -1557,18 +1532,6 @@ QRectF MainWindow::pointRectForMargins(const QSize &size)
 
 
 // The offsets are in pixels of an image rendered at the given DPI
-void MainWindow::computeImageOffsets(const QSize &size, const int DPI, int *x,
-        int *y, int *width, int *height)
-{
-    *y = pixelOffsetForPointValue(DPI, topMarginSpinBox->value());
-    *x = pixelOffsetForPointValue(DPI, leftMarginSpinBox->value());
-    *width = pixelOffsetForPointValue(DPI, size.width() -
-            (leftMarginSpinBox->value() + rightMarginSpinBox->value()));
-    *height = pixelOffsetForPointValue(DPI, size.height() -
-            (topMarginSpinBox->value() + bottomMarginSpinBox->value()));
-}
-
-
 void MainWindow::options()
 {
     QSettings settings;

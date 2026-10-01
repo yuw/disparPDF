@@ -59,15 +59,15 @@ if(APPLE)
 endif()
 
 # ---- Qt (prefer Qt6, fall back to Qt5) ----
-find_package(Qt6 QUIET COMPONENTS Core Gui Widgets PrintSupport Xml LinguistTools)
+find_package(Qt6 QUIET COMPONENTS Core Gui Widgets PrintSupport Xml Concurrent LinguistTools)
 if(Qt6_FOUND)
     set(QT_VERSION_MAJOR 6)
-    set(QT_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport Qt6::Xml)
+    set(QT_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport Qt6::Xml Qt6::Concurrent)
     message(STATUS "Using Qt6 ${Qt6_VERSION}")
 else()
-    find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets PrintSupport Xml LinguistTools)
+    find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets PrintSupport Xml Concurrent LinguistTools)
     set(QT_VERSION_MAJOR 5)
-    set(QT_LIBS Qt5::Core Qt5::Gui Qt5::Widgets Qt5::PrintSupport Qt5::Xml)
+    set(QT_LIBS Qt5::Core Qt5::Gui Qt5::Widgets Qt5::PrintSupport Qt5::Xml Qt5::Concurrent)
     message(STATUS "Using Qt5 ${Qt5_VERSION}")
 endif()
 
@@ -213,6 +213,7 @@ set(COMMON_SOURCES
     label.cpp
     lineedit.cpp
     mainwindow.cpp
+    pagecompare.cpp
     optionsform.cpp
     saveform.cpp
     sequence_matcher.cpp
@@ -235,6 +236,7 @@ set(COMMON_HEADERS
     lineedit.hpp
     mainwindow.hpp
     optionsform.hpp
+    pagecompare.h
     saveform.hpp
     sequence_matcher.hpp
     startupparameters.h

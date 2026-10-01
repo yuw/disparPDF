@@ -13,6 +13,7 @@
 */
 
 #include "generic.hpp"
+#include "pagecompare.h"
 #include "saveform.hpp"
 #if QT_VERSION >= 0x040600
 #else
@@ -102,8 +103,6 @@ private slots:
     void setAMargin(const QPoint &pos);
 
 private:
-    enum Difference {NoDifference, TextualDifference, VisualDifference};
-
     void createWidgets(const QString &filename1, const QString &filename2);
     void createCentralArea();
     void createDockWidgets();
@@ -118,7 +117,6 @@ private:
     void writeError(const QString &text);
     PdfDocument getPdf(const QString &filename);
     QList<int> getPageList(int which, const PdfDocument &pdf);
-    Difference getTheDifference(PdfPage page1, PdfPage page2);
     void paintOnImage(const QPainterPath &path, QImage *image);
     const QPair<QPixmap, QPixmap> populatePixmaps(const PdfDocument &pdf1,
             const PdfPage &page1, const PdfDocument &pdf2,
@@ -148,8 +146,6 @@ private:
     void saveAsImages(const int start, const int end,
             const PdfDocument &pdf1, const PdfDocument &pdf2,
             const QString &header);
-    void computeImageOffsets(const QSize &size, const int DPI, int *x,
-            int *y, int *width, int *height);
     QRectF pointRectForMargins(const QSize &size);
     QRect pixelRectForMargins(const QSize &size);
 
@@ -220,7 +216,7 @@ private:
     Qt::DockWidgetArea marginsDockArea;
     Qt::DockWidgetArea zoningDockArea;
     Qt::DockWidgetArea logDockArea;
-    bool cancel;
+    std::atomic<bool> cancel;
     bool showToolTips;
     bool combineTextHighlighting;
     QString saveFilename;

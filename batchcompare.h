@@ -15,6 +15,7 @@
 #define BATCHCOMPARE_H
 
 #include "generic.hpp"
+#include "pagecompare.h"
 #include "saveform.hpp"
 #if QT_VERSION >= 0x040600
 #else
@@ -63,10 +64,7 @@ protected:
     void initValues();
 
 private:
-    enum Difference {NoDifference, TextualDifference, VisualDifference};
-
     PdfDocument getPdf(const QString &filename);
-    Difference getTheDifference(PdfPage page1, PdfPage page2);
     void paintOnImage(const QPainterPath &path, QImage *image);
     void computeTextHighlights(QPainterPath *highlighted1,
             QPainterPath *highlighted2, const PdfPage &page1,
@@ -92,8 +90,6 @@ private:
     void saveAsImages(const int start, const int end,
             const PdfDocument &pdf1, const PdfDocument &pdf2,
             const QString &header);
-    void computeImageOffsets(const QSize &size, const int DPI, int *x,
-            int *y, int *width, int *height);
     QRectF pointRectForMargins(const QSize &size);
     QRect pixelRectForMargins(const QSize &size);
 

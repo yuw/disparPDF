@@ -370,39 +370,6 @@ PdfDocument BatchCompare::getPdf(const QString &filename)
     return pdf;
 }
 
-BatchCompare::Difference BatchCompare::getTheDifference(PdfPage page1,
-                                                    PdfPage page2)
-{
-    QRectF rect;
-    if (marginsGroupBoxChecked)
-        rect = pointRectForMargins(page1->pageSize());
-    const TextBoxList list1 = getTextBoxes(page1, rect);
-    const TextBoxList list2 = getTextBoxes(page2, rect);
-    if (list1.size() != list2.size())
-        return TextualDifference;
-    for (int i = 0; i < list1.size(); ++i)
-        if (list1[i]->text() != list2[i]->text())
-            return TextualDifference;
-//refactor prima di lanciare
-    if (currentCompareIndex == CompareAppearance) {
-        int x = -1;
-        int y = -1;
-        int width = -1;
-        int height = -1;
-        if (marginsGroupBoxChecked)
-            computeImageOffsets(page1->pageSize(), POINTS_PER_INCH,
-                    &x, &y, &width, &height);
-        QImage image1 = page1->renderToImage(POINTS_PER_INCH,
-                POINTS_PER_INCH, x, y, width, height);
-        QImage image2 = page2->renderToImage(POINTS_PER_INCH,
-                POINTS_PER_INCH, x, y, width, height);
-        if (image1 != image2)
-            return VisualDifference;
-    }
-    return NoDifference;
-}
-
-
 QRectF BatchCompare::pointRectForMargins(const QSize &size)
 {
     return rectForMargins(size.width(), size.height(),
@@ -411,17 +378,6 @@ QRectF BatchCompare::pointRectForMargins(const QSize &size)
 }
 
 // The offsets are in pixels of an image rendered at the given DPI
-void BatchCompare::computeImageOffsets(const QSize &size, const int DPI, int *x,
-        int *y, int *width, int *height)
-{
-    *y = pixelOffsetForPointValue(DPI, topMarginSpinBoxValue);
-    *x = pixelOffsetForPointValue(DPI, leftMarginSpinBoxValue);
-    *width = pixelOffsetForPointValue(DPI, size.width() -
-            (leftMarginSpinBoxValue + rightMarginSpinBoxValue));
-    *height = pixelOffsetForPointValue(DPI, size.height() -
-            (topMarginSpinBoxValue + bottomMarginSpinBoxValue));
-}
-
 void BatchCompare::batchOperation()
 {
     PdfDocument pdf1 = getPdf(_startupParameters->file1());
@@ -497,22 +453,29 @@ void BatchCompare::comparePagesBatch(
     }
     currentCompareIndex = _startupParameters->comparisonMode();
     results.setTotal(qMin(pages1.count(), pages2.count()));
-    while (!pages1.isEmpty() && !pages2.isEmpty()) {
-        int p1 = pages1.takeFirst();
-        PdfPage page1 = pdf1->page(p1);
-        if (!page1) {
+    PageCompareOptions options;
+    options.compareAppearance = currentCompareIndex == CompareAppearance;
+    options.excludeMargins = marginsGroupBoxChecked;
+    options.topMargin = topMarginSpinBoxValue;
+    options.bottomMargin = bottomMarginSpinBoxValue;
+    options.leftMargin = leftMarginSpinBoxValue;
+    options.rightMargin = rightMarginSpinBoxValue;
+    const QVector<PagePairResult> pairResults = comparePagesInParallel(
+            filename1, pdf1, pages1, filename2, pdf2, pages2, options);
+    for (int i = 0; i < pairResults.count(); ++i) {
+        const PagePairResult &result = pairResults.at(i);
+        const int p1 = pages1.at(i);
+        const int p2 = pages2.at(i);
+        if (result.unreadableFile == 1) {
             _status->setStatusWithDescription( ErrorLoadingPage, tr("Failed to read page %1 from '%2'.").arg(p1 + 1).arg(filename1));
             continue;
         }
-        int p2 = pages2.takeFirst();
-        PdfPage page2 = pdf2->page(p2);
-        if (!page2) {
+        if (result.unreadableFile == 2) {
             _status->setStatusWithDescription( ErrorLoadingPage, tr("Failed to read page %1 from '%2'.").arg(p2 + 1).arg(filename2));
             continue;
         }
-        Difference difference = getTheDifference(page1, page2);
-        if (difference != NoDifference) {
-            results.differences().append(PagePair(p1, p2, difference == VisualDifference));
+        if (result.difference != NoPageDifference) {
+            results.differences().append(PagePair(p1, p2, result.difference == VisualPageDifference));
             results.incCount();
             status->setStatusWithDescription( ErrorDocDiffer, tr("documents differ at page: %1").arg(p1+1));
         }
