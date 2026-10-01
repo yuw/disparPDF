@@ -1535,8 +1535,8 @@ MainWindow::Difference MainWindow::getTheDifference(PdfPage page1,
         int width = -1;
         int height = -1;
         if (marginsGroupBox->isChecked())
-            computeImageOffsets(page1->pageSize(), &x, &y, &width,
-                    &height);
+            computeImageOffsets(page1->pageSize(), POINTS_PER_INCH,
+                    &x, &y, &width, &height);
         QImage image1 = page1->renderToImage(POINTS_PER_INCH,
                 POINTS_PER_INCH, x, y, width, height);
         QImage image2 = page2->renderToImage(POINTS_PER_INCH,
@@ -1556,11 +1556,10 @@ QRectF MainWindow::pointRectForMargins(const QSize &size)
 }
 
 
-void MainWindow::computeImageOffsets(const QSize &size, int *x, int *y,
-        int *width, int *height)
+// The offsets are in pixels of an image rendered at the given DPI
+void MainWindow::computeImageOffsets(const QSize &size, const int DPI, int *x,
+        int *y, int *width, int *height)
 {
-    const int DPI = static_cast<int>(POINTS_PER_INCH *
-                (zoomSpinBox->value() / 100.0));
     *y = pixelOffsetForPointValue(DPI, topMarginSpinBox->value());
     *x = pixelOffsetForPointValue(DPI, leftMarginSpinBox->value());
     *width = pixelOffsetForPointValue(DPI, size.width() -

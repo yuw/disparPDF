@@ -92,8 +92,8 @@ private:
     void saveAsImages(const int start, const int end,
             const PdfDocument &pdf1, const PdfDocument &pdf2,
             const QString &header);
-    void computeImageOffsets(const QSize &size, int *x, int *y,
-            int *width, int *height);
+    void computeImageOffsets(const QSize &size, const int DPI, int *x,
+            int *y, int *width, int *height);
     QRectF pointRectForMargins(const QSize &size);
     QRect pixelRectForMargins(const QSize &size);
 
