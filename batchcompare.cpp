@@ -360,6 +360,13 @@ PdfDocument BatchCompare::getPdf(const QString &filename)
         pdf.reset();
 #endif
     }
+    if (pdf) {
+        // Compare and highlight pages as they are displayed: without
+        // antialiasing, some visible differences (such as text printed
+        // twice in the same place, which looks bolder) render identically.
+        pdf->setRenderHint(Poppler::Document::Antialiasing);
+        pdf->setRenderHint(Poppler::Document::TextAntialiasing);
+    }
     return pdf;
 }
 
@@ -631,10 +638,6 @@ const QPair<QPixmap, QPixmap> BatchCompare::populatePixmaps(
             plainImage1 = page1->renderToImage(DPI, DPI);
             plainImage2 = page2->renderToImage(DPI, DPI);
         }
-        pdf1->setRenderHint(Poppler::Document::Antialiasing);
-        pdf1->setRenderHint(Poppler::Document::TextAntialiasing);
-        pdf2->setRenderHint(Poppler::Document::Antialiasing);
-        pdf2->setRenderHint(Poppler::Document::TextAntialiasing);
         QImage image1 = page1->renderToImage(DPI, DPI);
         QImage image2 = page2->renderToImage(DPI, DPI);
 
