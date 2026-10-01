@@ -29,8 +29,9 @@ class QRectF;
 
 // Qt6 Poppler: Document::load() / Page::page() return unique_ptr
 typedef std::unique_ptr<Poppler::Document> PdfDocument;
-// Page is still a raw pointer owned by Document
-typedef Poppler::Page *PdfPage;
+// Document::page() also returns unique_ptr: the caller owns the Page
+// (it is not owned by the Document), so keep it in a shared_ptr
+typedef std::shared_ptr<Poppler::Page> PdfPage;
 // Qt6 Poppler: textList() returns vector<unique_ptr<TextBox>>
 typedef std::unique_ptr<Poppler::TextBox> PdfTextBox;
 typedef std::vector<PdfTextBox> TextBoxList;

@@ -500,13 +500,13 @@ void BatchCompare::comparePagesBatch(
     results.setTotal(qMin(pages1.count(), pages2.count()));
     while (!pages1.isEmpty() && !pages2.isEmpty()) {
         int p1 = pages1.takeFirst();
-        PdfPage page1 = pdf1->page(p1).release();
+        PdfPage page1 = pdf1->page(p1);
         if (!page1) {
             _status->setStatusWithDescription( ErrorLoadingPage, tr("Failed to read page %1 from '%2'.").arg(p1 + 1).arg(filename1));
             continue;
         }
         int p2 = pages2.takeFirst();
-        PdfPage page2 = pdf2->page(p2).release();
+        PdfPage page2 = pdf2->page(p2);
         if (!page2) {
             _status->setStatusWithDescription( ErrorLoadingPage, tr("Failed to read page %1 from '%2'.").arg(p2 + 1).arg(filename2));
             continue;
@@ -583,10 +583,10 @@ bool BatchCompare::paintSaveAsBatch(QPainter *painter, CompareResults &results, 
     PagePair pair = results.differences().at(index);
     if (pair.isNull())
         return false;
-    PdfPage page1 = pdf1->page(pair.left).release();
+    PdfPage page1 = pdf1->page(pair.left);
     if (!page1)
         return false;
-    PdfPage page2 = pdf2->page(pair.right).release();
+    PdfPage page2 = pdf2->page(pair.right);
     if (!page2)
         return false;
     const QPair<QString, QString> keys = cacheKeys(index, pair);
@@ -702,7 +702,7 @@ DocInfo *BatchCompare::docInfo(const PdfDocument &pdf, const QString &fileName)
     info->pageCount = pdf->numPages();
     if (info->pageCount > 0) {
         const double PointToMM = 0.3527777777;
-        PdfPage page1 = pdf->page(0).release();
+        PdfPage page1 = pdf->page(0);
         QSize size = page1->pageSize();
         info->pageSize = QString("%1pt x %2pt (%3mm x %4mm)")
                   .arg(size.width()).arg(size.height())

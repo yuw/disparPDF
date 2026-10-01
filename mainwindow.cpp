@@ -814,7 +814,7 @@ void MainWindow::updateViews(int index)
     PdfDocument pdf1 = getPdf(filename1);
     if (!pdf1)
         return;
-    PdfPage page1 = pdf1->page(pair.left).release();
+    PdfPage page1 = pdf1->page(pair.left);
     if (!page1)
         return;
 
@@ -822,7 +822,7 @@ void MainWindow::updateViews(int index)
     PdfDocument pdf2 = getPdf(filename2);
     if (!pdf2)
         return;
-    PdfPage page2 = pdf2->page(pair.right).release();
+    PdfPage page2 = pdf2->page(pair.right);
     if (!page2)
         return;
 
@@ -1296,7 +1296,7 @@ int MainWindow::writeFileInfo(const QString &filename)
     writeLine(tr("Page count: %1.").arg(page_count));
     if (page_count > 0) {
         const double PointToMM = 0.3527777777;
-        PdfPage page1 = pdf->page(0).release();
+        PdfPage page1 = pdf->page(0);
         QSize size = page1->pageSize();
         writeLine(tr("Page size: %1pt x %2pt (%3mm x %4mm).")
                   .arg(size.width()).arg(size.height())
@@ -1433,14 +1433,14 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
     int index = 0;
     while (!pages1.isEmpty() && !pages2.isEmpty()) {
         int p1 = pages1.takeFirst();
-        PdfPage page1 = pdf1->page(p1).release();
+        PdfPage page1 = pdf1->page(p1);
         if (!page1) {
             writeError(tr("Failed to read page %1 from '%2'.")
                           .arg(p1 + 1).arg(filename1));
             continue;
         }
         int p2 = pages2.takeFirst();
-        PdfPage page2 = pdf2->page(p2).release();
+        PdfPage page2 = pdf2->page(p2);
         if (!page2) {
             writeError(tr("Failed to read page %1 from '%2'.")
                           .arg(p2 + 1).arg(filename2));
@@ -1645,10 +1645,10 @@ void MainWindow::saveAsImages(const int start, const int end,
         const PdfDocument &pdf1, const PdfDocument &pdf2,
         const QString &header)
 {
-    PdfPage page1 = pdf1->page(0).release();
+    PdfPage page1 = pdf1->page(0);
     if (!page1)
         return;
-    PdfPage page2 = pdf2->page(0).release();
+    PdfPage page2 = pdf2->page(0);
     if (!page2)
         return;
     int width = 2 * (savePages == SaveBothPages
@@ -1735,10 +1735,10 @@ bool MainWindow::paintSaveAs(QPainter *painter, const int index,
         .value<PagePair>();
     if (pair.isNull())
         return false;
-    PdfPage page1 = pdf1->page(pair.left).release();
+    PdfPage page1 = pdf1->page(pair.left);
     if (!page1)
         return false;
-    PdfPage page2 = pdf2->page(pair.right).release();
+    PdfPage page2 = pdf2->page(pair.right);
     if (!page2)
         return false;
     const QPair<QString, QString> keys = cacheKeys(index, pair);
@@ -1795,7 +1795,7 @@ void MainWindow::showZones()
     PdfDocument pdf1 = getPdf(filename1);
     if (!pdf1)
         return;
-    PdfPage page1 = pdf1->page(pair.left).release();
+    PdfPage page1 = pdf1->page(pair.left);
     if (!page1)
         return;
     const TextBoxList list1 = getTextBoxes(page1);
@@ -1805,7 +1805,7 @@ void MainWindow::showZones()
     PdfDocument pdf2 = getPdf(filename2);
     if (!pdf2)
         return;
-    PdfPage page2 = pdf2->page(pair.right).release();
+    PdfPage page2 = pdf2->page(pair.right);
     if (!page2)
         return;
     const TextBoxList list2 = getTextBoxes(page2);
