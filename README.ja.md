@@ -215,6 +215,7 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 | `Columns` | `1` | 段数 | ページの段数．ゾーニングの精度が上がる |
 | `Tolerance/R` | `8` | Tolerance/R | 同一ゾーンとみなす単語矩形間の最大距離（4〜144） |
 | `Tolerance/Y` | `10` | Tolerance/Y | ゾーニング時にテキストの*y*座標を丸める単位（0〜32） |
+| `RequirePdfExtension` | `true` | オプション ▸ 比較するファイル | コマンドラインで名前が`*.pdf`のファイルだけを受け付け，ファイルダイアログにもそれだけを表示する．バッチモードはこれを見ず，`--any-extension`を指定しない限り常に`*.pdf`が必要 |
 
 ### 表示とハイライト
 

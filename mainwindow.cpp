@@ -69,6 +69,8 @@ MainWindow::MainWindow(const Debug debug,
     _status = status ;
     currentPath = QDir::homePath();
     QSettings settings;
+    requirePdfExtension = settings.value("RequirePdfExtension", true)
+            .toBool() && !_startupParameters->anyExtension();
     pen.setStyle(Qt::NoPen);
     pen.setColor(Qt::red);
     pen = settings.value("Outline", pen).value<QPen>();
@@ -1275,7 +1277,7 @@ void MainWindow::setFile1(QString filename)
     if (filename.isEmpty())
         filename = QFileDialog::getOpenFileName(this,
                 tr("%1 — Choose File #1").arg(AboutForm::ProgramName), currentPath,
-                tr("PDF files (*.pdf)"), nullptr,
+                pdfFileFilter(), nullptr,
                 QFileDialog::DontUseNativeDialog);
     if (!filename.isEmpty()) {
         if (filename == filename2LineEdit->text()) {
@@ -1311,7 +1313,7 @@ void MainWindow::setFile2(QString filename)
     if (filename.isEmpty())
         filename = QFileDialog::getOpenFileName(this,
                 tr("%1 — Choose File #2").arg(AboutForm::ProgramName), currentPath,
-                tr("PDF files (*.pdf)"), nullptr,
+                pdfFileFilter(), nullptr,
                 QFileDialog::DontUseNativeDialog);
     if (!filename.isEmpty()) {
         if (filename == filename1LineEdit->text()) {
@@ -1659,6 +1661,15 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
 }
 
 
+// The file dialog's filters: all files first unless they must be *.pdf
+QString MainWindow::pdfFileFilter() const
+{
+    if (requirePdfExtension)
+        return tr("PDF files (*.pdf)");
+    return tr("All files (*);;PDF files (*.pdf)");
+}
+
+
 void MainWindow::forgetComparison()
 {
     comparedPages1.clear();
@@ -1788,8 +1799,9 @@ void MainWindow::options()
     int squareSize = settings.value("SquareSize", 10).toInt();
     OptionsForm form(&pen, &brush, &ruleWidth, &showToolTips,
             &combineTextHighlighting, &cacheSize, &alpha, &squareSize,
-            this);
+            &requirePdfExtension, this);
     if (form.exec()) {
+        settings.setValue("RequirePdfExtension", requirePdfExtension);
         settings.setValue("RuleWidth", ruleWidth);
         settings.setValue("CombineTextHighlighting",
                           combineTextHighlighting);

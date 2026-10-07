@@ -19,6 +19,7 @@
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
+#include <QRadioButton>
 #include <QGroupBox>
 #include <QPushButton>
 #include <QSpinBox>
@@ -28,11 +29,13 @@
 
 OptionsForm::OptionsForm(QPen *pen, QBrush *brush, qreal *ruleWidth,
         bool *showToolTips,  bool *combineTextHighlighting,
-        int *cacheSize, int *alpha, int *squareSize, QWidget *parent)
+        int *cacheSize, int *alpha, int *squareSize,
+        bool *requirePdfExtension, QWidget *parent)
     : QDialog(parent), m_pen(pen), m_brush(brush), m_ruleWidth(ruleWidth),
       m_showToolTips(showToolTips),
       m_combineTextHighlighting(combineTextHighlighting),
-      m_cacheSize(cacheSize), m_alpha(alpha), m_squareSize(squareSize)
+      m_cacheSize(cacheSize), m_alpha(alpha), m_squareSize(squareSize),
+      m_requirePdfExtension(requirePdfExtension)
 {
     this->pen = *m_pen;
     this->brush = *m_brush;
@@ -134,6 +137,17 @@ void OptionsForm::createWidgets()
                                             "the Main Window"));
     showToolTipsCheckBox->setChecked(*m_showToolTips);
 
+    requirePdfExtensionRadioButton = new QRadioButton(
+            tr("Only files &named *.pdf"));
+    anyExtensionRadioButton = new QRadioButton(tr("Any fi&le name"));
+    const QString fileNamesToolTip(tr("<p>Which files can be chosen to "
+            "compare: only those whose names end in .pdf, or any. (On the "
+            "command line, --any-extension allows any name.)"));
+    requirePdfExtensionRadioButton->setToolTip(fileNamesToolTip);
+    anyExtensionRadioButton->setToolTip(fileNamesToolTip);
+    requirePdfExtensionRadioButton->setChecked(*m_requirePdfExtension);
+    anyExtensionRadioButton->setChecked(!*m_requirePdfExtension);
+
     combineTextHighlightingCheckBox = new QCheckBox(
             tr("Combine Highlighting in &Text Modes"));
     combineTextHighlightingCheckBox->setChecked(
@@ -159,6 +173,12 @@ void OptionsForm::createLayout()
     QFormLayout *generalLayout = new QFormLayout;
     generalLayout->addRow(showToolTipsCheckBox);
     generalLayout->addRow(tr("&Rule width:"), ruleWidthSpinBox);
+    QVBoxLayout *fileNamesLayout = new QVBoxLayout;
+    fileNamesLayout->addWidget(requirePdfExtensionRadioButton);
+    fileNamesLayout->addWidget(anyExtensionRadioButton);
+    QGroupBox *fileNamesGroupBox = new QGroupBox(tr("Files to compare"));
+    fileNamesGroupBox->setLayout(fileNamesLayout);
+    generalLayout->addRow(fileNamesGroupBox);
     QWidget *widget = new QWidget;
     widget->setLayout(generalLayout);
     tabWidget->addTab(widget, tr("&General"));
@@ -276,5 +296,6 @@ void OptionsForm::accept()
     *m_cacheSize = cacheSizeSpinBox->value();
     *m_alpha = alphaSpinBox->value();
     *m_squareSize = squareSizeSpinBox->value();
+    *m_requirePdfExtension = requirePdfExtensionRadioButton->isChecked();
     QDialog::accept();
 }

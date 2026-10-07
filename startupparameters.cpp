@@ -26,6 +26,7 @@ StartupParameters::StartupParameters()
     _pdfDiffAllPages = false ;
     _useXmlResult = false;
     _compareFonts = false;
+    _anyExtension = false;
 }
 
 StartupParameters::~StartupParameters()
@@ -43,6 +44,7 @@ static const QString XMLResultFile = "--xmlResult=";
 static const QString Key = "--key=";
 static const QString SettingsFile = "--settings=";
 static const QString CompareFonts = "--compareFonts";
+static const QString AnyExtension = "--any-extension";
 
 bool StartupParameters::parseArgument(const QString &arg, Status *status)
 {
@@ -96,6 +98,8 @@ bool StartupParameters::parseArgument(const QString &arg, Status *status)
         status->setParamError(error, SettingsFile);
     } else if( arg.startsWith(CompareFonts)) {
         _compareFonts = true;
+    } else if( arg == AnyExtension ) {
+        _anyExtension = true;
     } else {
         return false;
     }
@@ -260,4 +264,9 @@ void StartupParameters::setSettingsFile(const QString &settingsFile)
 bool StartupParameters::isCompareFonts()
 {
     return _compareFonts ;
+}
+
+bool StartupParameters::anyExtension() const
+{
+    return _anyExtension;
 }

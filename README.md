@@ -231,6 +231,7 @@ control at all.
 | `Columns` | `1` | Columns | How many columns the page has; improves zoning |
 | `Tolerance/R` | `8` | Tolerance/R | Largest distance (4–144) between word rectangles for them to land in the same zone |
 | `Tolerance/Y` | `10` | Tolerance/Y | Text *y* coordinates are rounded to this (0–32) when zoning |
+| `RequirePdfExtension` | `true` | Options ▸ Files to compare | Accept only files named `*.pdf` on the command line and show only those in the file dialogs. Batch mode ignores this and always requires `*.pdf` unless `--any-extension` is given |
 
 ### Display and highlighting
 

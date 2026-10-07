@@ -43,6 +43,7 @@ class StartupParameters
     QString _key;
     QString _settingsFile;
     bool _compareFonts;
+    bool _anyExtension;
 public:
     StartupParameters();
     ~StartupParameters();
@@ -85,6 +86,8 @@ public:
     QString settingsFile() const;
     void setSettingsFile(const QString &settingsFile);
     bool isCompareFonts();
+    // True if --any-extension was given: files need not be named *.pdf
+    bool anyExtension() const;
 };
 
 #endif // STARTUPPARAMETERS_H

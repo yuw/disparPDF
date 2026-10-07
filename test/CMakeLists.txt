@@ -81,4 +81,13 @@ disparpdf_test(inserted 2 - -- --words ${DATA}/base.pdf ${DATA}/inserted.pdf)
 disparpdf_test(inserted-start-pages 0 0 -- --words --startPage1=2
                --startPage2=3 --pages=2 ${DATA}/base.pdf ${DATA}/inserted.pdf)
 
+# File names must end in .pdf unless --any-extension is given
+configure_file(${DATA}/base.pdf ${CMAKE_CURRENT_BINARY_DIR}/base.dat COPYONLY)
+disparpdf_test(extension-required -1 0 -- --words
+               ${CMAKE_CURRENT_BINARY_DIR}/base.dat ${DATA}/same.pdf)
+disparpdf_test(any-extension-same 0 0 -- --words --any-extension
+               ${CMAKE_CURRENT_BINARY_DIR}/base.dat ${DATA}/same.pdf)
+disparpdf_test(any-extension-word 1 1 -- --words --any-extension
+               ${CMAKE_CURRENT_BINARY_DIR}/base.dat ${DATA}/word.pdf)
+
 disparpdf_test(help - - --stdout "usage: disparPDF" -- --help)

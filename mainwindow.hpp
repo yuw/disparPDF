@@ -114,6 +114,7 @@ private:
     void showPair(const int pairIndex);
     int differingPairNear(const int pairIndex, const bool after) const;
     void stepPage(const int which, const int delta);
+    QString pdfFileFilter() const;
     int writeFileInfo(const QString &filename);
     void writeLine(const QString &text);
     void writeError(const QString &text);
@@ -235,6 +236,7 @@ private:
     QVector<int> pairDifference;
     int viewedPairIndex = -1; // -1 if none
     QString comparisonSummary; // e.g., "3 differ 10/10 compared"
+    bool requirePdfExtension; // only offer files named *.pdf
     bool showToolTips;
     bool combineTextHighlighting;
     QString saveFilename;

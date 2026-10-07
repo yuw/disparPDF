@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
     Status status ;
     bool seenCompareType = false;
     QStringList errors;
+    QStringList fileArguments;
 
 #ifdef  COMPARA_IS_CONSOLE
     startupParameters.setIsBatch(true);
@@ -92,6 +93,8 @@ int main(int argc, char *argv[])
                 "--help        -h   show this usage text and terminate "
                 "(run the program without this option and press F1 for "
                 "online help)\n"
+                "--any-extension    accept files whose names do not end "
+                "in .pdf\n"
                 "--appearance  -a   set the initial comparison mode to "
                 "Appearance\n"
                 "--characters  -c   set the initial comparison mode to "
@@ -135,10 +138,25 @@ int main(int argc, char *argv[])
             optionsOK = false;
         } else if (optionsOK && startupParameters.parseArgument(arg, &status) ) {
             ; // empty statement
-        } else if (filename1.isEmpty() && arg.toLower().endsWith(".pdf")) {
+        } else if (optionsOK && arg.startsWith('-') && arg != "-") {
+            errors << arg ; // An unknown option
+        } else {
+            fileArguments << arg ;
+        }
+    }
+    // The first two arguments that are not options are the files to
+    // compare.  Their names must end in .pdf, unless --any-extension is
+    // given or, in the GUI, the Options dialog says otherwise.
+    const bool requirePdfExtension = !startupParameters.anyExtension() &&
+            (startupParameters.isBatch() ||
+             settings.value("RequirePdfExtension", true).toBool());
+    for (const QString &arg : std::as_const(fileArguments)) {
+        const bool acceptable = !requirePdfExtension ||
+                                arg.toLower().endsWith(".pdf");
+        if (acceptable && filename1.isEmpty()) {
             filename1 = arg;
             startupParameters.setFile1(filename1);
-        } else if (filename2.isEmpty() && arg.toLower().endsWith(".pdf")) {
+        } else if (acceptable && filename2.isEmpty()) {
             filename2 = arg;
             startupParameters.setFile2(filename2);
         } else {

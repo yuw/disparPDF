@@ -20,6 +20,7 @@ class QCheckBox;
 class QComboBox;
 class QDialogButtonBox;
 class QDoubleSpinBox;
+class QRadioButton;
 class QSpinBox;
 class QTabWidget;
 
@@ -32,7 +33,7 @@ public:
     OptionsForm(QPen *pen, QBrush *brush, qreal *ruleWidth,
             bool *showToolTips, bool *combineTextHighlighting,
             int *cacheSize, int *alpha, int *squareSize,
-            QWidget *parent=0);
+            bool *requirePdfExtension, QWidget *parent=0);
 
 private slots:
     void updateColor(int index);
@@ -55,6 +56,8 @@ private:
     QSpinBox *squareSizeSpinBox;
     QDoubleSpinBox *ruleWidthSpinBox;
     QCheckBox *showToolTipsCheckBox;
+    QRadioButton *requirePdfExtensionRadioButton;
+    QRadioButton *anyExtensionRadioButton;
     QCheckBox *combineTextHighlightingCheckBox;
     QSpinBox *cacheSizeSpinBox;
     QDialogButtonBox *buttonBox;
@@ -67,6 +70,7 @@ private:
     int *m_cacheSize;
     int *m_alpha;
     int *m_squareSize;
+    bool *m_requirePdfExtension;
     QPen pen;
     QBrush brush;
 };
