@@ -13,8 +13,48 @@
 #include "pagecompare.h"
 #include <QFuture>
 #include <QImage>
+#include <QMultiHash>
 #include <QThread>
 #include <QtConcurrent>
+
+
+// True if each word in one list matches a word with the same text in the
+// other whose bounding box is within tolerance points of its own.
+// Poppler's reading order can change when text moves by a tiny fraction
+// of a point (e.g., after rewriting a PDF with Ghostscript), so the same
+// words in the same places can come out in a different order.
+static bool sameWordsInSamePlaces(const TextBoxList &list1,
+                                  const TextBoxList &list2,
+                                  const qreal tolerance)
+{
+    if (list1.size() != list2.size())
+        return false;
+    QMultiHash<QString, size_t> index;
+    for (size_t i = 0; i < list2.size(); ++i)
+        index.insert(list2[i]->text(), i);
+    std::vector<bool> used(list2.size(), false);
+    for (const PdfTextBox &box : list1) {
+        const QString text = box->text();
+        const QRectF rect = box->boundingBox();
+        bool found = false;
+        for (auto it = index.find(text);
+             it != index.end() && it.key() == text; ++it) {
+            const QRectF other = list2[it.value()]->boundingBox();
+            if (!used[it.value()] &&
+                qAbs(other.left() - rect.left()) <= tolerance &&
+                qAbs(other.top() - rect.top()) <= tolerance &&
+                qAbs(other.right() - rect.right()) <= tolerance &&
+                qAbs(other.bottom() - rect.bottom()) <= tolerance) {
+                used[it.value()] = true;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            return false;
+    }
+    return true;
+}
 
 
 PageDifference comparePagePair(const PdfPage &page1, const PdfPage &page2,
@@ -31,8 +71,13 @@ PageDifference comparePagePair(const PdfPage &page1, const PdfPage &page2,
     if (list1.size() != list2.size())
         return TextualPageDifference;
     for (size_t i = 0; i < list1.size(); ++i)
-        if (list1[i]->text() != list2[i]->text())
-            return TextualPageDifference;
+        if (list1[i]->text() != list2[i]->text()) {
+            // The words may just be in a different order
+            const qreal Tolerance = 0.1; // points
+            if (!sameWordsInSamePlaces(list1, list2, Tolerance))
+                return TextualPageDifference;
+            break;
+        }
 
     if (options.compareAppearance) {
         const int DPI = POINTS_PER_INCH;
