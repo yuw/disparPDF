@@ -145,21 +145,21 @@ int main(int argc, char *argv[])
             errors << arg ;
         }
     }
+    // The translators must outlive this block: a QTranslator uninstalls
+    // itself when destroyed
+    QTranslator qtTranslator;
+    QTranslator appTranslator;
     if(!startupParameters.isBatch()) {
-        QTranslator qtTranslator;
-        {
-            QString translationsPath =
+        QString translationsPath =
 #if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-                QLibraryInfo::path(QLibraryInfo::TranslationsPath);
+            QLibraryInfo::path(QLibraryInfo::TranslationsPath);
 #else
-                QLibraryInfo::location(QLibraryInfo::TranslationsPath);
+            QLibraryInfo::location(QLibraryInfo::TranslationsPath);
 #endif
-            qtTranslator.load("qt_" + language, translationsPath);
-        }
-        app.installTranslator(&qtTranslator);
-        QTranslator appTranslator;
-        appTranslator.load("disparPDF_" + language, ":/");
-        app.installTranslator(&appTranslator);
+        if (qtTranslator.load("qt_" + language, translationsPath))
+            app.installTranslator(&qtTranslator);
+        if (appTranslator.load("disparPDF_" + language, ":/"))
+            app.installTranslator(&appTranslator);
     }
 
     if( errors.count() > 0 ) {
