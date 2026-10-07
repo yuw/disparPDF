@@ -15,6 +15,7 @@
 #include "sequence_matcher.hpp"
 #include "textitem.hpp"
 #include <QFont>
+#include <algorithm>
 #include <QImage>
 #include <QPageLayout>
 #include <QPainter>
@@ -194,13 +195,19 @@ void DifferenceRenderer::computeTextHighlights(QPainterPath *highlighted1,
     rangesPair = invertRanges(rangesPair.first, items1.count(),
                               rangesPair.second, items2.count());
 
-    for (int index : rangesPair.first)
+    // Highlight in reading order, so that adjacent differences are
+    // combined; a QSet's order depends on Qt's per-process hash seed
+    QList<int> indexes1 = rangesPair.first.values();
+    QList<int> indexes2 = rangesPair.second.values();
+    std::sort(indexes1.begin(), indexes1.end());
+    std::sort(indexes2.begin(), indexes2.end());
+    for (int index : indexes1)
         addHighlighting(&rect1, highlighted1, items1.at(index).rect, DPI);
-    if (!rect1.isNull() && !rangesPair.first.isEmpty())
+    if (!rect1.isNull() && !indexes1.isEmpty())
         highlighted1->addRect(rect1);
-    for (int index : rangesPair.second)
+    for (int index : indexes2)
         addHighlighting(&rect2, highlighted2, items2.at(index).rect, DPI);
-    if (!rect2.isNull() && !rangesPair.second.isEmpty())
+    if (!rect2.isNull() && !indexes2.isEmpty())
         highlighted2->addRect(rect2);
 }
 
