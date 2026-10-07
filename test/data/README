@@ -1,4 +1,5 @@
-Test PDFs for the CTest tests (see ../CMakeLists.txt); ../../data has more.
+Test PDFs for the CTest tests (see ../CMakeLists.txt); ../../data has more
+(see ../../data/README).
 
 base.pdf, same.pdf, word.pdf, reflow.pdf, reordered.pdf, bold.pdf,
 box.pdf, marginbox.pdf, inserted.pdf

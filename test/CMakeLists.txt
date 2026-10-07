@@ -90,6 +90,45 @@ disparpdf_test(any-extension-same 0 0 -- --words --any-extension
 disparpdf_test(any-extension-word 1 1 -- --words --any-extension
                ${CMAKE_CURRENT_BINARY_DIR}/base.dat ${DATA}/word.pdf)
 
+# The ConfrontaPDF test documents in ../data (see data/README): the
+# comparisons batch-legacy makes by appearance, in every mode, also
+# checking the pages of differences saved
+set(CPDF ${CMAKE_SOURCE_DIR}/data)
+foreach(mode appearance characters words)
+    disparpdf_test(confrontapdf-reexported-${mode} 0 0 -- --${mode}
+                   ${CPDF}/doca1pag.pdf ${CPDF}/doca1pag_dup.pdf)
+    disparpdf_test(confrontapdf-1page-${mode} 1 1 -- --${mode}
+                   ${CPDF}/doca1pag.pdf ${CPDF}/docb1pag.pdf)
+    disparpdf_test(confrontapdf-2pages-${mode} 1 2 -- --${mode}
+                   ${CPDF}/doca2pag.pdf ${CPDF}/docb2pag.pdf)
+endforeach()
+# The same text, 2 and 3 pages long: the page counts differ, but the
+# first two pages are the same
+disparpdf_test(confrontapdf-longer-words 2 - -- --words
+               ${CPDF}/doca2pag.pdf ${CPDF}/doca3pag.pdf)
+disparpdf_test(confrontapdf-longer-2pages-words 0 0 -- --words --pages=2
+               ${CPDF}/doca2pag.pdf ${CPDF}/doca3pag.pdf)
+# These differ only in the fonts they declare
+disparpdf_test(confrontapdf-fonts-words 0 0 -- --words
+               ${CPDF}/doca1pagi1.pdf ${CPDF}/doca1pagi2.pdf)
+disparpdf_test(confrontapdf-compare-fonts 6 - -- --words --compareFonts
+               ${CPDF}/doca1pagi1.pdf ${CPDF}/doca1pagi2.pdf)
+
+# Command line handling
+disparpdf_test(same-file 5 0 -- --words ${DATA}/base.pdf ${DATA}/base.pdf)
+disparpdf_test(missing-file -4 0 -- ${DATA}/base.pdf ${DATA}/no-such.pdf)
+disparpdf_test(one-file -1 0 -- ${DATA}/base.pdf)
+disparpdf_test(invalid-pages -1 0 -- --pages=x
+               ${DATA}/base.pdf ${DATA}/same.pdf)
+
+# The GUI program in batch mode, which must manage without a display
+add_test(NAME gui-program-batch
+         COMMAND runtest $<TARGET_FILE:disparPDF> 1 1 -- --words
+                 ${DATA}/base.pdf ${DATA}/word.pdf)
+add_test(NAME gui-program-help
+         COMMAND runtest $<TARGET_FILE:disparPDF> - - --stdout
+                 "Usage: disparPDF " -- --help)
+
 disparpdf_test(help - - --stdout "Usage: disparPDFc" -- --help)
 disparpdf_test(version - - --stdout "disparPDFc ${PROJECT_VERSION}" -- --version)
 

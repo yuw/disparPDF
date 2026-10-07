@@ -1,0 +1,14 @@
+Test documents from ConfrontaPDF (https://github.com/lbellonda/ConfrontaPDF,
+by Luca Bellonda, 2015), under the GPL version 2 or later: small documents
+written with LibreOffice (the .odt files) and exported as PDF.  They are
+used by test/testbase.sh and test/CMakeLists.txt.
+
+    doca1pag, doca2pag, doca3pag   the same text, 1, 2 and 3 pages long
+    doca1pag_dup                   doca1pag exported again
+    docb1pag, docb2pag             different text, 1 and 2 pages
+    doca1pagi1, doca1pagi2         the same, but the second PDF also
+                                   declares another font (which
+                                   --compareFonts reports)
+    a.pdf, b.pdf                   two more (not used by the tests)
+    result.pdf                     differences saved by DiffPDF (not
+                                   used by the tests)
