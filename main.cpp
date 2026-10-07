@@ -25,6 +25,24 @@
 int main(int argc, char *argv[])
 {
     StartupParameters startupParameters;
+    // Batch mode and --help show no window, so they should work without a
+    // display: use Qt's offscreen platform for them unless one was chosen
+    bool noWindow = false;
+#ifdef COMPARA_IS_CONSOLE
+    noWindow = true;
+#endif
+    bool platformGiven = !qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM");
+    for (int i = 1; i < argc; ++i) {
+        const QByteArray arg(argv[i]);
+        if (arg == "--")
+            break;
+        if (arg == "-b" || arg == "--batch" || arg == "-h" || arg == "--help")
+            noWindow = true;
+        if (arg == "-platform" || arg.startsWith("-platform="))
+            platformGiven = true;
+    }
+    if (noWindow && !platformGiven)
+        qputenv("QT_QPA_PLATFORM", "offscreen");
     QApplication app(argc, argv);
 #ifdef Q_OS_MACOS
     app.setCursorFlashTime(0);
