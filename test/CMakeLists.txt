@@ -90,4 +90,5 @@ disparpdf_test(any-extension-same 0 0 -- --words --any-extension
 disparpdf_test(any-extension-word 1 1 -- --words --any-extension
                ${CMAKE_CURRENT_BINARY_DIR}/base.dat ${DATA}/word.pdf)
 
-disparpdf_test(help - - --stdout "usage: disparPDF" -- --help)
+disparpdf_test(help - - --stdout "Usage: disparPDFc" -- --help)
+disparpdf_test(version - - --stdout "disparPDFc ${PROJECT_VERSION}" -- --version)

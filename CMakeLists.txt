@@ -221,7 +221,8 @@ add_executable(disparPDF
     ${COMMON_SOURCES}
     ${COMMON_HEADERS}
 )
-target_compile_definitions(disparPDF PRIVATE POPPLER_VERSION="${POPPLER_VERSION_STR}")
+target_compile_definitions(disparPDF PRIVATE POPPLER_VERSION="${POPPLER_VERSION_STR}"
+    DISPARPDF_VERSION="${PROJECT_VERSION}")
 target_link_libraries(disparPDF PRIVATE ${QT_LIBS} ${POPPLER_TARGET})
 
 # ---- Console-only executable ----
@@ -230,7 +231,8 @@ add_executable(disparPDFc
     ${COMMON_SOURCES}
     ${COMMON_HEADERS}
 )
-target_compile_definitions(disparPDFc PRIVATE COMPARA_IS_CONSOLE POPPLER_VERSION="${POPPLER_VERSION_STR}")
+target_compile_definitions(disparPDFc PRIVATE COMPARA_IS_CONSOLE POPPLER_VERSION="${POPPLER_VERSION_STR}"
+    DISPARPDF_VERSION="${PROJECT_VERSION}")
 target_link_libraries(disparPDFc PRIVATE ${QT_LIBS} ${POPPLER_TARGET})
 
 if(APPLE)

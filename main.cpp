@@ -22,6 +22,13 @@
 #include "batchcompare.h"
 #include "commandlinemanager.h"
 
+// The name of this program, for --help and --version
+#ifdef COMPARA_IS_CONSOLE
+static const char CommandName[] = "disparPDFc";
+#else
+static const char CommandName[] = "disparPDF";
+#endif
+
 int main(int argc, char *argv[])
 {
     StartupParameters startupParameters;
@@ -36,7 +43,8 @@ int main(int argc, char *argv[])
         const QByteArray arg(argv[i]);
         if (arg == "--")
             break;
-        if (arg == "-b" || arg == "--batch" || arg == "-h" || arg == "--help")
+        if (arg == "-b" || arg == "--batch" || arg == "-h" ||
+            arg == "--help" || arg == "--version")
             noWindow = true;
         if (arg == "-platform" || arg.startsWith("-platform="))
             platformGiven = true;
@@ -83,47 +91,108 @@ int main(int argc, char *argv[])
             seenCompareType = true ;
         } else if (optionsOK && arg.startsWith(LanguageOption))
             language = arg.mid(LanguageOption.length());
+        else if (optionsOK && arg == "--version") {
+            out << CommandName << " " << AboutForm::Version << "\n"
+                << "Built with Qt " << QT_VERSION_STR << " and Poppler "
+                << POPPLER_VERSION << "\n"
+                << "License GPLv2+: GNU GPL version 2 or later "
+                   "<https://gnu.org/licenses/gpl.html>\n";
+            return 0;
+        }
         else if (optionsOK && (arg == "--help" || arg == "-h")) {
-            out << "usage: disparPDF [options] [file1.pdf [file2.pdf]]\n\n"
-                "A program that compares two PDF files and shows "
-                "their differences.\n"
-                "\nThe files are optional and are normally set "
-                "through the user interface.\n\n"
-                "options:\n"
-                "--help        -h   show this usage text and terminate "
-                "(run the program without this option and press F1 for "
-                "online help)\n"
-                "--any-extension    accept files whose names do not end "
-                "in .pdf\n"
-                "--appearance  -a   set the initial comparison mode to "
-                "Appearance\n"
-                "--characters  -c   set the initial comparison mode to "
-                "Characters\n"
-                "--words       -w   set the initial comparison mode to "
-                "Words\n"
-                "--language=xx      set the program to use the given "
-                "translation language, e.g., en for English, cz for "
-                "Czech; English will be used if there is no translation "
-                "available\n"
-                "--debug=2          write the text fed to the sequence "
-                "matcher into temporary files (e.g., /tmp/page1.txt "
-                "etc.)\n"
-                "--debug=3          as --debug=3 but also includes "
-                "coordinates in y, x order\n"
-                "--batch -b activates the batch mode\n"
-                "result information returned in batch mode:\n"
-                "  --outType=0 prints only the return code\n"
-                "  --outType=1 prints the return code and a description\n"
-                "--pages=nn the number of pages to compare (default all)\n"
-                "--startPage1=nn the stating page number for file 1\n"
-                "--startPage2=nn the stating page number for file 2\n"
-                "--pdfdiff=path generates a pdf with differences \n"
-                "--xmlResult=path generates file with the comparison result in XML \n"
-                "--key=aKey a key to be recorded in the result file\n"
-                "--settings=file settings to override default parameters\n"
-                "--compareFonts compare the fonts\n"
-                "\nRun the program without the --help option and click "
-                "About to see copyright and license details\n"
+            // GNU style, which help2man turns into the manual pages
+#ifdef COMPARA_IS_CONSOLE
+            out << "Usage: " << CommandName << " [OPTION]... FILE1 FILE2\n"
+                "Compare two PDF files without a window, and print the "
+                "result code\n(see below).\n";
+#else
+            out << "Usage: " << CommandName << " [OPTION]... [FILE1 [FILE2]]\n"
+                "  or:  " << CommandName << " --batch [OPTION]... FILE1 FILE2\n"
+                "Compare two PDF files and show their differences.\n"
+                "\n"
+                "The files are optional and are normally chosen in the "
+                "window.  With --batch,\nthey are compared without a "
+                "window, and the result code (see below) is\nprinted.\n";
+#endif
+            out << "\n"
+                "Options:\n"
+#ifdef COMPARA_IS_CONSOLE
+                "  -a, --appearance       compare the appearance of the "
+                "pages (the default)\n"
+                "  -c, --characters       compare the text character by "
+                "character\n"
+                "  -w, --words            compare the text word by word\n"
+#else
+                "  -a, --appearance       compare the appearance of the "
+                "pages (the default in\n"
+                "                           batch mode)\n"
+                "  -c, --characters       compare the text character by "
+                "character\n"
+                "  -w, --words            compare the text word by word "
+                "(the default otherwise)\n"
+#endif
+                "      --any-extension    accept files whose names do "
+                "not end in .pdf\n"
+                "      --language=LANG    use the given translation "
+                "language, e.g., en for\n"
+                "                           English, cz for Czech; "
+                "English is used if there is\n"
+                "                           no translation\n"
+                "      --debug=2          write the text fed to the "
+                "sequence matcher into\n"
+                "                           temporary files (e.g., "
+                "/tmp/page1.txt)\n"
+                "      --debug=3          as --debug=2, but also with "
+                "the coordinates, in y, x\n"
+                "                           order\n"
+                "  -h, --help             display this help and exit\n"
+                "      --version          output version information and "
+                "exit\n"
+                "\n"
+                "Batch mode options:\n"
+#ifndef COMPARA_IS_CONSOLE
+                "  -b, --batch            compare without a window\n"
+#endif
+                "      --outType=0        print only the result code "
+                "(the default)\n"
+                "      --outType=1        print the result code and a "
+                "description\n"
+                "      --pages=N          compare N pages (default all)\n"
+                "      --startPage1=N     start at page N of FILE1\n"
+                "      --startPage2=N     start at page N of FILE2\n"
+                "      --pdfdiff=FILE     save the pages that differ, "
+                "highlighted, to FILE\n"
+                "      --xmlResult=FILE   write the result, in XML, to "
+                "FILE\n"
+                "      --key=KEY          record KEY in the XML result\n"
+                "      --settings=FILE    read settings (zoom, margins, "
+                "tolerances, colors,\n"
+                "                           etc.) from FILE, in INI "
+                "format, instead of using\n"
+                "                           the defaults\n"
+                "      --compareFonts     also compare the fonts the "
+                "files use\n"
+                "\n"
+                "Result codes, printed in batch mode and also the exit "
+                "status (modulo 256):\n"
+                "   0  the files are the same\n"
+                "   1  the files differ\n"
+                "   2  the files have different numbers of pages\n"
+                "   3  a start page is beyond the end of its file\n"
+                "   4  a file has fewer pages than --pages asks for\n"
+                "   5  the same file was given twice\n"
+                "   6  the files use different fonts (with "
+                "--compareFonts)\n"
+                "  -1  a command line error\n"
+                "  -3, -4  FILE1 or FILE2 cannot be read\n"
+                "  -5  a page cannot be read\n"
+                "  -6, -7  the --pdfdiff or --xmlResult file cannot be "
+                "written\n"
+#ifndef COMPARA_IS_CONSOLE
+                "\n"
+                "In the window, press F1 for the full documentation, and "
+                "click About for the\ncopyright and license details.\n"
+#endif
                 ;
             return 0;
         }
