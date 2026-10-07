@@ -150,6 +150,17 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="/path/to/qt6;/path/to/poppler-qt6"
 ```
 
+### Test
+
+The tests run the batch mode on small PDFs and need no display:
+
+```sh
+ctest --test-dir build
+```
+
+They are described in `test/CMakeLists.txt`; configure with
+`-DBUILD_TESTING=OFF` to leave them out.
+
 ### Install
 
 ```sh

@@ -267,6 +267,14 @@ if(APPLE)
     set_target_properties(disparPDF PROPERTIES MACOSX_BUNDLE TRUE)
 endif()
 
+# ---- Tests (see test/CMakeLists.txt); they run disparPDFc, so are not
+# built when cross compiling ----
+option(BUILD_TESTING "Build the tests" ON)
+if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
+    enable_testing()
+    add_subdirectory(test)
+endif()
+
 install(TARGETS disparPDF disparPDFc
     RUNTIME DESTINATION bin
     BUNDLE  DESTINATION .
