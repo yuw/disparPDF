@@ -48,6 +48,7 @@ class QPushButton;
 class QRadioButton;
 class QScrollArea;
 class QSpinBox;
+class QToolButton;
 class QSplitter;
 
 
@@ -98,6 +99,7 @@ private slots:
     void logTopLevelChanged(bool floating);
     void previousPages();
     void nextPages();
+    void offsetChanged(int offset);
     void showZones();
     void showMargins();
     void setAMargin(const QPoint &pos);
@@ -107,11 +109,19 @@ private:
     void createCentralArea();
     void createDockWidgets();
     void createConnections();
+    void runComparison(const bool verbose, const int pairIndexToShow);
     const QPair<int, int> comparePages(const QString &filename1,
             const PdfDocument &pdf1, const QString &filename2,
-            const PdfDocument &pdf2);
+            const PdfDocument &pdf2, const bool verbose);
     void comparePrepareUi();
-    void compareUpdateUi(const QPair<int, int> &pair, const int millisec);
+    void compareUpdateUi(const QPair<int, int> &pair, const int millisec,
+            const int pairIndexToShow);
+    void forgetComparison();
+    PagePair pairAt(const int pairIndex) const;
+    bool isComparedPair(const int pairIndex) const;
+    void showPair(const int pairIndex);
+    int differingPairNear(const int pairIndex, const bool after) const;
+    void stepPage(const int which, const int delta);
     int writeFileInfo(const QString &filename);
     void writeLine(const QString &text);
     void writeError(const QString &text);
@@ -120,7 +130,7 @@ private:
     void paintOnImage(const QPainterPath &path, QImage *image);
     const QPair<QPixmap, QPixmap> populatePixmaps(const PdfDocument &pdf1,
             const PdfPage &page1, const PdfDocument &pdf2,
-            const PdfPage &page2, bool hasVisualDifference,
+            const PdfPage &page2, bool hasVisualDifference, bool differs,
             const QString &key1, const QString &key2);
     void computeTextHighlights(QPainterPath *highlighted1,
             QPainterPath *highlighted2, const PdfPage &page1,
@@ -131,8 +141,7 @@ private:
     void addHighlighting(QRectF *bigRect, QPainterPath *highlighted,
             const QRectF wordOrCharRect, const int OVERLAP, const int DPI,
             const bool COMBINE=true);
-    const QPair<QString, QString> cacheKeys(const int index,
-            const PagePair &pair) const;
+    const QPair<QString, QString> cacheKeys(const PagePair &pair) const;
     const TextBoxList zoneYxOrdered(const TextBoxList &list);
     void showZones(const int Width, const TextBoxList &list,
             QLabel *label);
@@ -153,12 +162,16 @@ private:
     LineEdit *filename1LineEdit;
     QLabel *comparePages1Label;
     QLineEdit *pages1LineEdit;
+    QToolButton *previousPage1Button;
+    QToolButton *nextPage1Button;
     Label *page1Label;
     QScrollArea *area1;
     QPushButton *setFile2Button;
     LineEdit *filename2LineEdit;
     QLabel *comparePages2Label;
     QLineEdit *pages2LineEdit;
+    QToolButton *previousPage2Button;
+    QToolButton *nextPage2Button;
     Label *page2Label;
     QScrollArea *area2;
     QComboBox *compareComboBox;
@@ -169,6 +182,8 @@ private:
     QPushButton *previousButton;
     QPushButton *nextButton;
     QLabel *statusLabel;
+    QLabel *offsetLabel;
+    QSpinBox *offsetSpinBox;
     QLabel *zoomLabel;
     QSpinBox *zoomSpinBox;
     QLabel *showLabel;
@@ -219,6 +234,15 @@ private:
     std::atomic<bool> cancel;
     // Page fingerprints, kept between comparisons
     PageFingerprintCache fingerprints;
+    // The last comparison: page pairIndex of comparedPages1 was paired with
+    // page pairIndex + comparedOffset of comparedPages2, with the result
+    // pairDifference[pairIndex] (-1 if not compared)
+    QList<int> comparedPages1;
+    QList<int> comparedPages2;
+    int comparedOffset = 0;
+    QVector<int> pairDifference;
+    int viewedPairIndex = -1; // -1 if none
+    QString comparisonSummary; // e.g., "3 differ 10/10 compared"
     bool showToolTips;
     bool combineTextHighlighting;
     QString saveFilename;

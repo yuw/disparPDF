@@ -44,8 +44,10 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QToolButton>
 #include <QUrl>
 
 MainWindow::MainWindow(const Debug debug,
@@ -148,6 +150,25 @@ void MainWindow::createWidgets(const QString &filename1,
     pages2LineEdit = new QLineEdit;
     comparePages2Label->setBuddy(pages2LineEdit);
     pages2LineEdit->setToolTip(pages1LineEdit->toolTip());
+    auto makeStepButton = [](Qt::ArrowType arrow, const QString &toolTip) {
+        QToolButton *button = new QToolButton;
+        button->setArrowType(arrow);
+        button->setToolTip(toolTip);
+        button->setEnabled(false);
+        return button;
+    };
+    previousPage1Button = makeStepButton(Qt::LeftArrow,
+            tr("<p>Show the previous page of file #1 beside the same "
+               "page of file #2. This changes the page <b>Offset</b>."));
+    nextPage1Button = makeStepButton(Qt::RightArrow,
+            tr("<p>Show the next page of file #1 beside the same page "
+               "of file #2. This changes the page <b>Offset</b>."));
+    previousPage2Button = makeStepButton(Qt::LeftArrow,
+            tr("<p>Show the previous page of file #2 beside the same "
+               "page of file #1. This changes the page <b>Offset</b>."));
+    nextPage2Button = makeStepButton(Qt::RightArrow,
+            tr("<p>Show the next page of file #2 beside the same page "
+               "of file #1. This changes the page <b>Offset</b>."));
     compareButton = new QPushButton(tr("&Compare"));
     compareButton->setEnabled(false);
     compareButton->setDefault(true);
@@ -216,6 +237,20 @@ void MainWindow::createWidgets(const QString &filename1,
 #if QT_VERSION >= 0x040600
     nextButton->setIcon(QIcon(":/right.png"));
 #endif
+    offsetLabel = new QLabel(tr("Offset:"));
+    offsetLabel->setToolTip(tr("<p>Pairs each page of file #1 with the "
+                "page that many pages further on in file #2 (or back, "
+                "if negative), counting within the page ranges. Use "
+                "this when material added to one file shifts the "
+                "pages of the other. The arrow buttons beside each "
+                "file's page range change it one page at a time. "
+                "Pages already compared are remembered, so changing "
+                "the offset is quick."));
+    offsetSpinBox = new QSpinBox;
+    offsetLabel->setBuddy(offsetSpinBox);
+    offsetSpinBox->setRange(-9999, 9999);
+    offsetSpinBox->setKeyboardTracking(false);
+    offsetSpinBox->setToolTip(offsetLabel->toolTip());
     zoomLabel = new QLabel(tr("&Zoom:"));
     zoomLabel->setToolTip(tr("<p>Determines the scale at which the "
                 "pages are shown."));
@@ -347,7 +382,10 @@ void MainWindow::createWidgets(const QString &filename1,
             << bottomMarginLabel << leftMarginLabel << leftMarginSpinBox
             << rightMarginLabel << rightMarginSpinBox << saveButton
             << helpButton << aboutButton << quitButton << logEdit
-            << previousButton << nextButton << showZonesCheckBox;
+            << previousButton << nextButton << showZonesCheckBox
+            << previousPage1Button << nextPage1Button
+            << previousPage2Button << nextPage2Button << offsetLabel
+            << offsetSpinBox;
     for (QWidget *widget : widgets)
         if (!widget->toolTip().isEmpty())
             widget->installEventFilter(this);
@@ -361,6 +399,8 @@ void MainWindow::createCentralArea()
     topLeftLayout->addWidget(filename1LineEdit, 3);
     topLeftLayout->addWidget(comparePages1Label);
     topLeftLayout->addWidget(pages1LineEdit, 2);
+    topLeftLayout->addWidget(previousPage1Button);
+    topLeftLayout->addWidget(nextPage1Button);
     area1 = new QScrollArea;
     area1->setWidget(page1Label);
     area1->setWidgetResizable(true);
@@ -375,6 +415,8 @@ void MainWindow::createCentralArea()
     topRightLayout->addWidget(filename2LineEdit, 3);
     topRightLayout->addWidget(comparePages2Label);
     topRightLayout->addWidget(pages2LineEdit, 2);
+    topRightLayout->addWidget(previousPage2Button);
+    topRightLayout->addWidget(nextPage2Button);
     area2 = new QScrollArea;
     area2->setWidget(page2Label);
     area2->setWidgetResizable(true);
@@ -425,6 +467,10 @@ void MainWindow::createDockWidgets()
     navigationLayout->addWidget(previousButton);
     navigationLayout->addWidget(nextButton);
     controlLayout->addLayout(navigationLayout);
+    QHBoxLayout *offsetLayout = new QHBoxLayout;
+    offsetLayout->addWidget(offsetLabel);
+    offsetLayout->addWidget(offsetSpinBox);
+    controlLayout->addLayout(offsetLayout);
     QHBoxLayout *zoomLayout = new QHBoxLayout;
     zoomLayout->addWidget(zoomLabel);
     zoomLayout->addWidget(zoomSpinBox);
@@ -560,6 +606,16 @@ void MainWindow::createConnections()
     connect(setFile1Button, &QPushButton::clicked, this, [this]() { setFile1(); });
     connect(setFile2Button, &QPushButton::clicked, this, [this]() { setFile2(); });
     connect(compareButton, &QPushButton::clicked, this, &MainWindow::compare);
+    connect(previousPage1Button, &QAbstractButton::clicked,
+            this, [this] { stepPage(1, -1); });
+    connect(nextPage1Button, &QAbstractButton::clicked,
+            this, [this] { stepPage(1, 1); });
+    connect(previousPage2Button, &QAbstractButton::clicked,
+            this, [this] { stepPage(2, -1); });
+    connect(nextPage2Button, &QAbstractButton::clicked,
+            this, [this] { stepPage(2, 1); });
+    connect(offsetSpinBox, qOverload<int>(&QSpinBox::valueChanged),
+            this, &MainWindow::offsetChanged);
     connect(zoomSpinBox, SIGNAL(valueChanged(int)),
             this, SLOT(updateViews()));
     connect(zoningGroupBox, SIGNAL(toggled(bool)),
@@ -653,11 +709,41 @@ void MainWindow::updateUi()
     QPushButton *button = qobject_cast<QPushButton*>(focusWidget());
     bool enableNavigationButton = (button == previousButton ||
                                    button == nextButton);
-    previousButton->setEnabled(viewDiffComboBox->count() > 1 &&
-            viewDiffComboBox->currentIndex() > 0);
-    nextButton->setEnabled(viewDiffComboBox->count() > 1 &&
-            viewDiffComboBox->currentIndex() + 1 <
-            viewDiffComboBox->count());
+    if (viewDiffComboBox->currentIndex() == 0 && viewedPairIndex >= 0) {
+        // Viewing a pair that is not in the list of differing pairs
+        previousButton->setEnabled(
+                differingPairNear(viewedPairIndex, false) > 0);
+        nextButton->setEnabled(
+                differingPairNear(viewedPairIndex, true) > 0);
+    }
+    else {
+        previousButton->setEnabled(viewDiffComboBox->count() > 1 &&
+                viewDiffComboBox->currentIndex() > 0);
+        nextButton->setEnabled(viewDiffComboBox->count() > 1 &&
+                viewDiffComboBox->currentIndex() + 1 <
+                viewDiffComboBox->count());
+    }
+    {
+        // Stepping one file's page moves from the viewed pair, or from
+        // the first pair compared
+        const bool compared = !comparedPages1.isEmpty() &&
+                compareButton->text() != tr("&Cancel");
+        int index1 = viewedPairIndex;
+        if (index1 < 0)
+            index1 = qMax(0, -comparedOffset);
+        const int index2 = index1 + comparedOffset;
+        previousPage1Button->setEnabled(compared && index1 > 0 &&
+                index2 >= 0 && index2 < comparedPages2.count());
+        nextPage1Button->setEnabled(compared &&
+                index1 + 1 < comparedPages1.count() &&
+                index2 >= 0 && index2 < comparedPages2.count());
+        previousPage2Button->setEnabled(compared && index2 > 0 &&
+                index2 <= comparedPages2.count() &&
+                index1 < comparedPages1.count());
+        nextPage2Button->setEnabled(compared &&
+                index2 + 1 < comparedPages2.count() && index2 + 1 >= 0 &&
+                index1 < comparedPages1.count());
+    }
     if (enableNavigationButton && !(previousButton->isEnabled() &&
                                     nextButton->isEnabled())) {
         if (previousButton->isEnabled())
@@ -781,7 +867,12 @@ void MainWindow::logTopLevelChanged(bool floating)
 void MainWindow::previousPages()
 {
     int i = viewDiffComboBox->currentIndex();
-    if (i > 0)
+    if (i == 0 && viewedPairIndex >= 0) {
+        const int previous = differingPairNear(viewedPairIndex, false);
+        if (previous > 0)
+            viewDiffComboBox->setCurrentIndex(previous);
+    }
+    else if (i > 0)
         viewDiffComboBox->setCurrentIndex(i - 1);
 }
 
@@ -789,7 +880,12 @@ void MainWindow::previousPages()
 void MainWindow::nextPages()
 {
     int i = viewDiffComboBox->currentIndex();
-    if (i + 1 < viewDiffComboBox->count())
+    if (i == 0 && viewedPairIndex >= 0) {
+        const int next = differingPairNear(viewedPairIndex, true);
+        if (next > 0)
+            viewDiffComboBox->setCurrentIndex(next);
+    }
+    else if (i + 1 < viewDiffComboBox->count())
         viewDiffComboBox->setCurrentIndex(i + 1);
 }
 
@@ -800,13 +896,18 @@ void MainWindow::updateViews(int index)
     if (index == 0) {
         page1Label->clear();
         page2Label->clear();
+        viewedPairIndex = -1;
         return;
     }
-    else if (index == -1)
-        index = viewDiffComboBox->currentIndex();
-    PagePair pair = viewDiffComboBox->itemData(index).value<PagePair>();
-    if (pair.isNull())
+    else if (index > 0) {
+        viewedPairIndex = viewDiffComboBox->itemData(index,
+                Qt::UserRole + 1).toInt();
+        if (!comparisonSummary.isEmpty())
+            statusLabel->setText(comparisonSummary);
+    }
+    if (viewedPairIndex < 0 || !isComparedPair(viewedPairIndex))
         return;
+    const PagePair pair = pairAt(viewedPairIndex);
 
     currentCompareIndex = compareComboBox->currentIndex();
 
@@ -826,10 +927,10 @@ void MainWindow::updateViews(int index)
     if (!page2)
         return;
 
-    const QPair<QString, QString> keys = cacheKeys(index, pair);
+    const QPair<QString, QString> keys = cacheKeys(pair);
     const QPair<QPixmap, QPixmap> pixmaps = populatePixmaps(pdf1, page1,
-            pdf2, page2, pair.hasVisualDifference, keys.first,
-            keys.second);
+            pdf2, page2, pair.hasVisualDifference, pair.differs,
+            keys.first, keys.second);
     page1Label->setPixmap(pixmaps.first);
     page2Label->setPixmap(pixmaps.second);
     if (showZonesCheckBox->isChecked())
@@ -839,7 +940,7 @@ void MainWindow::updateViews(int index)
 }
 
 
-const QPair<QString, QString> MainWindow::cacheKeys(const int index,
+const QPair<QString, QString> MainWindow::cacheKeys(
         const PagePair &pair) const
 {
     int comparisonMode;
@@ -858,7 +959,9 @@ const QPair<QString, QString> MainWindow::cacheKeys(const int index,
                 .arg(bottomMarginSpinBox->value())
                 .arg(leftMarginSpinBox->value())
                 .arg(rightMarginSpinBox->value());
-    const QString key = QString("%1:%2:%3:%4:%5").arg(index)
+    const QString key = QString("%1%2:%3:%4:%5:%6")
+            .arg(pair.differs ? "D" : "S")
+            .arg(pair.hasVisualDifference ? "V" : "T")
             .arg(zoomSpinBox->value()).arg(comparisonMode).arg(zoning)
             .arg(margins);
     const QString key1 = QString("1:%1:%2:%3").arg(key).arg(pair.left)
@@ -872,7 +975,7 @@ const QPair<QString, QString> MainWindow::cacheKeys(const int index,
 const QPair<QPixmap, QPixmap> MainWindow::populatePixmaps(
         const PdfDocument &pdf1, const PdfPage &page1,
         const PdfDocument &pdf2, const PdfPage &page2,
-        bool hasVisualDifference, const QString &key1,
+        bool hasVisualDifference, bool differs, const QString &key1,
         const QString &key2)
 {
     QPixmap pixmap1;
@@ -911,7 +1014,8 @@ const QPair<QPixmap, QPixmap> MainWindow::populatePixmaps(
                 paintOnImage(highlighted1, &image1);
             if (!highlighted2.isEmpty())
                 paintOnImage(highlighted2, &image2);
-            if (highlighted1.isEmpty() && highlighted2.isEmpty()) {
+            if (differs && highlighted1.isEmpty() &&
+                highlighted2.isEmpty()) {
                 QFont font("Helvetica", 14);
                 font.setOverline(true);
                 font.setUnderline(true);
@@ -1189,6 +1293,7 @@ void MainWindow::setFile1(QString filename)
             return;
         }
         filename1LineEdit->setText(filename);
+        forgetComparison();
         if (!filename2LineEdit->text().isEmpty())
             page1Label->setText(tr("<p style='font-size: xx-large;"
                     "color: darkgreen'>%1: Click Compare<br>"
@@ -1224,6 +1329,7 @@ void MainWindow::setFile2(QString filename)
             return;
         }
         filename2LineEdit->setText(filename);
+        forgetComparison();
         if (!filename1LineEdit->text().isEmpty())
             page2Label->setText(tr("<p style='font-size: xx-large;"
                     "color: darkgreen'>%1: Click Compare<br>"
@@ -1388,6 +1494,15 @@ void MainWindow::compare()
         compareButton->setEnabled(true);
         return;
     }
+    runComparison(true, -1);
+}
+
+
+// Compares the files, logging each page pair compared if verbose, and
+// then shows the pair pairIndexToShow, or by default the first that
+// differs.
+void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
+{
     currentCompareIndex = compareComboBox->currentIndex() ;
     cancel = false;
     QString filename1 = filename1LineEdit->text();
@@ -1404,13 +1519,14 @@ void MainWindow::compare()
     QElapsedTimer time;
     time.start();
     const QPair<int, int> pair = comparePages(filename1, pdf1, filename2,
-                                              pdf2);
-    compareUpdateUi(pair, time.elapsed());
+                                              pdf2, verbose);
+    compareUpdateUi(pair, time.elapsed(), pairIndexToShow);
 }
 
 
 void MainWindow::comparePrepareUi()
 {
+    viewedPairIndex = -1;
     QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
     compareButton->setText(tr("&Cancel"));
     compareButton->setEnabled(true);
@@ -1424,11 +1540,26 @@ void MainWindow::comparePrepareUi()
 
 const QPair<int, int> MainWindow::comparePages(const QString &filename1,
         const PdfDocument &pdf1, const QString &filename2,
-        const PdfDocument &pdf2)
+        const PdfDocument &pdf2, const bool verbose)
 {
     const QList<int> pages1 = getPageList(1, pdf1);
     const QList<int> pages2 = getPageList(2, pdf2);
-    const int total = qMin(pages1.count(), pages2.count());
+    // Page i of pages1 is paired with page i + offset of pages2
+    const int offset = offsetSpinBox->value();
+    const int first = qMax(0, -offset);
+    const int end = qMin(pages1.count(), pages2.count() - offset);
+    const int total = qMax(0, end - first);
+    comparedPages1 = pages1;
+    comparedPages2 = pages2;
+    comparedOffset = offset;
+    pairDifference = QVector<int>(pages1.count(), -1);
+    // The pages of each pair, in order
+    QList<int> pairPages1;
+    QList<int> pairPages2;
+    for (int i = first; i < end; ++i) {
+        pairPages1.append(pages1.at(i));
+        pairPages2.append(pages2.at(i + offset));
+    }
     PageCompareOptions options;
     options.compareAppearance = currentCompareIndex == CompareAppearance;
     options.excludeMargins = marginsGroupBox->isChecked();
@@ -1441,7 +1572,7 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
     // of documents.  There is no GUI control: set it in the settings file.
     options.maxWorkers = QSettings().value("CompareThreads", 0).toInt();
     const QVector<PagePairResult> results = comparePagesInParallel(
-            filename1, pdf1, pages1, filename2, pdf2, pages2, options,
+            filename1, pdf1, pairPages1, filename2, pdf2, pairPages2, options,
             &cancel, [this](int done, int toDo) {
                 statusLabel->setText(tr("Comparing %1/%2").arg(done)
                                                           .arg(toDo));
@@ -1449,12 +1580,13 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
             }, &fingerprints);
     int number = 0;
     int index = 0;
-    for (int i = 0; i < total; ++i) {
-        const PagePairResult &result = results.at(i);
+    for (int k = 0; k < total; ++k) {
+        const PagePairResult &result = results.at(k);
         if (!result.compared)
             continue;
-        const int p1 = pages1.at(i);
-        const int p2 = pages2.at(i);
+        const int i = first + k; // index into pages1
+        const int p1 = pairPages1.at(k);
+        const int p2 = pairPages2.at(k);
         if (result.unreadableFile) {
             writeError(tr("Failed to read page %1 from '%2'.")
                     .arg((result.unreadableFile == 1 ? p1 : p2) + 1)
@@ -1462,8 +1594,11 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
                                                     : filename2));
             continue;
         }
-        writeLine(tr("Comparing: %1 vs. %2.").arg(p1 + 1).arg(p2 + 1));
+        if (verbose)
+            writeLine(tr("Comparing: %1 vs. %2.").arg(p1 + 1)
+                                                 .arg(p2 + 1));
         ++number;
+        pairDifference[i] = result.difference;
         if (result.difference != NoPageDifference) {
             QVariant v;
             v.setValue(PagePair(p1, p2,
@@ -1471,6 +1606,8 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
             viewDiffComboBox->addItem(tr("%1 vs. %2 %3 %4")
                     .arg(p1 + 1).arg(p2 + 1).arg(QChar(0x2022))
                     .arg(++index), v);
+            viewDiffComboBox->setItemData(viewDiffComboBox->count() - 1,
+                                          i, Qt::UserRole + 1);
         }
     }
     if (cancel)
@@ -1480,10 +1617,15 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
 
 
 void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
-        const int millisec)
+        const int millisec, const int pairIndexToShow)
 {
     const int differ = viewDiffComboBox->count() - 1;
-    if (!cancel) {
+    const bool keepView = pairIndexToShow >= 0 &&
+                          isComparedPair(pairIndexToShow);
+    if (!cancel && keepView)
+        writeLine(tr("Offset %1: %2 of %3 page pairs differ.")
+                  .arg(comparedOffset).arg(differ).arg(pair.first));
+    else if (!cancel) {
         if (millisec > 1000)
             writeLine(tr("Completed in %1 seconds.")
             .arg(millisec / 1000.0, 0, 'f', 2));
@@ -1514,16 +1656,130 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
 
     compareButton->setText(tr("&Compare"));
     if (differ == 1) // Separated the cases for ease of translation
-        statusLabel->setText(tr("1 differs %1/%2 compared").arg(pair.first)
-                .arg(pair.second));
+        comparisonSummary = tr("1 differs %1/%2 compared").arg(pair.first)
+                .arg(pair.second);
     else
-        statusLabel->setText(tr("%1 differ %2/%3 compared").arg(differ)
-                .arg(pair.first).arg(pair.second));
+        comparisonSummary = tr("%1 differ %2/%3 compared").arg(differ)
+                .arg(pair.first).arg(pair.second);
+    statusLabel->setText(comparisonSummary);
     saveButton->setEnabled(true);
-    updateUi();
-    if (!cancel)
-        viewDiffComboBox->setFocus();
     QApplication::restoreOverrideCursor();
+    if (keepView && !cancel)
+        showPair(pairIndexToShow);
+    updateUi();
+    if (!cancel && !keepView)
+        viewDiffComboBox->setFocus();
+}
+
+
+void MainWindow::forgetComparison()
+{
+    comparedPages1.clear();
+    comparedPages2.clear();
+    comparedOffset = 0;
+    pairDifference.clear();
+    viewedPairIndex = -1;
+    const QSignalBlocker blocker(offsetSpinBox);
+    offsetSpinBox->setValue(0);
+}
+
+
+bool MainWindow::isComparedPair(const int pairIndex) const
+{
+    return pairIndex >= 0 && pairIndex < pairDifference.count() &&
+           pairDifference.at(pairIndex) >= 0;
+}
+
+
+PagePair MainWindow::pairAt(const int pairIndex) const
+{
+    const int difference = pairDifference.at(pairIndex);
+    return PagePair(comparedPages1.at(pairIndex),
+            comparedPages2.at(pairIndex + comparedOffset),
+            difference == VisualPageDifference,
+            difference != NoPageDifference);
+}
+
+
+// Shows a compared pair, selecting it in the View combobox if it differs
+void MainWindow::showPair(const int pairIndex)
+{
+    for (int i = 1; i < viewDiffComboBox->count(); ++i)
+        if (viewDiffComboBox->itemData(i, Qt::UserRole + 1).toInt() ==
+            pairIndex) {
+            if (viewDiffComboBox->currentIndex() == i)
+                updateViews(i);
+            else
+                viewDiffComboBox->setCurrentIndex(i);
+            return;
+        }
+    {
+        const QSignalBlocker blocker(viewDiffComboBox);
+        viewDiffComboBox->setCurrentIndex(0);
+    }
+    viewedPairIndex = pairIndex;
+    updateViews();
+    const PagePair pair = pairAt(pairIndex);
+    statusLabel->setText(tr("%1 vs. %2 appear the same")
+                         .arg(pair.left + 1).arg(pair.right + 1));
+    updateUi();
+}
+
+
+// The View combobox index of the nearest differing pair after (or
+// before) pairIndex, or 0 if there is none
+int MainWindow::differingPairNear(const int pairIndex,
+                                  const bool after) const
+{
+    int found = 0;
+    for (int i = 1; i < viewDiffComboBox->count(); ++i) {
+        const int index = viewDiffComboBox->itemData(i, Qt::UserRole + 1)
+                                          .toInt();
+        if (after && index > pairIndex)
+            return i;
+        if (!after && index < pairIndex)
+            found = i;
+    }
+    return found;
+}
+
+
+// Shows the previous or next page (delta -1 or 1) of one file beside the
+// same page of the other, by changing the page offset
+void MainWindow::stepPage(const int which, const int delta)
+{
+    if (comparedPages1.isEmpty() || compareButton->text() == tr("&Cancel"))
+        return;
+    int index1 = viewedPairIndex >= 0 ? viewedPairIndex
+                                      : qMax(0, -comparedOffset);
+    int index2 = index1 + comparedOffset;
+    if (which == 1)
+        index1 += delta;
+    else
+        index2 += delta;
+    if (index1 < 0 || index1 >= comparedPages1.count() || index2 < 0 ||
+        index2 >= comparedPages2.count())
+        return;
+    {
+        const QSignalBlocker blocker(offsetSpinBox);
+        offsetSpinBox->setValue(index2 - index1);
+    }
+    runComparison(false, index1);
+}
+
+
+void MainWindow::offsetChanged(int offset)
+{
+    if (comparedPages1.isEmpty() || compareButton->text() == tr("&Cancel"))
+        return; // The next comparison will use it
+    // Keep file #1's page if it still has a partner
+    const int first = qMax(0, -offset);
+    const int last = qMin(comparedPages1.count(),
+                          comparedPages2.count() - offset) - 1;
+    int index1 = viewedPairIndex >= 0 ? viewedPairIndex : first;
+    if (last >= first)
+        index1 = qBound(first, index1, last);
+    runComparison(false, index1);
 }
 
 
@@ -1707,9 +1963,9 @@ bool MainWindow::paintSaveAs(QPainter *painter, const int index,
     PdfPage page2 = pdf2->page(pair.right);
     if (!page2)
         return false;
-    const QPair<QString, QString> keys = cacheKeys(index, pair);
+    const QPair<QString, QString> keys = cacheKeys(pair);
     const QPair<QPixmap, QPixmap> pixmaps = populatePixmaps(pdf1,
-            page1, pdf2, page2, pair.hasVisualDifference,
+            page1, pdf2, page2, pair.hasVisualDifference, pair.differs,
             keys.first, keys.second);
     painter->drawText(rect, header, QTextOption(Qt::AlignHCenter|
                                                 Qt::AlignTop));
@@ -1753,10 +2009,9 @@ void MainWindow::about()
 
 void MainWindow::showZones()
 {
-    PagePair pair = viewDiffComboBox->itemData(
-            viewDiffComboBox->currentIndex()).value<PagePair>();
-    if (pair.isNull())
+    if (viewedPairIndex < 0 || !isComparedPair(viewedPairIndex))
         return;
+    const PagePair pair = pairAt(viewedPairIndex);
     QString filename1 = filename1LineEdit->text();
     PdfDocument pdf1 = getPdf(filename1);
     if (!pdf1)

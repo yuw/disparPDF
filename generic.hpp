@@ -49,14 +49,15 @@ typedef QPair<Ranges, Ranges> RangesPair;
 
 struct PagePair
 {
-    PagePair(int l=-1, int r=-1, bool v=false)
-        : left(l), right(r), hasVisualDifference(v) {}
+    PagePair(int l=-1, int r=-1, bool v=false, bool d=true)
+        : left(l), right(r), hasVisualDifference(v), differs(d) {}
 
     bool isNull() { return left == -1 || right == -1; }
 
     int left;
     int right;
     bool hasVisualDifference;
+    bool differs;
 };
 Q_DECLARE_METATYPE(PagePair)
 

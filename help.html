@@ -9,6 +9,7 @@
 <li><a href="#vis">Appearance Comparison Mode</a></li>
 <li><a href="#zon">Zoning</a></li>
 <li><a href="#ran">Page Ranges</a></li>
+<li><a href="#off">Page Offset</a></li>
 <li><a href="#mar">Margins</a></li>
 <li><a href="#sav">Saving</a></li>
 <li><a href="#opt">The Options Dialog</a></li>
@@ -102,6 +103,25 @@ of an extra page having been added as page 4, they can be compared by
 specifying two page ranges, 1-12 for the first and 1-3, 5-13 for the
 second. This will make disparPDF compare pages in the pairs (1, 1), (2,
 2), (3, 3), (4, 5), (5, 6), and so on, to (12, 13).
+
+<h3 id="off">Page Offset</h3>
+<p>The <b>Offset</b> pairs each page of the first PDF with the page that
+many pages further on in the second PDF (or further back, if the offset
+is negative), counting pages within the page ranges. For example, with
+an offset of 1 the pages are compared in the pairs (1, 2), (2, 3), and
+so on. This is useful when material added to one PDF shifts the pages
+of the other, so that, for example, everything after a certain point is
+a page later.
+
+<p>The small arrow buttons at the right of each PDF's page range show
+the previous or next page of that PDF beside the same page of the
+other, changing the offset by one. So when added material puts one PDF
+out of step, step it on to bring the pages that correspond back
+together, without editing the page ranges. The comparison is redone
+straight away, and the pair shown is shown whether or not it differs.
+
+<p>Pages already examined are remembered, so changing the offset, or
+comparing again, is quick.
 
 <h3 id="mar">Margins</h3>
 <p>It is possible to make <font color="darkgreen">disparPDF</font> ignore
