@@ -1,0 +1,52 @@
+Material for help2man(1), which generates the disparPDFc manual page from
+"disparPDFc --help" and "disparPDFc --version" plus the sections below.
+
+[NAME]
+disparPDFc \- compare two PDF files textually or visually, without a window
+
+[>DESCRIPTION]
+.PP
+.B disparPDFc
+is
+.BR disparPDF (1)
+always in batch mode: it compares the files without a window, so needs
+no display, and prints the result code.  By default it compares the
+appearance of the pages; it can also compare their words, or their text
+character by character.  Settings such as the zoom, the tolerances and
+the margins to leave out can be given in a file
+.RB ( \-\-settings ),
+in the same format as the
+.BR disparPDF (1)
+configuration file.
+
+[EXAMPLES]
+.PP
+.RS
+.nf
+$ disparPDFc a.pdf b.pdf
+0
+$ disparPDFc \-\-outType=1 a.pdf c.pdf
+1|documents differ at page: 1
+.fi
+.RE
+.PP
+Compare the words of two files, saving the pages that differ to
+.IR diff.pdf ,
+and a detailed result, in XML, to
+.IR result.xml :
+.PP
+.RS
+disparPDFc \-\-words \-\-pdfdiff=diff.pdf \-\-xmlResult=result.xml \-\-key=run1 a.pdf b.pdf
+.RE
+
+[AUTHORS]
+DiffPDF was written by Mark Summerfield (2008\(en2013).  ConfrontaPDF,
+which added batch mode, is a fork of it by Luca Bellonda (2015), and
+disparPDF is a port of that to Qt\~6 by Yuwsuke Kieda (2026).
+
+[REPORTING BUGS]
+https://github.com/yuw/disparPDF/issues
+
+[SEE ALSO]
+.BR disparPDF (1),
+.BR diff (1)

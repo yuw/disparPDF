@@ -178,6 +178,14 @@ ditto /usr/local/disparPDF.app /Applications/disparPDF.app
 sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/disparPDF
 ```
 
+On Linux and the BSDs, `cmake --install` also installs the manual pages
+(`man disparPDF`, `man disparPDFc`), a desktop file and icon for the
+application menus, and the README; packagers can use `DESTDIR` and the
+usual `CMAKE_INSTALL_*` directories.  The manual pages are generated with
+`help2man` from `--help`; without it, or when cross compiling, the copies
+in `doc_man/` are installed instead (refresh them with
+`cmake --build build --target update-manpages`).
+
 ## Usage
 
 ### GUI
@@ -206,7 +214,8 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ## Settings
 
 The GUI keeps its settings per user, on macOS in
-`~/Library/Preferences/com.disparpdf.disparPDF.plist`.
+`~/Library/Preferences/com.disparpdf.disparPDF.plist`, and on Linux and
+the BSDs in `~/.config/disparPDF/disparPDF.conf` (an INI file).
 
 `disparPDFc` ignores that file and reads an INI file given with
 `--settings=FILE`, which is how a scripted comparison gets non-default

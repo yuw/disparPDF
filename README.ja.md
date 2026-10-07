@@ -192,7 +192,8 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ## 設定
 
 GUIはユーザーごとに設定を保存します．macOSでは
-`~/Library/Preferences/com.disparpdf.disparPDF.plist`です．
+`~/Library/Preferences/com.disparpdf.disparPDF.plist`，LinuxとBSDでは
+`~/.config/disparPDF/disparPDF.conf`（INIファイル）です．
 
 `disparPDFc`はこのファイルを読まず，`--settings=FILE`で指定したINIファイルを
 読みます．既定値以外の条件でスクリプトから比較する場合はこれを使います：

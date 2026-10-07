@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Exec=disparPDF %F
+Icon=disparPDF
+Terminal=false
+Name=disparPDF
+GenericName=PDF Comparison
+Comment=Compare two PDF files textually or visually
+Categories=Qt;Office;Viewer;
+Keywords=PDF;Compare;Diff;Difference;Document;

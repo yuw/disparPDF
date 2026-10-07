@@ -59,6 +59,8 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain("disparPDF");
     app.setApplicationName(AboutForm::ProgramName);
     app.setWindowIcon(QIcon(":/icon.png"));
+    // Lets Wayland desktops find disparPDF.desktop, and so the icon
+    app.setDesktopFileName("disparPDF");
     QTextStream out(stdout);
     QStringList args = app.arguments().mid(1);
     QSettings settings;
