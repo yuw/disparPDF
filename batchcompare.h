@@ -16,6 +16,7 @@
 
 #include "generic.hpp"
 #include "pagecompare.h"
+#include "renderer.h"
 #include "saveform.hpp"
 #include <poppler-qt6.h>
 #include <QBrush>
@@ -44,8 +45,7 @@ class BatchCompare : public QObject
 public:
     BatchCompare(const Debug debug,
             const InitialComparisonMode comparisonMode,
-            const QString &filename1, const QString &filename2,
-                 StartupParameters *startupParameters,
+            StartupParameters *startupParameters,
             Status *status, QWidget *parent=0);
     void batchOperation();
     void readFromSettings();
@@ -57,33 +57,6 @@ protected:
 
 private:
     PdfDocument getPdf(const QString &filename);
-    void paintOnImage(const QPainterPath &path, QImage *image);
-    void computeTextHighlights(QPainterPath *highlighted1,
-            QPainterPath *highlighted2, const PdfPage &page1,
-            const PdfPage &page2, const int DPI);
-    void computeVisualHighlights(QPainterPath *highlighted1,
-        QPainterPath *highlighted2, const QImage &plainImage1,
-        const QImage &plainImage2);
-    void addHighlighting(QRectF *bigRect, QPainterPath *highlighted,
-            const QRectF wordOrCharRect, const int OVERLAP, const int DPI,
-            const bool COMBINE=true);
-    const QPair<QString, QString> cacheKeys(const int index,
-            const PagePair &pair) const;
-    const TextBoxList zoneYxOrdered(const TextBoxList &list);
-    void showZones(const int Width, const TextBoxList &list,
-            QLabel *label);
-    void showMargins(QLabel *label);
-    void saveAsPdf(const int start, const int end, const PdfDocument &pdf1,
-            const PdfDocument &pdf2, const QString &header);
-    bool paintSaveAs(QPainter *painter, const int index,
-            const PdfDocument &pdf1, const PdfDocument &pdf2,
-            const QString &header, const QRectF &rect,
-            const QRectF &leftRect, const QRectF &rightRect);
-    void saveAsImages(const int start, const int end,
-            const PdfDocument &pdf1, const PdfDocument &pdf2,
-            const QString &header);
-    QRectF pointRectForMargins(const QSize &size);
-    QRect pixelRectForMargins(const QSize &size);
 
     // batch operations
     QList<int> getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet);
@@ -93,19 +66,6 @@ private:
             const QString &filename1, const PdfDocument &pdf1,
             const QString &filename2, const PdfDocument &pdf2);
     void saveResultsBatch(Status *status, CompareResults &results, const PdfDocument &pdf1, const PdfDocument &pdf2);
-    void saveAsPdfBatch(Status *status, CompareResults &results, const QString &outputFile, const int start, const int end,
-            const PdfDocument &pdf1, const PdfDocument &pdf2,
-            const QString &header);
-    const QPair<QString, QString> cacheKeysBatch(const int index, const PagePair &pair) const;
-    const QPair<QPixmap, QPixmap> populatePixmaps(
-            const PdfDocument &pdf1, const PdfPage &page1,
-            const PdfDocument &pdf2, const PdfPage &page2,
-            bool hasVisualDifference, const QString &key1,
-            const QString &key2);
-    bool paintSaveAsBatch(QPainter *painter, CompareResults &results, const int index,
-            const PdfDocument &pdf1, const PdfDocument &pdf2,
-            const QString &header, const QRect &rect, const QRectF &leftRect,
-            const QRectF &rightRect);
     void writeParam(QXmlStreamWriter &writer, const QString &name, const QString &value);
     void writeParam(QXmlStreamWriter & writer, const QString &name, const QVariant &value);
 
@@ -114,8 +74,6 @@ private:
     bool compareFonts(DocInfo *doc1, DocInfo *doc2);
 
 
-    QBrush brush;
-    QPen pen;
     SavePages savePages;
     Debug debug;
     StartupParameters *_startupParameters;
@@ -124,32 +82,11 @@ private:
 
     //---------------
 public:
-    int currentCompareIndex;
-    bool zoningGroupBoxChecked;
-    int columnsSpinBoxValue;
-    int toleranceRSpinBoxValue;
-    int toleranceYSpinBoxValue;
-
-    bool marginsGroupBoxChecked;
-    int topMarginSpinBoxValue;
-    int bottomMarginSpinBoxValue;
-    int leftMarginSpinBoxValue;
-    int rightMarginSpinBoxValue;
+    // How differences are found and shown, from the settings file
+    RenderSettings render;
     int cacheSizeMB;
     int compareThreads;
-
-    int zoomSpinBoxValue;
-    QString filename1;
-    QString filename2;
-    int showHighlight;
-    QString pages1LineEdit, pages2LineEdit;
-    // -1 for highlight, any other value: composition
-    QPainter::CompositionMode compositionMode;
-    int squareSize;
-    double ruleWidth;
-    int overlap;
-    bool combineTextHighlighting;
-    int opacity;
+    int showHighlight; // kept in the settings and results files only
 
     void setNotifier(CompareNotifier *newNotifier);
     void writeParameters(QXmlStreamWriter &writer);

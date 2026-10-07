@@ -31,7 +31,6 @@ class CommandLineManager : public CompareNotifier
 public:
     CommandLineManager(const Debug debug,
                        const InitialComparisonMode comparisonMode,
-                       const QString &filename1, const QString &filename2,
                        StartupParameters *startupParameters, Status *status);
     ~CommandLineManager();
 

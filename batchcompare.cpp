@@ -35,16 +35,14 @@
 
 BatchCompare::BatchCompare(const Debug debug,
         const InitialComparisonMode comparisonMode,
-        const QString &filename1, const QString &filename2,
         StartupParameters *startupParameters, Status *status, QWidget *parent)
     : QObject(parent),
       savePages(SaveBothPages),
       debug(debug)
 {
-    pages1LineEdit = filename1;
-    pages2LineEdit = filename2;
     _startupParameters = startupParameters ;
-    currentCompareIndex = comparisonMode ;
+    render.compareMode = comparisonMode ;
+    render.debug = debug;
     _status = status ;
     cacheSizeMB = 100 ;
 
@@ -60,322 +58,114 @@ void BatchCompare::readFromSettings()
         return ;
     }
     QSettings settings(_startupParameters->settingsFile(), QSettings::IniFormat);
-    combineTextHighlighting = settings.value("CombineTextHighlighting",true).toBool();
+    render.combineTextHighlighting = settings.value("CombineTextHighlighting",true).toBool();
     showHighlight = settings.value("ShowHighlight", -1).toInt();
-    pen = settings.value("Outline", pen).value<QPen>();
-    brush.setColor(pen.color());
-    brush.setStyle(Qt::SolidPattern);
-    brush = settings.value("Fill", brush).value<QBrush>();
-    zoningGroupBoxChecked = settings.value("Zoning/Enable", false).toBool();
+    render.pen = settings.value("Outline", render.pen).value<QPen>();
+    render.brush.setColor(render.pen.color());
+    render.brush.setStyle(Qt::SolidPattern);
+    render.brush = settings.value("Fill", render.brush).value<QBrush>();
+    render.zoning = settings.value("Zoning/Enable", false).toBool();
 
-    zoomSpinBoxValue = settings.value("Zoom", 100).toInt();
-    columnsSpinBoxValue = settings.value("Columns", 1).toInt();
-    toleranceRSpinBoxValue = settings.value("Tolerance/R", 8).toInt();
-    toleranceYSpinBoxValue = settings.value("Tolerance/Y", 10).toInt();
-    marginsGroupBoxChecked = settings.value("Margins/Exclude", false).toBool();
-    leftMarginSpinBoxValue = settings.value("Margins/Left", 0).toInt();
-    rightMarginSpinBoxValue = settings.value("Margins/Right", 0).toInt();
-    topMarginSpinBoxValue = settings.value("Margins/Top", 0).toInt();
-    bottomMarginSpinBoxValue = settings.value("Margins/Bottom", 0).toInt();
+    render.zoom = settings.value("Zoom", 100).toInt();
+    render.columns = settings.value("Columns", 1).toInt();
+    render.toleranceR = settings.value("Tolerance/R", 8).toInt();
+    render.toleranceY = settings.value("Tolerance/Y", 10).toInt();
+    render.excludeMargins = settings.value("Margins/Exclude", false).toBool();
+    render.leftMargin = settings.value("Margins/Left", 0).toInt();
+    render.rightMargin = settings.value("Margins/Right", 0).toInt();
+    render.topMargin = settings.value("Margins/Top", 0).toInt();
+    render.bottomMargin = settings.value("Margins/Bottom", 0).toInt();
     cacheSizeMB = settings.value("CacheSizeMB", 25).toInt();
     // 0 keeps one comparison worker per core; a positive value caps them,
     // which also caps peak memory, since every worker opens its own pair
     // of documents.  There is no GUI control: set it in the settings file.
     compareThreads = settings.value("CompareThreads", 0).toInt();
-    compositionMode = static_cast<QPainter::CompositionMode>(settings.value("compositionMode", -1).toInt()) ;
-    squareSize = settings.value("SquareSize", squareSize).toInt();
-    ruleWidth = settings.value("RuleWidth", ruleWidth).toDouble();
-    overlap = settings.value("Overlap", overlap).toInt();
-    combineTextHighlighting = settings.value("CombineTextHighlighting", combineTextHighlighting).toBool();
-    opacity = settings.value("Opacity", opacity).toInt();
+    render.compositionMode = settings.value("compositionMode", -1).toInt();
+    render.squareSize = settings.value("SquareSize", render.squareSize).toInt();
+    render.ruleWidth = settings.value("RuleWidth", render.ruleWidth).toDouble();
+    render.overlap = settings.value("Overlap", render.overlap).toInt();
+    render.combineTextHighlighting = settings.value("CombineTextHighlighting", render.combineTextHighlighting).toBool();
+    render.opacity = settings.value("Opacity", render.opacity).toInt();
 }
 
 void BatchCompare::writeToSettings(const QString &filePath)
 {
     //WARNING: this function still to be completed.
     QSettings settings(filePath, QSettings::IniFormat );
-    settings.setValue("CombineTextHighlighting", combineTextHighlighting);
+    settings.setValue("CombineTextHighlighting", render.combineTextHighlighting);
     settings.setValue("ShowHighlight", showHighlight);
-    settings.setValue("Outline", pen);
-    settings.setValue("Fill", brush);
-    settings.setValue("Zoning/Enable", zoningGroupBoxChecked);
+    settings.setValue("Outline", render.pen);
+    settings.setValue("Fill", render.brush);
+    settings.setValue("Zoning/Enable", render.zoning);
 
-    settings.setValue("Zoom", zoomSpinBoxValue);
-    settings.setValue("Columns", columnsSpinBoxValue);
-    settings.setValue("Tolerance/R", toleranceRSpinBoxValue);
-    settings.setValue("Tolerance/Y", toleranceYSpinBoxValue);
-    settings.setValue("Margins/Exclude", marginsGroupBoxChecked);
+    settings.setValue("Zoom", render.zoom);
+    settings.setValue("Columns", render.columns);
+    settings.setValue("Tolerance/R", render.toleranceR);
+    settings.setValue("Tolerance/Y", render.toleranceY);
+    settings.setValue("Margins/Exclude", render.excludeMargins);
     /*
-    leftMarginSpinBoxValue = settings.value("Margins/Left", 0).toInt();
-    rightMarginSpinBoxValue = settings.value("Margins/Right", 0).toInt();
-    topMarginSpinBoxValue = settings.value("Margins/Top", 0).toInt();
-    bottomMarginSpinBoxValue = settings.value("Margins/Bottom", 0).toInt();
+    render.leftMargin = settings.value("Margins/Left", 0).toInt();
+    render.rightMargin = settings.value("Margins/Right", 0).toInt();
+    render.topMargin = settings.value("Margins/Top", 0).toInt();
+    render.bottomMargin = settings.value("Margins/Bottom", 0).toInt();
     cacheSizeMB = settings.value("CacheSizeMB", 25).toInt();
-    compositionMode = static_cast<QPainter::CompositionMode>(settings.value("compositionMode", -1).toInt()) ;
+    render.compositionMode = settings.value("compositionMode", -1).toInt();
 */
-    settings.setValue("SquareSize", squareSize);
-    settings.setValue("RuleWidth", ruleWidth);
+    settings.setValue("SquareSize", render.squareSize);
+    settings.setValue("RuleWidth", render.ruleWidth);
 
-    settings.setValue("Overlap", overlap);
-    settings.setValue("CombineTextHighlighting", combineTextHighlighting);
-    settings.setValue("Opacity", opacity);
+    settings.setValue("Overlap", render.overlap);
+    settings.setValue("CombineTextHighlighting", render.combineTextHighlighting);
+    settings.setValue("Opacity", render.opacity);
 
     settings.sync();
 }
 
 void BatchCompare::initValues()
 {
-    combineTextHighlighting = true ;
-    pen.setStyle(Qt::NoPen);
-    pen.setColor(Qt::red);
-    brush.setColor(pen.color());
-    brush.setStyle(Qt::SolidPattern);
+    render.combineTextHighlighting = true ;
+    render.pen.setStyle(Qt::NoPen);
+    render.pen.setColor(Qt::red);
+    render.brush.setColor(render.pen.color());
+    render.brush.setStyle(Qt::SolidPattern);
 
-    marginsGroupBoxChecked = false;
-    zoningGroupBoxChecked = false ;
-    zoomSpinBoxValue = 100 ;
+    render.excludeMargins = false;
+    render.zoning = false ;
+    render.zoom = 100 ;
     showHighlight = -1 ;
-    squareSize= 10;
-    ruleWidth= 1.5;
-    zoningGroupBoxChecked = false;
+    render.squareSize= 10;
+    render.ruleWidth= 1.5;
+    render.zoning = false;
 
 
-    columnsSpinBoxValue = 1;
-    toleranceRSpinBoxValue = 8 ;
-    toleranceYSpinBoxValue = 10 ;
-    marginsGroupBoxChecked = false;
-    leftMarginSpinBoxValue = 0;
-    rightMarginSpinBoxValue = 0;
-    topMarginSpinBoxValue = 0;
-    bottomMarginSpinBoxValue = 0;
+    render.columns = 1;
+    render.toleranceR = 8 ;
+    render.toleranceY = 10 ;
+    render.excludeMargins = false;
+    render.leftMargin = 0;
+    render.rightMargin = 0;
+    render.topMargin = 0;
+    render.bottomMargin = 0;
     cacheSizeMB = 25;
     compareThreads = 0;
-    compositionMode = static_cast<QPainter::CompositionMode>(-1) ;
-    overlap = 5 ;
-    combineTextHighlighting = true ;
-    opacity = 13 ;
-}
-
-const QPair<QString, QString> BatchCompare::cacheKeys(const int index,
-        const PagePair &pair) const
-{
-    int comparisonMode1;
-    int comparisonMode2;
-    // TODO: refactor this key, it is very bad.
-    if (currentCompareIndex == CompareAppearance) {
-        // this key will be always positive, even if the value is -1
-        comparisonMode1 = 1;
-        comparisonMode2 = static_cast<int>(compositionMode);
-    } else {
-        // this will be always negative, given that App is 0.
-        comparisonMode1 = 0 ;
-        comparisonMode2 = currentCompareIndex;
-    }
-    QString zoning;
-    if (zoningGroupBoxChecked)
-        zoning = QString("%1:%2:%3").arg(columnsSpinBoxValue)
-                .arg(toleranceRSpinBoxValue)
-                .arg(toleranceYSpinBoxValue);
-    QString margins;
-    if (marginsGroupBoxChecked)
-        margins = QString("%1:%2:%3:%4").arg(topMarginSpinBoxValue)
-                .arg(bottomMarginSpinBoxValue)
-                .arg(leftMarginSpinBoxValue)
-                .arg(rightMarginSpinBoxValue);
-    const QString key = QString("%1:%2:%3:%4:%5:%6").arg(index)
-            .arg(zoomSpinBoxValue).arg(comparisonMode1).arg(comparisonMode2).arg(zoning)
-            .arg(margins);
-    const QString key1 = QString("1:%1:%2:%3").arg(key).arg(pair.left)
-            .arg(filename1);
-    const QString key2 = QString("2:%1:%2:%3").arg(key).arg(pair.right)
-            .arg(filename2);
-    return qMakePair(key1, key2);
-}
-
-void BatchCompare::computeTextHighlights(QPainterPath *highlighted1,
-        QPainterPath *highlighted2, const PdfPage &page1,
-        const PdfPage &page2, const int DPI)
-{
-    const bool ComparingWords = currentCompareIndex == CompareWords;
-    QRectF rect1;
-    QRectF rect2;
-    const int OVERLAP = overlap;
-    const bool COMBINE = combineTextHighlighting;
-    QRectF rect;
-    if (marginsGroupBoxChecked)
-        rect = pointRectForMargins(page1->pageSize());
-    const TextBoxList list1 = getTextBoxes(page1, rect);
-    const TextBoxList list2 = getTextBoxes(page2, rect);
-    TextItems items1 = ComparingWords ? getWords(list1)
-                                      : getCharacters(list1);
-    TextItems items2 = ComparingWords ? getWords(list2)
-                                      : getCharacters(list2);
-    const int ToleranceY = toleranceYSpinBoxValue;
-    if (zoningGroupBoxChecked) {
-        const int ToleranceR = toleranceRSpinBoxValue;
-        const int Columns = columnsSpinBoxValue;
-        items1.columnZoneYxOrder(page1->pageSize().width(), ToleranceR,
-                                 ToleranceY, Columns);
-        items2.columnZoneYxOrder(page2->pageSize().width(), ToleranceR,
-                                 ToleranceY, Columns);
-    }
-
-    if (debug >= DebugShowTexts) {
-        const bool Yx = debug == DebugShowTextsAndYX;
-        items1.debug(1, ToleranceY, ComparingWords, Yx);
-        items2.debug(2, ToleranceY, ComparingWords, Yx);
-    }
-
-    SequenceMatcher matcher(items1.texts(), items2.texts());
-    RangesPair rangesPair = computeRanges(&matcher);
-    rangesPair = invertRanges(rangesPair.first, items1.count(),
-                              rangesPair.second, items2.count());
-
-    for (int index : rangesPair.first)
-        addHighlighting(&rect1, highlighted1, items1.at(index).rect,
-                        OVERLAP, DPI, COMBINE);
-    if (!rect1.isNull() && !rangesPair.first.isEmpty())
-        highlighted1->addRect(rect1);
-    for (int index : rangesPair.second)
-        addHighlighting(&rect2, highlighted2, items2.at(index).rect,
-                        OVERLAP, DPI, COMBINE);
-    if (!rect2.isNull() && !rangesPair.second.isEmpty())
-        highlighted2->addRect(rect2);
-}
-
-
-void BatchCompare::addHighlighting(QRectF *bigRect,
-        QPainterPath *highlighted, const QRectF wordOrCharRect,
-        const int OVERLAP, const int DPI, const bool COMBINE)
-{
-    QRectF rect = wordOrCharRect;
-    scaleRect(DPI, &rect);
-    if (COMBINE && rect.adjusted(-OVERLAP, -OVERLAP, OVERLAP, OVERLAP)
-        .intersects(*bigRect))
-        *bigRect = bigRect->united(rect);
-    else {
-        highlighted->addRect(*bigRect);
-        *bigRect = rect;
-    }
-}
-
-void BatchCompare::computeVisualHighlights(QPainterPath *highlighted1,
-        QPainterPath *highlighted2, const QImage &plainImage1,
-        const QImage &plainImage2)
-{
-    const int SQUARE_SIZE = squareSize;
-    QRect box;
-    if (marginsGroupBoxChecked)
-        box = pixelRectForMargins(plainImage1.size());
-    QRect target;
-    for (int x = 0; x < plainImage1.width(); x += SQUARE_SIZE) {
-        for (int y = 0; y < plainImage1.height(); y += SQUARE_SIZE) {
-            const QRect rect(x, y, SQUARE_SIZE, SQUARE_SIZE);
-            if (!box.isEmpty() && !box.contains(rect))
-                continue;
-            QImage temp1 = plainImage1.copy(rect);
-            QImage temp2 = plainImage2.copy(rect);
-            if (temp1 != temp2) {
-                if (rect.adjusted(-1, -1, 1, 1).intersects(target))
-                    target = target.united(rect);
-                else {
-                    highlighted1->addRect(target);
-                    highlighted2->addRect(target);
-                    target = rect;
-                }
-            }
-        }
-    }
-    if (!target.isNull()) {
-        highlighted1->addRect(target);
-        highlighted2->addRect(target);
-    }
-}
-
-QRect BatchCompare::pixelRectForMargins(const QSize &size)
-{
-    const int DPI = static_cast<int>(POINTS_PER_INCH *
-                (zoomSpinBoxValue / 100.0));
-    int top = pixelOffsetForPointValue(DPI, topMarginSpinBoxValue);
-    int left = pixelOffsetForPointValue(DPI, leftMarginSpinBoxValue);
-    int right = pixelOffsetForPointValue(DPI, rightMarginSpinBoxValue);
-    int bottom = pixelOffsetForPointValue(DPI,
-            bottomMarginSpinBoxValue);
-    return QRect(QPoint(left, top),
-                 QPoint(size.width() - right, size.height() - bottom));
-}
-
-void BatchCompare::paintOnImage(const QPainterPath &path, QImage *image)
-{
-    QPen pen_(pen);
-    QBrush brush_(brush);
-    QColor color = pen.color();
-    const qreal Alpha = opacity / 100.0;
-    color.setAlphaF(Alpha);
-    pen_.setColor(color);
-    brush_.setColor(color);
-
-    QPainter painter(image);
-    painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(pen_);
-    painter.setBrush(brush_);
-
-    const int SQUARE_SIZE = squareSize;
-    const double RULE_WIDTH = ruleWidth;
-    QRectF rect = path.boundingRect();
-    if (rect.width() < SQUARE_SIZE && rect.height() < SQUARE_SIZE) {
-        rect.setHeight(SQUARE_SIZE);
-        rect.setWidth(SQUARE_SIZE);
-        painter.drawRect(rect);
-        if (!qFuzzyCompare(RULE_WIDTH, 0.0)) {
-            painter.setPen(QPen(pen.color()));
-            painter.drawRect(0, rect.y(), RULE_WIDTH, rect.height());
-        }
-    }
-    else {
-        QPainterPath path_(path);
-        path_.setFillRule(Qt::WindingFill);
-        painter.drawPath(path_);
-        if (!qFuzzyCompare(RULE_WIDTH, 0.0)) {
-            painter.setPen(QPen(pen.color()));
-            QList<QPolygonF> polygons = path_.toFillPolygons();
-            for (const QPolygonF &polygon : polygons) {
-                const QRectF rect = polygon.boundingRect();
-                painter.drawRect(0, rect.y(), RULE_WIDTH, rect.height());
-            }
-        }
-    }
-    painter.end();
+    render.compositionMode = -1;
+    render.overlap = 5 ;
+    render.combineTextHighlighting = true ;
+    render.opacity = 13 ;
 }
 
 PdfDocument BatchCompare::getPdf(const QString &filename)
 {
-    PdfDocument pdf(Poppler::Document::load(filename));
+    bool locked;
+    PdfDocument pdf = loadPdf(filename, &locked);
     if (!pdf) {
-        _status->setStatusWithDescription(ErrorUnableToLoadFile,
-                                          tr("Cannot load '%1'.").arg(filename));
-        _notifier->messageBox(tr("Cannot load '%1'.").arg(filename));
-    } else if (pdf->isLocked()) {
-        _status->setStatusWithDescription(ErrorUnableToLoadFile,
-                                          tr("Cannot read a locked PDF ('%1').").arg(filename));
-        _notifier->messageBox(tr("Cannot read a locked PDF ('%1').").arg(filename));
-        pdf.reset();
-    }
-    if (pdf) {
-        // Compare and highlight pages as they are displayed: without
-        // antialiasing, some visible differences (such as text printed
-        // twice in the same place, which looks bolder) render identically.
-        pdf->setRenderHint(Poppler::Document::Antialiasing);
-        pdf->setRenderHint(Poppler::Document::TextAntialiasing);
+        const QString message = locked
+                ? tr("Cannot read a locked PDF ('%1').").arg(filename)
+                : tr("Cannot load '%1'.").arg(filename);
+        _status->setStatusWithDescription(ErrorUnableToLoadFile, message);
+        _notifier->messageBox(message);
     }
     return pdf;
-}
-
-QRectF BatchCompare::pointRectForMargins(const QSize &size)
-{
-    return rectForMargins(size.width(), size.height(),
-            topMarginSpinBoxValue, bottomMarginSpinBoxValue,
-            leftMarginSpinBoxValue, rightMarginSpinBoxValue);
 }
 
 // The offsets are in pixels of an image rendered at the given DPI
@@ -452,15 +242,15 @@ void BatchCompare::comparePagesBatch(
     if( pages1.count() != pages2.count() ) {
         _status->setStatusWithDescription( ErrorPagesDiffer, tr("the number of pages is not the same on both the documents, doc1:%1, doc2:%2").arg(pages1.count()).arg(pages2.count()));
     }
-    currentCompareIndex = _startupParameters->comparisonMode();
+    render.compareMode = _startupParameters->comparisonMode();
     results.setTotal(qMin(pages1.count(), pages2.count()));
     PageCompareOptions options;
-    options.compareAppearance = currentCompareIndex == CompareAppearance;
-    options.excludeMargins = marginsGroupBoxChecked;
-    options.topMargin = topMarginSpinBoxValue;
-    options.bottomMargin = bottomMarginSpinBoxValue;
-    options.leftMargin = leftMarginSpinBoxValue;
-    options.rightMargin = rightMarginSpinBoxValue;
+    options.compareAppearance = render.compareMode == CompareAppearance;
+    options.excludeMargins = render.excludeMargins;
+    options.topMargin = render.topMargin;
+    options.bottomMargin = render.bottomMargin;
+    options.leftMargin = render.leftMargin;
+    options.rightMargin = render.rightMargin;
     options.maxWorkers = compareThreads;
     const QVector<PagePairResult> pairResults = comparePagesInParallel(
             filename1, pdf1, pages1, filename2, pdf2, pages2, options);
@@ -493,156 +283,13 @@ void BatchCompare::saveResultsBatch(Status *status, CompareResults &results, con
     header = tr("%5 %1 %2 vs. %3 %1 %4").arg(bullet)
         .arg(_startupParameters->file1()).arg(_startupParameters->file2())
         .arg(QDateTime::currentDateTime().toString(Qt::ISODate)).arg(AboutForm::ProgramName);
-    saveAsPdfBatch( status, results, _startupParameters->pdfDiffFilePath(), start, end, pdf1, pdf2, header);
-}
-
-void BatchCompare::saveAsPdfBatch(Status *status, CompareResults &results,
-        const QString &outputFile, const int start, const int end,
-        const PdfDocument &pdf1, const PdfDocument &pdf2,
-        const QString &header)
-{
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setOutputFileName(outputFile);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setColorMode(QPrinter::Color);
-    printer.setCreator(AboutForm::ProgramName);
-    printer.setPageOrientation(savePages == SaveBothPages
-            ? QPageLayout::Landscape : QPageLayout::Portrait);
-    QPainter painter(&printer);
-    painter.setRenderHints(QPainter::Antialiasing|
-            QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
-    painter.setFont(QFont("Helvetica", 11));
-    painter.setPen(Qt::darkCyan);
-    const QRect rect(0, 0, painter.viewport().width(),
-                        painter.fontMetrics().height());
-    const int y = painter.fontMetrics().lineSpacing();
-    const int height = painter.viewport().height() - y;
-    const int gap = 30;
-    int width = (painter.viewport().width() / 2) - gap;
-    if (savePages != SaveBothPages) {
-        width = painter.viewport().width();
-    }
-    const QRect leftRect(0, y, width, height);
-    const QRect rightRect(width + gap, y, width, height);
-    for (int index = start; index < end; ++index) {
-        if (!paintSaveAsBatch(&painter, results, index, pdf1, pdf2, header, rect,
-                    leftRect, rightRect)) {
-            status->setStatusWithDescriptionUncond(ErrorWritingPDFDiffFile, tr("error while writing differences file"));
-            continue;
-        }
-        if (index + 1 < end)
-            printer.newPage();
-    }
-    if( printer.printerState() == QPrinter::Error ) {
-        status->setStatusWithDescriptionUncond(ErrorWritingPDFDiffFile, tr("error while writing differences file"));
-    }
-}
-
-
-bool BatchCompare::paintSaveAsBatch(QPainter *painter, CompareResults &results, const int index,
-        const PdfDocument &pdf1, const PdfDocument &pdf2,
-        const QString &header, const QRect &rect, const QRectF &leftRect,
-        const QRectF &rightRect)
-{
-    PagePair pair = results.differences().at(index);
-    if (pair.isNull())
-        return false;
-    PdfPage page1 = pdf1->page(pair.left);
-    if (!page1)
-        return false;
-    PdfPage page2 = pdf2->page(pair.right);
-    if (!page2)
-        return false;
-    const QPair<QString, QString> keys = cacheKeys(index, pair);
-    const QPair<QPixmap, QPixmap> pixmaps = populatePixmaps(pdf1,
-            page1, pdf2, page2, pair.hasVisualDifference,
-            keys.first, keys.second);
-    if(!header.isEmpty()) {
-        painter->drawText(rect, header, QTextOption(Qt::AlignHCenter| Qt::AlignTop));
-    }
-    if (savePages == SaveBothPages) {
-        QRectF rect = resizeRect(leftRect, pixmaps.first.size());
-        painter->drawPixmap(rect.toAlignedRect(), pixmaps.first);
-        rect = resizeRect(rightRect, pixmaps.second.size());
-        painter->drawPixmap(rect.toAlignedRect(), pixmaps.second);
-        painter->drawRect(rightRect.adjusted(2.5, 2.5, 2.5, 2.5));
-    } else if (savePages == SaveLeftPages) {
-        QRectF rect = resizeRect(leftRect, pixmaps.first.size());
-        painter->drawPixmap(rect.toAlignedRect(), pixmaps.first);
-    } else { // (savePages == SaveRightPages)
-        QRectF rect = resizeRect(leftRect, pixmaps.second.size());
-        painter->drawPixmap(rect.toAlignedRect(), pixmaps.second);
-    }
-    painter->drawRect(leftRect.adjusted(2.5, 2.5, 2.5, 2.5));
-    return true;
-}
-
-const QPair<QPixmap, QPixmap> BatchCompare::populatePixmaps(
-        const PdfDocument &pdf1, const PdfPage &page1,
-        const PdfDocument &pdf2, const PdfPage &page2,
-        bool hasVisualDifference, const QString &key1,
-        const QString &key2)
-{
-    QPixmap pixmap1;
-    QPixmap pixmap2;
-    if (!QPixmapCache::find(key1, &pixmap1) ||
-        !QPixmapCache::find(key2, &pixmap2)) {
-        _notifier->setOverrideCursor();
-        const int DPI = static_cast<int>(POINTS_PER_INCH *
-                (zoomSpinBoxValue / 100.0));
-        const bool compareText = currentCompareIndex != CompareAppearance;
-        QImage plainImage1;
-        QImage plainImage2;
-        if (hasVisualDifference || !compareText) {
-            plainImage1 = page1->renderToImage(DPI, DPI);
-            plainImage2 = page2->renderToImage(DPI, DPI);
-        }
-        QImage image1 = page1->renderToImage(DPI, DPI);
-        QImage image2 = page2->renderToImage(DPI, DPI);
-
-        if (compareText || (-1 == static_cast<int>(compositionMode) ) ) {
-            QPainterPath highlighted1;
-            QPainterPath highlighted2;
-            if (hasVisualDifference || !compareText)
-                computeVisualHighlights(&highlighted1, &highlighted2,
-                        plainImage1, plainImage2);
-            else
-                computeTextHighlights(&highlighted1, &highlighted2, page1,
-                        page2, DPI);
-            if (!highlighted1.isEmpty())
-                paintOnImage(highlighted1, &image1);
-            if (!highlighted2.isEmpty())
-                paintOnImage(highlighted2, &image2);
-            if (highlighted1.isEmpty() && highlighted2.isEmpty()) {
-                QFont font("Helvetica", 14);
-                font.setOverline(true);
-                font.setUnderline(true);
-                highlighted1.addText(DPI / 4, DPI / 4, font,
-                    tr("%1: False Positive").arg(AboutForm::ProgramName));
-                paintOnImage(highlighted1, &image1);
-            }
-            pixmap1 = QPixmap::fromImage(image1);
-            pixmap2 = QPixmap::fromImage(image2);
-        } else {
-            pixmap1 = QPixmap::fromImage(image1);
-            QImage composed(image1.size(), image1.format());
-            QPainter painter(&composed);
-            painter.setCompositionMode(QPainter::CompositionMode_Source);
-            painter.fillRect(composed.rect(), Qt::transparent);
-            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            painter.drawImage(0, 0, image1);
-            painter.setCompositionMode(compositionMode);
-            painter.drawImage(0, 0, image2);
-            painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-            painter.fillRect(composed.rect(), Qt::white);
-            painter.end();
-            pixmap2 = QPixmap::fromImage(composed);
-        }
-        QPixmapCache::insert(key1, pixmap1);
-        QPixmapCache::insert(key2, pixmap2);
-        _notifier->setRestoreCursor();
-    }
-    return qMakePair(pixmap1, pixmap2);
+    if (!DifferenceRenderer(render).saveAsPdf(
+            _startupParameters->pdfDiffFilePath(), pdf1,
+            _startupParameters->file1(), pdf2, _startupParameters->file2(),
+            results.differences().mid(start, end - start), header,
+            savePages))
+        status->setStatusWithDescriptionUncond(ErrorWritingPDFDiffFile,
+                tr("error while writing differences file"));
 }
 
 DocInfo *BatchCompare::docInfo(const PdfDocument &pdf, const QString &fileName)
@@ -725,31 +372,31 @@ static QString toBoolString(const bool value)
 
 void BatchCompare::writeParameters(QXmlStreamWriter & writer)
 {
-    writeParam(writer, "CombineTextHighlighting", toBoolString(combineTextHighlighting) );
+    writeParam(writer, "CombineTextHighlighting", toBoolString(render.combineTextHighlighting) );
     writeParam(writer, "ShowHighlight", QString::number(showHighlight) );
-    QVariant penVariant(pen);
+    QVariant penVariant(render.pen);
     writeParam(writer, "Outline", penVariant );
-    QVariant fillVariant(brush);
+    QVariant fillVariant(render.brush);
     writeParam(writer, "Fill", fillVariant );
-    writeParam(writer, "Zoom", QString::number(zoomSpinBoxValue) );
-    writeParam(writer, "Columns", QString::number(columnsSpinBoxValue)  );
-    writeParam(writer, "Tolerance/R", QString::number(toleranceRSpinBoxValue) );
-    writeParam(writer, "Tolerance/Y", QString::number(toleranceYSpinBoxValue) );
-    writeParam(writer, "Zoning/Enable", toBoolString(zoningGroupBoxChecked) );
-    writeParam(writer, "Margins/Exclude", toBoolString(marginsGroupBoxChecked) );
-    writeParam(writer, "Margins/Left", QString::number(leftMarginSpinBoxValue) );
-    writeParam(writer, "Margins/Right", QString::number(rightMarginSpinBoxValue) );
-    writeParam(writer, "Margins/Top", QString::number(topMarginSpinBoxValue) );
-    writeParam(writer, "Margins/Bottom", QString::number(bottomMarginSpinBoxValue) );
+    writeParam(writer, "Zoom", QString::number(render.zoom) );
+    writeParam(writer, "Columns", QString::number(render.columns)  );
+    writeParam(writer, "Tolerance/R", QString::number(render.toleranceR) );
+    writeParam(writer, "Tolerance/Y", QString::number(render.toleranceY) );
+    writeParam(writer, "Zoning/Enable", toBoolString(render.zoning) );
+    writeParam(writer, "Margins/Exclude", toBoolString(render.excludeMargins) );
+    writeParam(writer, "Margins/Left", QString::number(render.leftMargin) );
+    writeParam(writer, "Margins/Right", QString::number(render.rightMargin) );
+    writeParam(writer, "Margins/Top", QString::number(render.topMargin) );
+    writeParam(writer, "Margins/Bottom", QString::number(render.bottomMargin) );
     writeParam(writer, "CacheSizeMB", QString::number(cacheSizeMB) );
-    writeParam(writer, "compositionMode", QString::number(compositionMode) );
+    writeParam(writer, "compositionMode", QString::number(render.compositionMode) );
 
-    writeParam(writer, "SquareSize", QString::number(squareSize) );
-    writeParam(writer, "RuleWidth", QString::number(ruleWidth) );
+    writeParam(writer, "SquareSize", QString::number(render.squareSize) );
+    writeParam(writer, "RuleWidth", QString::number(render.ruleWidth) );
 
-    writeParam(writer, "Overlap", QString::number(overlap) );
-    writeParam(writer, "CombineTextHighlighting", toBoolString(combineTextHighlighting));
-    writeParam(writer, "Opacity", QString::number(opacity) );
+    writeParam(writer, "Overlap", QString::number(render.overlap) );
+    writeParam(writer, "CombineTextHighlighting", toBoolString(render.combineTextHighlighting));
+    writeParam(writer, "Opacity", QString::number(render.opacity) );
 }
 
 QString BatchCompare::makeFontKey(LFontInfo *l)

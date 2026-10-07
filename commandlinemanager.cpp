@@ -21,12 +21,8 @@
 
 CommandLineManager::CommandLineManager(const Debug debug,
                                        const InitialComparisonMode comparisonMode,
-                                       const QString &filename1, const QString &filename2,
                                        StartupParameters *startupParameters, Status *status )
-    : compare(debug,
-              comparisonMode,
-              filename1, filename2,
-              startupParameters, status)
+    : compare(debug, comparisonMode, startupParameters, status)
 {
     compare.setNotifier(this);
 }

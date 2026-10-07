@@ -182,6 +182,7 @@ set(COMMON_SOURCES
     lineedit.cpp
     mainwindow.cpp
     pagecompare.cpp
+    renderer.cpp
     optionsform.cpp
     saveform.cpp
     sequence_matcher.cpp
@@ -205,6 +206,7 @@ set(COMMON_HEADERS
     mainwindow.hpp
     optionsform.hpp
     pagecompare.h
+    renderer.h
     saveform.hpp
     sequence_matcher.hpp
     startupparameters.h

@@ -14,6 +14,7 @@
 
 #include "generic.hpp"
 #include "pagecompare.h"
+#include "renderer.h"
 #include "saveform.hpp"
 #include <poppler-qt6.h>
 #include <QBrush>
@@ -44,7 +45,7 @@ class QToolButton;
 class QSplitter;
 
 
-class MainWindow : public QMainWindow, CompareNotifier
+class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
@@ -54,18 +55,12 @@ public:
             const QString &filename1, const QString &filename2,
             const QString &language, StartupParameters *startupParameters,
             Status *status, QWidget *parent=0);
-    void setOverrideCursor();
-    void setRestoreCursor();
-    void processEvents();
-    void setStatusLabel(const QString &text);
-    void messageBox(const QString &text);
 
 protected:
     void closeEvent(QCloseEvent *event);
     bool eventFilter(QObject *object, QEvent *event);
     QString finalFileName(const QString &filename);
     DocInfo *docInfo(const PdfDocument &pdf, const QString &fileName);
-    //void initCompareParams(BatchCompare &compare);
 
 private slots:
     void setFile1(QString filename=QString());
@@ -119,37 +114,16 @@ private:
     void writeLine(const QString &text);
     void writeError(const QString &text);
     PdfDocument getPdf(const QString &filename);
+    RenderSettings renderSettings() const;
     QList<int> getPageList(int which, const PdfDocument &pdf);
-    void paintOnImage(const QPainterPath &path, QImage *image);
-    const QPair<QPixmap, QPixmap> populatePixmaps(const PdfDocument &pdf1,
-            const PdfPage &page1, const PdfDocument &pdf2,
-            const PdfPage &page2, bool hasVisualDifference, bool differs,
-            const QString &key1, const QString &key2);
-    void computeTextHighlights(QPainterPath *highlighted1,
-            QPainterPath *highlighted2, const PdfPage &page1,
-            const PdfPage &page2, const int DPI);
-    void computeVisualHighlights(QPainterPath *highlighted1,
-        QPainterPath *highlighted2, const QImage &plainImage1,
-        const QImage &plainImage2);
-    void addHighlighting(QRectF *bigRect, QPainterPath *highlighted,
-            const QRectF wordOrCharRect, const int OVERLAP, const int DPI,
-            const bool COMBINE=true);
-    const QPair<QString, QString> cacheKeys(const PagePair &pair) const;
-    const TextBoxList zoneYxOrdered(const TextBoxList &list);
     void showZones(const int Width, const TextBoxList &list,
             QLabel *label);
     void showMargins(QLabel *label);
     void saveAsPdf(const int start, const int end, const PdfDocument &pdf1,
             const PdfDocument &pdf2, const QString &header);
-    bool paintSaveAs(QPainter *painter, const int index,
-            const PdfDocument &pdf1, const PdfDocument &pdf2,
-            const QString &header, const QRectF &rect,
-            const QRectF &leftRect, const QRectF &rightRect);
     void saveAsImages(const int start, const int end,
             const PdfDocument &pdf1, const PdfDocument &pdf2,
             const QString &header);
-    QRectF pointRectForMargins(const QSize &size);
-    QRect pixelRectForMargins(const QSize &size);
 
     QPushButton *setFile1Button;
     LineEdit *filename1LineEdit;
@@ -249,7 +223,6 @@ private:
     StartupParameters *_startupParameters;
     Status *_status;
     int currentCompareIndex;
-    int currentShowCompareIndex;
 };
 
 #endif // MAINWINDOW_HPP

@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
         if( !startupParameters.validate(&status) ) {
             return status.returnOp(startupParameters.returnType(), &startupParameters);
         }
-        CommandLineManager manager(debug, comparisonMode, filename1, filename2,
+        CommandLineManager manager(debug, comparisonMode,
                 &startupParameters, &status );
         manager.batchOperation();
         return status.returnOp(startupParameters.returnType(), &startupParameters, manager.getCompare() );
