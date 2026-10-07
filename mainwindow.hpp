@@ -15,15 +15,7 @@
 #include "generic.hpp"
 #include "pagecompare.h"
 #include "saveform.hpp"
-#if QT_VERSION >= 0x040600
-#else
-#include <tr1/memory>
-#endif
-#ifdef USE_QT6
-#  include <poppler-qt6.h>
-#else
-#  include <poppler-qt5.h>
-#endif
+#include <poppler-qt6.h>
 #include <QBrush>
 #include <QList>
 #include <QMainWindow>

@@ -13,11 +13,7 @@
 */
 #include <memory>
 #include <vector>
-#ifdef USE_QT6
-#  include <poppler-qt6.h>
-#else
-#  include <poppler-qt5.h>
-#endif
+#include <poppler-qt6.h>
 #include <QMetaType>
 #include <QPair>
 #include <QPixmap>

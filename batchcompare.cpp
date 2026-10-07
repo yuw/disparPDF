@@ -359,11 +359,7 @@ PdfDocument BatchCompare::getPdf(const QString &filename)
         _status->setStatusWithDescription(ErrorUnableToLoadFile,
                                           tr("Cannot read a locked PDF ('%1').").arg(filename));
         _notifier->messageBox(tr("Cannot read a locked PDF ('%1').").arg(filename));
-#if QT_VERSION >= 0x040600
         pdf.reset();
-#else
-        pdf.reset();
-#endif
     }
     if (pdf) {
         // Compare and highlight pages as they are displayed: without
@@ -589,13 +585,8 @@ const QPair<QPixmap, QPixmap> BatchCompare::populatePixmaps(
 {
     QPixmap pixmap1;
     QPixmap pixmap2;
-#if QT_VERSION >= 0x040600
     if (!QPixmapCache::find(key1, &pixmap1) ||
         !QPixmapCache::find(key2, &pixmap2)) {
-#else
-    if (!QPixmapCache::find(key1, pixmap1) ||
-        !QPixmapCache::find(key2, pixmap2)) {
-#endif
         _notifier->setOverrideCursor();
         const int DPI = static_cast<int>(POINTS_PER_INCH *
                 (zoomSpinBoxValue / 100.0));

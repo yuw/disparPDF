@@ -229,14 +229,10 @@ void MainWindow::createWidgets(const QString &filename1,
     previousButton = new QPushButton(tr("Previo&us"));
     previousButton->setToolTip(
             "<p>Navigate to the previous pair of pages.");
-#if QT_VERSION >= 0x040600
     previousButton->setIcon(QIcon(":/left.png"));
-#endif
     nextButton = new QPushButton(tr("Ne&xt"));
     nextButton->setToolTip("<p>Navigate to the next pair of pages.");
-#if QT_VERSION >= 0x040600
     nextButton->setIcon(QIcon(":/right.png"));
-#endif
     offsetLabel = new QLabel(tr("Offset:"));
     offsetLabel->setToolTip(tr("<p>Pairs each page of file #1 with the "
                 "page that many pages further on in file #2 (or back, "
@@ -980,13 +976,8 @@ const QPair<QPixmap, QPixmap> MainWindow::populatePixmaps(
 {
     QPixmap pixmap1;
     QPixmap pixmap2;
-#if QT_VERSION >= 0x040600
     if (!QPixmapCache::find(key1, &pixmap1) ||
         !QPixmapCache::find(key2, &pixmap2)) {
-#else
-    if (!QPixmapCache::find(key1, pixmap1) ||
-        !QPixmapCache::find(key2, pixmap2)) {
-#endif
         QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
         const int DPI = static_cast<int>(POINTS_PER_INCH *
                 (zoomSpinBox->value() / 100.0));
@@ -1361,11 +1352,7 @@ PdfDocument MainWindow::getPdf(const QString &filename)
         else if (pdf->isLocked()) {
             QMessageBox::warning(this, tr("%1 — Error").arg(AboutForm::ProgramName),
                     tr("Cannot read a locked PDF ('%1').").arg(filename));
-    #if QT_VERSION >= 0x040600
             pdf.reset();
-    #else
-            pdf.reset();
-    #endif
         }
     }
     if (pdf) {

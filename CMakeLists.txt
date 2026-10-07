@@ -44,8 +44,7 @@ if(APPLE)
         message(STATUS "Homebrew prefix: ${HOMEBREW_PREFIX}")
         # 各 formula は互いに異なる .pc を提供するため相互の順序は問わない。
         # 重要なのは、いずれもが pkg-config の既定パスより前に来ること。
-        # qt@5 / poppler-qt5 は Qt6 が無い環境向けの保険。
-        foreach(_f poppler-qt6 poppler qt@6 qt qt@5 poppler-qt5)
+        foreach(_f poppler-qt6 poppler qt@6 qt)
             disparpdf_prepend_brew_prefix(${_f})
         endforeach()
         # PATH 上の pkg-config が Intel 版 Homebrew (/usr/local) のものだと、
@@ -58,20 +57,12 @@ if(APPLE)
     endif()
 endif()
 
-# ---- Qt (prefer Qt6, fall back to Qt5) ----
-find_package(Qt6 QUIET COMPONENTS Core Gui Widgets PrintSupport Xml Concurrent LinguistTools)
-if(Qt6_FOUND)
-    set(QT_VERSION_MAJOR 6)
-    set(QT_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport Qt6::Xml Qt6::Concurrent)
-    message(STATUS "Using Qt6 ${Qt6_VERSION}")
-else()
-    find_package(Qt5 REQUIRED COMPONENTS Core Gui Widgets PrintSupport Xml Concurrent LinguistTools)
-    set(QT_VERSION_MAJOR 5)
-    set(QT_LIBS Qt5::Core Qt5::Gui Qt5::Widgets Qt5::PrintSupport Qt5::Xml Qt5::Concurrent)
-    message(STATUS "Using Qt5 ${Qt5_VERSION}")
-endif()
+# ---- Qt ----
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets PrintSupport Xml Concurrent LinguistTools)
+set(QT_LIBS Qt6::Core Qt6::Gui Qt6::Widgets Qt6::PrintSupport Qt6::Xml Qt6::Concurrent)
+message(STATUS "Using Qt6 ${Qt6_VERSION}")
 
-# ---- Poppler Qt bindings ----
+# ---- Poppler Qt6 bindings ----
 find_package(PkgConfig QUIET)
 
 find_package(Poppler QUIET COMPONENTS Qt6)
@@ -80,20 +71,8 @@ if(Poppler_FOUND AND TARGET Poppler::Qt6)
     message(STATUS "Poppler Qt6 found via CMake config")
 endif()
 
-if(NOT POPPLER_TARGET AND QT_VERSION_MAJOR EQUAL 5)
-    find_package(Poppler QUIET COMPONENTS Qt5)
-    if(Poppler_FOUND AND TARGET Poppler::Qt5)
-        set(POPPLER_TARGET Poppler::Qt5)
-        message(STATUS "Poppler Qt5 found via CMake config")
-    endif()
-endif()
-
 if(NOT POPPLER_TARGET AND PKG_CONFIG_FOUND)
-    if(QT_VERSION_MAJOR EQUAL 6)
-        pkg_check_modules(POPPLER_QT poppler-qt6)
-    else()
-        pkg_check_modules(POPPLER_QT poppler-qt5)
-    endif()
+    pkg_check_modules(POPPLER_QT poppler-qt6)
     if(POPPLER_QT_FOUND)
         add_library(poppler_qt_pkgconfig INTERFACE IMPORTED)
         target_include_directories(poppler_qt_pkgconfig INTERFACE ${POPPLER_QT_INCLUDE_DIRS})
@@ -101,39 +80,32 @@ if(NOT POPPLER_TARGET AND PKG_CONFIG_FOUND)
         target_link_libraries(poppler_qt_pkgconfig INTERFACE ${POPPLER_QT_LIBRARIES})
         target_compile_options(poppler_qt_pkgconfig INTERFACE ${POPPLER_QT_CFLAGS_OTHER})
         set(POPPLER_TARGET poppler_qt_pkgconfig)
-        message(STATUS "Poppler Qt${QT_VERSION_MAJOR} found via pkg-config ${POPPLER_QT_VERSION}")
+        message(STATUS "Poppler Qt6 found via pkg-config ${POPPLER_QT_VERSION}")
     endif()
 endif()
 
 if(NOT POPPLER_TARGET)
-    if(QT_VERSION_MAJOR EQUAL 6)
-        set(_POPPLER_LIBNAME poppler-qt6)
-        set(_POPPLER_HEADER  poppler-qt6.h)
-    else()
-        set(_POPPLER_LIBNAME poppler-qt5)
-        set(_POPPLER_HEADER  poppler-qt5.h)
-    endif()
     # keg-only な Homebrew formula は <prefix>/lib 直下に無いので opt/<formula> も見る
     set(_POPPLER_HINTS ${CMAKE_PREFIX_PATH} /opt/homebrew /usr/local /usr)
     if(HOMEBREW_PREFIX)
         list(APPEND _POPPLER_HINTS
-            "${HOMEBREW_PREFIX}/opt/${_POPPLER_LIBNAME}"
+            "${HOMEBREW_PREFIX}/opt/poppler-qt6"
             "${HOMEBREW_PREFIX}/opt/poppler")
     endif()
-    find_library(POPPLER_QT_LIB NAMES ${_POPPLER_LIBNAME}
+    find_library(POPPLER_QT_LIB NAMES poppler-qt6
         HINTS ${_POPPLER_HINTS}
         PATH_SUFFIXES lib lib64)
-    find_path(POPPLER_QT_INCLUDE NAMES ${_POPPLER_HEADER}
+    find_path(POPPLER_QT_INCLUDE NAMES poppler-qt6.h
         HINTS ${_POPPLER_HINTS}
-        PATH_SUFFIXES include include/poppler/qt6 include/poppler/qt5 include/poppler)
+        PATH_SUFFIXES include include/poppler/qt6 include/poppler)
     if(POPPLER_QT_LIB AND POPPLER_QT_INCLUDE)
         add_library(poppler_qt_manual INTERFACE IMPORTED)
         target_include_directories(poppler_qt_manual INTERFACE ${POPPLER_QT_INCLUDE})
         target_link_libraries(poppler_qt_manual INTERFACE ${POPPLER_QT_LIB})
         set(POPPLER_TARGET poppler_qt_manual)
-        message(STATUS "Poppler Qt${QT_VERSION_MAJOR} found via find_library: ${POPPLER_QT_LIB}")
+        message(STATUS "Poppler Qt6 found via find_library: ${POPPLER_QT_LIB}")
     else()
-        message(FATAL_ERROR "Poppler Qt${QT_VERSION_MAJOR} bindings not found.")
+        message(FATAL_ERROR "Poppler Qt6 bindings not found.")
     endif()
 endif()
 
@@ -145,7 +117,7 @@ endif()
 if(POPPLER_QT_VERSION)
     set(POPPLER_VERSION_STR "${POPPLER_QT_VERSION}")
 elseif(PKG_CONFIG_FOUND)
-    pkg_check_modules(_POPPLER_VER QUIET poppler-qt${QT_VERSION_MAJOR})
+    pkg_check_modules(_POPPLER_VER QUIET poppler-qt6)
     if(_POPPLER_VER_VERSION)
         set(POPPLER_VERSION_STR "${_POPPLER_VER_VERSION}")
     endif()
@@ -162,11 +134,7 @@ set(TS_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/disparPDF_es.ts
     ${CMAKE_CURRENT_SOURCE_DIR}/disparPDF_fr.ts
 )
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt6_add_translation(QM_FILES ${TS_FILES})
-else()
-    qt5_add_translation(QM_FILES ${TS_FILES})
-endif()
+qt6_add_translation(QM_FILES ${TS_FILES})
 
 # resources.qrc がソースディレクトリ相対で .qm を参照しているため、
 # ビルド後に .qm をソースディレクトリへコピーするステップを挟む
@@ -192,7 +160,7 @@ set_source_files_properties("${QRC_CPP}" PROPERTIES GENERATED TRUE)
 
 add_custom_command(
     OUTPUT  "${QRC_CPP}"
-    COMMAND Qt${QT_VERSION_MAJOR}::rcc
+    COMMAND Qt6::rcc
             --name resources
             --output "${QRC_CPP}"
             "${QRC_SRC}"
@@ -251,7 +219,7 @@ add_executable(disparPDF
     ${COMMON_SOURCES}
     ${COMMON_HEADERS}
 )
-target_compile_definitions(disparPDF PRIVATE USE_QT${QT_VERSION_MAJOR} POPPLER_VERSION="${POPPLER_VERSION_STR}")
+target_compile_definitions(disparPDF PRIVATE POPPLER_VERSION="${POPPLER_VERSION_STR}")
 target_link_libraries(disparPDF PRIVATE ${QT_LIBS} ${POPPLER_TARGET})
 
 # ---- Console-only executable ----
@@ -260,7 +228,7 @@ add_executable(disparPDFc
     ${COMMON_SOURCES}
     ${COMMON_HEADERS}
 )
-target_compile_definitions(disparPDFc PRIVATE USE_QT${QT_VERSION_MAJOR} COMPARA_IS_CONSOLE POPPLER_VERSION="${POPPLER_VERSION_STR}")
+target_compile_definitions(disparPDFc PRIVATE COMPARA_IS_CONSOLE POPPLER_VERSION="${POPPLER_VERSION_STR}")
 target_link_libraries(disparPDFc PRIVATE ${QT_LIBS} ${POPPLER_TARGET})
 
 if(APPLE)

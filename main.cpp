@@ -151,11 +151,7 @@ int main(int argc, char *argv[])
     QTranslator appTranslator;
     if(!startupParameters.isBatch()) {
         QString translationsPath =
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
             QLibraryInfo::path(QLibraryInfo::TranslationsPath);
-#else
-            QLibraryInfo::location(QLibraryInfo::TranslationsPath);
-#endif
         if (qtTranslator.load("qt_" + language, translationsPath))
             app.installTranslator(&qtTranslator);
         if (appTranslator.load("disparPDF_" + language, ":/"))
