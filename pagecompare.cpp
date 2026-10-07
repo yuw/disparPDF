@@ -129,6 +129,17 @@ QVector<PagePairResult> comparePagesInParallel(
         }
     };
 
+    // The first time Poppler processes a page it creates some global colour
+    // profiles, without locking (GfxState::sRGBProfile and
+    // GfxXYZ2DisplayTransforms::XYZProfile).  Workers doing that at once
+    // can free each other's profile and crash, so process one page here
+    // before they start.
+    if (total > 0) {
+        const PdfPage page = pdf1->page(pages1.at(0));
+        if (page)
+            page->textList();
+    }
+
     int wanted = QThread::idealThreadCount();
     if (options.maxWorkers > 0)
         wanted = qMin(wanted, options.maxWorkers);
