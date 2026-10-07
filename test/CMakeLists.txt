@@ -92,3 +92,27 @@ disparpdf_test(any-extension-word 1 1 -- --words --any-extension
 
 disparpdf_test(help - - --stdout "Usage: disparPDFc" -- --help)
 disparpdf_test(version - - --stdout "disparPDFc ${PROJECT_VERSION}" -- --version)
+
+# Shell completions: every option in --help is offered, and they work
+# (these two are skipped without bash-completion or zsh)
+add_test(NAME completion-options
+         COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/completion-options.sh
+                 $<TARGET_FILE:disparPDF>
+                 ${CMAKE_SOURCE_DIR}/completions/disparPDF.bash
+                 ${CMAKE_SOURCE_DIR}/completions/_disparPDF)
+add_test(NAME completion-options-c
+         COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/completion-options.sh
+                 $<TARGET_FILE:disparPDFc>
+                 ${CMAKE_SOURCE_DIR}/completions/disparPDF.bash
+                 ${CMAKE_SOURCE_DIR}/completions/_disparPDF)
+add_test(NAME completion-bash
+         COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/completion-bash.sh
+                 ${CMAKE_SOURCE_DIR}/completions/disparPDF.bash)
+add_test(NAME completion-zsh
+         COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/completion-zsh.sh
+                 ${CMAKE_SOURCE_DIR}/completions)
+set_tests_properties(completion-options completion-options-c
+                     completion-bash completion-zsh
+                     PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+set_tests_properties(completion-bash completion-zsh
+                     PROPERTIES SKIP_RETURN_CODE 77)

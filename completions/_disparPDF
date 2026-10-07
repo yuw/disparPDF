@@ -1,0 +1,34 @@
+#compdef disparPDF disparPDFc
+# zsh completion for disparPDF and disparPDFc
+
+local pdf='_files -g "*.(#i)pdf(-.)"'
+local file=$pdf
+# Files must be named *.pdf unless --any-extension is given
+(( ${words[(I)--any-extension]} )) && file=_files
+
+local -a batch
+# disparPDFc is always in batch mode
+[[ $service == disparPDFc ]] ||
+  batch=('(-b --batch)'{-b,--batch}'[compare without a window]')
+
+_arguments -s -S \
+  '(-a --appearance -c --characters -w --words)'{-a,--appearance}'[compare the appearance of the pages]' \
+  '(-a --appearance -c --characters -w --words)'{-c,--characters}'[compare the text character by character]' \
+  '(-a --appearance -c --characters -w --words)'{-w,--words}'[compare the text word by word]' \
+  '--any-extension[accept files whose names do not end in .pdf]' \
+  '--language=[use the given translation language]:language:(cz de en fr)' \
+  '--debug=[write the text fed to the sequence matcher into temporary files]:level:((2\:"the text" 3\:"the text, with coordinates"))' \
+  $batch \
+  '--outType=[what to print in batch mode]:output:((0\:"only the result code" 1\:"the result code and a description"))' \
+  '--pages=[compare N pages (default all)]:number of pages' \
+  '--startPage1=[start at page N of FILE1]:page number' \
+  '--startPage2=[start at page N of FILE2]:page number' \
+  '--pdfdiff=[save the pages that differ, highlighted, to FILE]:PDF file to save the differences to:'"$pdf" \
+  '--xmlResult=[write the result, in XML, to FILE]:XML file:_files -g "*.(#i)xml(-.)"' \
+  '--key=[record KEY in the XML result]:key' \
+  '--settings=[read settings from FILE, in INI format]:settings file:_files' \
+  '--compareFonts[also compare the fonts the files use]' \
+  '(- *)'{-h,--help}'[display help and exit]' \
+  '(- *)--version[output version information and exit]' \
+  "1:first PDF file:$file" \
+  "2:second PDF file:$file"

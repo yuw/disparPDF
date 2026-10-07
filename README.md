@@ -179,8 +179,9 @@ sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/dis
 ```
 
 On Linux and the BSDs, `cmake --install` also installs the manual pages
-(`man disparPDF`, `man disparPDFc`), a desktop file and icon for the
-application menus, and the README; packagers can use `DESTDIR` and the
+(`man disparPDF`, `man disparPDFc`), bash and zsh completion (set
+`BASH_COMPLETION_DIR` and `ZSH_COMPLETION_DIR` to choose where), a desktop
+file and icon for the application menus, and the README; packagers can use `DESTDIR` and the
 usual `CMAKE_INSTALL_*` directories.  The manual pages are generated with
 `help2man` from `--help`; without it, or when cross compiling, the copies
 in `doc_man/` are installed instead (refresh them with
