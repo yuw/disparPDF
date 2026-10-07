@@ -1442,11 +1442,11 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
     options.maxWorkers = QSettings().value("CompareThreads", 0).toInt();
     const QVector<PagePairResult> results = comparePagesInParallel(
             filename1, pdf1, pages1, filename2, pdf2, pages2, options,
-            &cancel, [this, total](int done) {
+            &cancel, [this](int done, int toDo) {
                 statusLabel->setText(tr("Comparing %1/%2").arg(done)
-                                                          .arg(total));
+                                                          .arg(toDo));
                 QApplication::processEvents();
-            });
+            }, &fingerprints);
     int number = 0;
     int index = 0;
     for (int i = 0; i < total; ++i) {

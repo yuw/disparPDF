@@ -13,13 +13,23 @@
 */
 
 #include "generic.hpp"
+#include <QByteArray>
+#include <QHash>
 #include <QList>
+#include <QRectF>
+#include <QSize>
 #include <QString>
 #include <QVector>
 #include <atomic>
 #include <functional>
 
 // Comparison of page pairs, shared by MainWindow and BatchCompare.
+//
+// Deciding whether two pages differ needs only a few facts about each
+// page: its words and where they are and, when comparing appearance, its
+// rendering.  These are computed once per page as a "fingerprint", which
+// can be kept in a PageFingerprintCache, so that a page can be compared
+// again, or with any other page, without asking Poppler again.
 
 enum PageDifference {NoPageDifference, TextualPageDifference,
                      VisualPageDifference};
@@ -45,18 +55,40 @@ struct PagePairResult
     PageDifference difference = NoPageDifference;
 };
 
-PageDifference comparePagePair(const PdfPage &page1, const PdfPage &page2,
-                               const PageCompareOptions &options);
+struct PageWord
+{
+    QString text;
+    QRectF rect;
+};
+
+struct PageFingerprint
+{
+    bool readable = false;      // false if Poppler could not read the page
+    QVector<PageWord> words;    // inside the margins, in Poppler's order
+    bool hasImageHash = false;  // only computed for Appearance comparisons
+    QSize imageSize;
+    QByteArray imageHash;       // of the 72 DPI rendering inside the margins
+};
+
+// Keyed by file (path, size and modification time), page, and margins
+typedef QHash<QString, PageFingerprint> PageFingerprintCache;
+
+PageDifference compareFingerprints(const PageFingerprint &fingerprint1,
+                                   const PageFingerprint &fingerprint2,
+                                   const bool compareAppearance);
 
 // Compares page pages1[i] of pdf1 with page pages2[i] of pdf2, for each i,
-// using one worker thread per core, or options.maxWorkers if that is set.
-// A Poppler document must not be rendered from several threads at once,
-// so each worker loads its own copies of the two files (with the same
-// render hints as pdf1 and pdf2).
-// Results are returned in page order.  If progress is set it is called on
-// the calling thread, with the number of pairs compared so far, every
-// 50 ms or so until the comparison is complete; it may process events.
-// Setting *cancel stops the comparison early.
+// and returns the results in that order.  The pages are fingerprinted
+// using one worker thread per core, or options.maxWorkers if that is set;
+// a page in several pairs is
+// fingerprinted once, and not at all if cache already has it.  A Poppler
+// document must not be rendered from several threads at once, so each
+// worker loads its own copies of the two files (with the same render
+// hints as pdf1 and pdf2).  If cache is given, fingerprints of other
+// files are removed from it and new ones added.  If progress is set it is
+// called on the calling thread, with the number of pages fingerprinted so
+// far and the number to do, every 50 ms or so until done; it may process
+// events.  Setting *cancel stops the comparison early.
 QVector<PagePairResult> comparePagesInParallel(
         const QString &filename1, const PdfDocument &pdf1,
         const QList<int> &pages1,
@@ -64,6 +96,7 @@ QVector<PagePairResult> comparePagesInParallel(
         const QList<int> &pages2,
         const PageCompareOptions &options,
         const std::atomic<bool> *cancel = nullptr,
-        const std::function<void(int)> &progress = nullptr);
+        const std::function<void(int, int)> &progress = nullptr,
+        PageFingerprintCache *cache = nullptr);
 
 #endif // PAGECOMPARE_H

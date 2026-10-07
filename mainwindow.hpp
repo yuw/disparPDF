@@ -217,6 +217,8 @@ private:
     Qt::DockWidgetArea zoningDockArea;
     Qt::DockWidgetArea logDockArea;
     std::atomic<bool> cancel;
+    // Page fingerprints, kept between comparisons
+    PageFingerprintCache fingerprints;
     bool showToolTips;
     bool combineTextHighlighting;
     QString saveFilename;
