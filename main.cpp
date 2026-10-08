@@ -43,19 +43,24 @@ int main(int argc, char *argv[])
     StartupParameters startupParameters;
     // Batch mode and --help show no window, so they should work without a
     // display: use Qt's offscreen platform for them unless one was chosen
-    bool noWindow = console;
+    // (the last of --batch and --interactive wins)
+    bool batch = console;
+    bool helpOrVersion = false;
     bool platformGiven = !qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM");
     for (int i = 1; i < argc; ++i) {
         const QByteArray arg(argv[i]);
         if (arg == "--")
             break;
-        if (arg == "-b" || arg == "--batch" || arg == "-h" ||
-            arg == "--help" || arg == "--version")
-            noWindow = true;
+        if (arg == "-b" || arg == "--batch")
+            batch = true;
+        else if (arg == "--interactive")
+            batch = false;
+        else if (arg == "-h" || arg == "--help" || arg == "--version")
+            helpOrVersion = true;
         if (arg == "-platform" || arg.startsWith("-platform="))
             platformGiven = true;
     }
-    if (noWindow && !platformGiven)
+    if ((batch || helpOrVersion) && !platformGiven)
         qputenv("QT_QPA_PLATFORM", "offscreen");
     QApplication app(argc, argv);
 #ifdef Q_OS_MACOS
@@ -156,8 +161,13 @@ int main(int argc, char *argv[])
                 "exit\n"
                 "\n"
                 "Batch mode options:\n";
-            if (!console)
-                out << "  -b, --batch            compare without a window\n";
+            if (console)
+                out << "      --interactive      show the window, as "
+                    "disparPDF does\n";
+            else
+                out << "  -b, --batch            compare without a window\n"
+                    "      --interactive      show the window (the default, "
+                    "except as disparPDFc)\n";
             out << "      --outType=0        print only the result code "
                 "(the default)\n"
                 "      --outType=1        print the result code and a "

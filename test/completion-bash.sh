@@ -42,6 +42,8 @@ check 'disparPDF --outType=' '0 1 '
 check 'disparPDF --start' '--startPage1= --startPage2= '
 check 'disparPDF --b' '--batch '
 check 'disparPDFc --b' ' '  # nothing
+check 'disparPDF --int' '--interactive '
+check 'disparPDFc --int' '--interactive '
 check 'disparPDF --pdfdiff=' 'B.PDF a.pdf sub '
 check 'disparPDF --xmlResult=' 'r.xml sub '
 check 'disparPDF --settings=' 'B.PDF a.pdf notes.txt r.xml sub '

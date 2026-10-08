@@ -32,9 +32,10 @@ in the same format as the configuration file (see
 .B disparPDFc
 is a link to
 .BR disparPDF ,
-which, run by that name, is always in batch mode, so
-.B \-\-batch
-can be left out.
+which, run by that name, is in batch mode without
+.BR \-\-batch ,
+and shows the window only when given
+.BR \-\-interactive .
 
 [EXAMPLES]
 Compare the words of two files:

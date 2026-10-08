@@ -136,9 +136,27 @@ add_test(NAME console-by-name
 add_test(NAME console-by-name-case
          COMMAND sh -c "dir=$(mktemp -d) && ln -s \"$1\" \"$dir/DisparPDFC.exe\" && \"$dir/DisparPDFC.exe\" --words \"$2\" \"$3\"; status=$?; rm -r \"$dir\"; exit $status"
                  sh $<TARGET_FILE:disparPDF> ${DATA}/base.pdf ${DATA}/word.pdf)
-set_tests_properties(console-by-name console-by-name-case PROPERTIES
+# ... unless given --interactive, though the last of that and --batch wins
+add_test(NAME console-interactive-batch
+         COMMAND ${DISPARPDFC} --interactive --batch --words
+                 ${DATA}/base.pdf ${DATA}/word.pdf)
+set_tests_properties(console-by-name console-by-name-case
+                     console-interactive-batch PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config"
     PASS_REGULAR_EXPRESSION "(^|\n)1\n" TIMEOUT 120)
+
+# With --interactive it shows the window (on Qt's offscreen platform, here)
+# and keeps running, until timeout(1) stops it, instead of printing the
+# result and exiting
+find_program(TIMEOUT_EXECUTABLE timeout)
+if(TIMEOUT_EXECUTABLE)
+    add_test(NAME console-interactive
+             COMMAND sh -c "\"$0\" 10 \"$@\"; test $? = 124"
+                     ${TIMEOUT_EXECUTABLE} ${DISPARPDFC} --interactive --words
+                     ${DATA}/base.pdf ${DATA}/word.pdf)
+    set_tests_properties(console-interactive PROPERTIES ENVIRONMENT
+        "QT_QPA_PLATFORM=offscreen;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config")
+endif()
 
 disparpdf_test(help - - --stdout "Usage: disparPDFc" -- --help)
 disparpdf_test(version - - --stdout "disparPDFc ${PROJECT_VERSION}" -- --version)

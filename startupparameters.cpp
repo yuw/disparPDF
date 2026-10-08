@@ -35,6 +35,7 @@ StartupParameters::~StartupParameters()
 
 const QString StartupParameters::BatchExtended = "--batch" ;
 const QString StartupParameters::Batch = "-b" ;
+static const QString Interactive = "--interactive";
 static const QString OutType = "--outType=" ;
 static const QString Pages = "--pages=" ;
 static const QString StartPage1 = "--startPage1=";
@@ -51,6 +52,8 @@ bool StartupParameters::parseArgument(const QString &arg, Status *status)
     bool error = false ;
     if( ( arg == BatchExtended) || (arg == Batch) ) {
         _isBatch = true ;
+    } else if( arg == Interactive ) {
+        _isBatch = false ;
     } else if( arg.startsWith(OutType)) {
         _returnType = Utils::validateReturnType(arg.mid(OutType.length()), _returnType, &error);
         status->setParamError(error, OutType);

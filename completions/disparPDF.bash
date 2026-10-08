@@ -57,8 +57,8 @@ _disparPDF()
                 --any-extension --language= --debug=2 --debug=3
                 --outType=0 --outType=1 --pages= --startPage1= --startPage2=
                 --pdfdiff= --xmlResult= --key= --settings= --compareFonts
-                -h --help --version --'
-            # disparPDFc is always in batch mode
+                --interactive -h --help --version --'
+            # disparPDFc is in batch mode unless given --interactive
             [[ ${words[0]##*/} == disparPDFc ]] || opts+=' -b --batch'
             COMPREPLY=($(compgen -W "$opts" -- "$cur"))
             [[ ${COMPREPLY-} == *= ]] && compopt -o nospace

@@ -213,9 +213,9 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
 `disparPDFc` is not a separate program but a symbolic link to `disparPDF`
-(on Windows, a copy of it): run by that name, it is always in batch mode,
-so `-b` is optional, and it needs no display.  `disparPDF -b` does the
-same.
+(on Windows, a copy of it): run by that name, it is in batch mode, so
+`-b` is optional, and it needs no display.  `disparPDF -b` does the
+same, and `disparPDFc --interactive` shows the window, as `disparPDF` does.
 
 ## Settings
 

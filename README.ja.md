@@ -190,8 +190,9 @@ disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
 `disparPDFc`は別のプログラムではなく，`disparPDF`へのシンボリックリンク
-（Windowsではそのコピー）です．この名前で起動すると常にバッチモードになるので
+（Windowsではそのコピー）です．この名前で起動するとバッチモードになるので
 `-b`は省略でき，ディスプレイも不要です．`disparPDF -b`でも同じです．
+`disparPDFc --interactive`では`disparPDF`と同様にウィンドウを表示します．
 
 ## 設定
 

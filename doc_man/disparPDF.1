@@ -43,9 +43,10 @@ in the same format as the configuration file (see
 .B disparPDFc
 is a link to
 .BR disparPDF ,
-which, run by that name, is always in batch mode, so
-.B \-\-batch
-can be left out.
+which, run by that name, is in batch mode without
+.BR \-\-batch ,
+and shows the window only when given
+.BR \-\-interactive .
 .SH OPTIONS
 .TP
 \fB\-a\fR, \fB\-\-appearance\fR
@@ -83,6 +84,9 @@ output version information and exit
 .TP
 \fB\-b\fR, \fB\-\-batch\fR
 compare without a window
+.TP
+\fB\-\-interactive\fR
+show the window (the default, except as disparPDFc)
 .TP
 \fB\-\-outType\fR=\fI\,0\/\fR
 print only the result code (the default)

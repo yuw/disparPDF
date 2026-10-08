@@ -7,9 +7,13 @@ local file=$pdf
 (( ${words[(I)--any-extension]} )) && file=_files
 
 local -a batch
-# disparPDFc is always in batch mode
-[[ $service == disparPDFc ]] ||
-  batch=('(-b --batch)'{-b,--batch}'[compare without a window]')
+# disparPDFc is in batch mode unless given --interactive
+if [[ $service == disparPDFc ]]; then
+  batch=('--interactive[show the window, as disparPDF does]')
+else
+  batch=('(-b --batch --interactive)'{-b,--batch}'[compare without a window]'
+         '(-b --batch --interactive)--interactive[show the window (the default)]')
+fi
 
 _arguments -s -S \
   '(-a --appearance -c --characters -w --words)'{-a,--appearance}'[compare the appearance of the pages]' \
