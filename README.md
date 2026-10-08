@@ -212,6 +212,11 @@ disparPDFc -b --outType=1 a.pdf b.pdf
 disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
+`disparPDFc` is not a separate program but a symbolic link to `disparPDF`
+(on Windows, a copy of it): run by that name, it is always in batch mode,
+so `-b` is optional, and it needs no display.  `disparPDF -b` does the
+same.
+
 ## Settings
 
 The GUI keeps its settings per user, on macOS in

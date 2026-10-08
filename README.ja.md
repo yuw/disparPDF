@@ -189,6 +189,10 @@ disparPDFc -b --outType=1 a.pdf b.pdf
 disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
+`disparPDFc`は別のプログラムではなく，`disparPDF`へのシンボリックリンク
+（Windowsではそのコピー）です．この名前で起動すると常にバッチモードになるので
+`-b`は省略でき，ディスプレイも不要です．`disparPDF -b`でも同じです．
+
 ## 設定
 
 GUIはユーザーごとに設定を保存します．macOSでは

@@ -12,6 +12,7 @@
 
 #include "mainwindow.hpp"
 #include <QApplication>
+#include <QFileInfo>
 #include <QIcon>
 #include <QLibraryInfo>
 #include <QLocale>
@@ -22,22 +23,27 @@
 #include "batchcompare.h"
 #include "commandlinemanager.h"
 
-// The name of this program, for --help and --version
-#ifdef COMPARA_IS_CONSOLE
-static const char CommandName[] = "disparPDFc";
-#else
-static const char CommandName[] = "disparPDF";
-#endif
+// Run as disparPDFc (e.g., through a link to disparPDF, or a copy of it,
+// with that name), the program is always in batch mode.  The name it was
+// run by is taken from argv[0]: QCoreApplication::applicationFilePath()
+// resolves symbolic links, so would always give disparPDF.
+static bool runAsConsole(const char *argv0)
+{
+    QString name = QFileInfo(QString::fromLocal8Bit(argv0)).fileName();
+    if (name.endsWith(".exe", Qt::CaseInsensitive))
+        name.chop(4);
+    return name.compare("disparPDFc", Qt::CaseInsensitive) == 0;
+}
 
 int main(int argc, char *argv[])
 {
+    const bool console = argc > 0 && runAsConsole(argv[0]);
+    // The name of this program, for --help and --version
+    const char *const CommandName = console ? "disparPDFc" : "disparPDF";
     StartupParameters startupParameters;
     // Batch mode and --help show no window, so they should work without a
     // display: use Qt's offscreen platform for them unless one was chosen
-    bool noWindow = false;
-#ifdef COMPARA_IS_CONSOLE
-    noWindow = true;
-#endif
+    bool noWindow = console;
     bool platformGiven = !qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM");
     for (int i = 1; i < argc; ++i) {
         const QByteArray arg(argv[i]);
@@ -78,9 +84,8 @@ int main(int argc, char *argv[])
     QStringList errors;
     QStringList fileArguments;
 
-#ifdef  COMPARA_IS_CONSOLE
-    startupParameters.setIsBatch(true);
-#endif
+    if (console)
+        startupParameters.setIsBatch(true);
     for (const QString &arg : std::as_const(args)) {
         if (optionsOK && (arg == "--appearance" || arg == "-a")) {
             comparisonMode = CompareAppearance;
@@ -103,37 +108,35 @@ int main(int argc, char *argv[])
         }
         else if (optionsOK && (arg == "--help" || arg == "-h")) {
             // GNU style, which help2man turns into the manual pages
-#ifdef COMPARA_IS_CONSOLE
-            out << "Usage: " << CommandName << " [OPTION]... FILE1 FILE2\n"
-                "Compare two PDF files without a window, and print the "
-                "result code\n(see below).\n";
-#else
-            out << "Usage: " << CommandName << " [OPTION]... [FILE1 [FILE2]]\n"
-                "  or:  " << CommandName << " --batch [OPTION]... FILE1 FILE2\n"
-                "Compare two PDF files and show their differences.\n"
-                "\n"
-                "The files are optional and are normally chosen in the "
-                "window.  With --batch,\nthey are compared without a "
-                "window, and the result code (see below) is\nprinted.\n";
-#endif
-            out << "\n"
-                "Options:\n"
-#ifdef COMPARA_IS_CONSOLE
-                "  -a, --appearance       compare the appearance of the "
-                "pages (the default)\n"
-                "  -c, --characters       compare the text character by "
-                "character\n"
-                "  -w, --words            compare the text word by word\n"
-#else
-                "  -a, --appearance       compare the appearance of the "
-                "pages (the default in\n"
-                "                           batch mode)\n"
-                "  -c, --characters       compare the text character by "
-                "character\n"
-                "  -w, --words            compare the text word by word "
-                "(the default otherwise)\n"
-#endif
-                "      --any-extension    accept files whose names do "
+            if (console)
+                out << "Usage: " << CommandName << " [OPTION]... FILE1 FILE2\n"
+                    "Compare two PDF files without a window, and print the "
+                    "result code\n(see below).\n"
+                    "\n"
+                    "Options:\n"
+                    "  -a, --appearance       compare the appearance of the "
+                    "pages (the default)\n"
+                    "  -c, --characters       compare the text character by "
+                    "character\n"
+                    "  -w, --words            compare the text word by word\n";
+            else
+                out << "Usage: " << CommandName << " [OPTION]... [FILE1 [FILE2]]\n"
+                    "  or:  " << CommandName << " --batch [OPTION]... FILE1 FILE2\n"
+                    "Compare two PDF files and show their differences.\n"
+                    "\n"
+                    "The files are optional and are normally chosen in the "
+                    "window.  With --batch,\nthey are compared without a "
+                    "window, and the result code (see below) is\nprinted.\n"
+                    "\n"
+                    "Options:\n"
+                    "  -a, --appearance       compare the appearance of the "
+                    "pages (the default in\n"
+                    "                           batch mode)\n"
+                    "  -c, --characters       compare the text character by "
+                    "character\n"
+                    "  -w, --words            compare the text word by word "
+                    "(the default otherwise)\n";
+            out << "      --any-extension    accept files whose names do "
                 "not end in .pdf\n"
                 "      --language=LANG    use the given translation "
                 "language, e.g., en for\n"
@@ -151,11 +154,10 @@ int main(int argc, char *argv[])
                 "      --version          output version information and "
                 "exit\n"
                 "\n"
-                "Batch mode options:\n"
-#ifndef COMPARA_IS_CONSOLE
-                "  -b, --batch            compare without a window\n"
-#endif
-                "      --outType=0        print only the result code "
+                "Batch mode options:\n";
+            if (!console)
+                out << "  -b, --batch            compare without a window\n";
+            out << "      --outType=0        print only the result code "
                 "(the default)\n"
                 "      --outType=1        print the result code and a "
                 "description\n"
@@ -189,13 +191,11 @@ int main(int argc, char *argv[])
                 "  -3, -4  FILE1 or FILE2 cannot be read\n"
                 "  -5  a page cannot be read\n"
                 "  -6, -7  the --pdfdiff or --xmlResult file cannot be "
-                "written\n"
-#ifndef COMPARA_IS_CONSOLE
-                "\n"
-                "In the window, press F1 for the full documentation, and "
-                "click About for the\ncopyright and license details.\n"
-#endif
-                ;
+                "written\n";
+            if (!console)
+                out << "\n"
+                    "In the window, press F1 for the full documentation, and "
+                    "click About for the\ncopyright and license details.\n";
             return 0;
         }
         else if (optionsOK && (arg == "--debug" || arg == "--debug=1" ||

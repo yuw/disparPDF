@@ -24,11 +24,7 @@
 
 // From project() in CMakeLists.txt
 const QString AboutForm::Version(DISPARPDF_VERSION);
-#ifdef COMPARA_IS_CONSOLE
 const QString AboutForm::ProgramName("disparPDF");
-#else
-const QString AboutForm::ProgramName("disparPDF");
-#endif
 
 AboutForm::AboutForm(QWidget *parent) : QDialog(parent)
 {

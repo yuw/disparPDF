@@ -30,8 +30,10 @@ class Disparpdf < Formula
     # GUI アプリ
     prefix.install "build/disparPDF.app"
 
-    # CLI バイナリ
-    bin.install "build/disparPDFc"
+    # CLI: .app 内の本体へのシンボリックリンク。disparPDFc という名前で
+    # 起動すると常にバッチモードになる（main.cpp）。open を経由しないので
+    # 標準出力と終了ステータスがそのまま返る
+    bin.install_symlink prefix/"disparPDF.app/Contents/MacOS/disparPDF" => "disparPDFc"
 
     # GUI を bin からも呼び出せるようにラッパースクリプトを作成
     # 引数を絶対パスに変換してから渡す（相対パスだと cannot load エラーになる）
@@ -84,5 +86,6 @@ class Disparpdf < Formula
   test do
     assert_predicate prefix/"disparPDF.app", :exist?
     assert_predicate bin/"disparPDFc", :exist?
+    assert_match "disparPDFc", shell_output("#{bin}/disparPDFc --version")
   end
 end

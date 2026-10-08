@@ -5,7 +5,7 @@ add_test(NAME batch-legacy
          COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/testbase.sh
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 set_tests_properties(batch-legacy PROPERTIES ENVIRONMENT
-    "diffcmd=$<TARGET_FILE:disparPDFc>;QT_QPA_PLATFORM=offscreen;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config")
+    "diffcmd=${DISPARPDFC};QT_QPA_PLATFORM=offscreen;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config")
 
 # The others run disparPDFc on the PDFs in data/ (see data/README) and
 # check the result code it prints and how many pages of differences it
@@ -18,7 +18,7 @@ set(DATA ${CMAKE_CURRENT_SOURCE_DIR}/data)
 # disparpdf_test(NAME RESULT PAGES [OPTION]... -- [ARGUMENT]...)
 function(disparpdf_test name result pages)
     add_test(NAME ${name}
-             COMMAND runtest $<TARGET_FILE:disparPDFc> ${result} ${pages}
+             COMMAND runtest ${DISPARPDFC} ${result} ${pages}
                      ${ARGN})
 endfunction()
 
@@ -129,6 +129,17 @@ add_test(NAME gui-program-help
          COMMAND runtest $<TARGET_FILE:disparPDF> - - --stdout
                  "Usage: disparPDF " -- --help)
 
+# Run by the name disparPDFc, the program is in batch mode without -b,
+# whatever the case of the name and with or without .exe
+add_test(NAME console-by-name
+         COMMAND ${DISPARPDFC} --words ${DATA}/base.pdf ${DATA}/word.pdf)
+add_test(NAME console-by-name-case
+         COMMAND sh -c "dir=$(mktemp -d) && ln -s \"$1\" \"$dir/DisparPDFC.exe\" && \"$dir/DisparPDFC.exe\" --words \"$2\" \"$3\"; status=$?; rm -r \"$dir\"; exit $status"
+                 sh $<TARGET_FILE:disparPDF> ${DATA}/base.pdf ${DATA}/word.pdf)
+set_tests_properties(console-by-name console-by-name-case PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen;XDG_CONFIG_HOME=${CMAKE_CURRENT_BINARY_DIR}/config"
+    PASS_REGULAR_EXPRESSION "(^|\n)1\n" TIMEOUT 120)
+
 disparpdf_test(help - - --stdout "Usage: disparPDFc" -- --help)
 disparpdf_test(version - - --stdout "disparPDFc ${PROJECT_VERSION}" -- --version)
 
@@ -141,7 +152,7 @@ add_test(NAME completion-options
                  ${CMAKE_SOURCE_DIR}/completions/_disparPDF)
 add_test(NAME completion-options-c
          COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/completion-options.sh
-                 $<TARGET_FILE:disparPDFc>
+                 ${DISPARPDFC}
                  ${CMAKE_SOURCE_DIR}/completions/disparPDF.bash
                  ${CMAKE_SOURCE_DIR}/completions/_disparPDF)
 add_test(NAME completion-bash
