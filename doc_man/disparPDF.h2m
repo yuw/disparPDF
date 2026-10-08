@@ -1,8 +1,9 @@
-Material for help2man(1), which generates the disparPDF manual page from
-"disparPDF --help" and "disparPDF --version" plus the sections below.
+Material for help2man(1), which generates the disparPDF manual page, which
+also covers disparPDFc, from "disparPDF --help" and "disparPDF --version"
+plus the sections below.
 
 [NAME]
-disparPDF \- compare two PDF files textually or visually
+disparPDF, disparPDFc \- compare two PDF files textually or visually
 
 [>DESCRIPTION]
 .PP
@@ -20,9 +21,20 @@ and the differences highlighted.
 .PP
 With
 .BR \-\-batch ,
-or as
-.BR disparPDFc (1),
-the files are compared without a window, which needs no display.
+the files are compared without a window, which needs no display, and the
+result code is printed; by default the appearance of the pages is
+compared.  Settings such as the zoom, the tolerances and the margins to
+leave out can be given in a file
+.RB ( \-\-settings ),
+in the same format as the configuration file (see
+.BR FILES ).
+.PP
+.B disparPDFc
+is a link to
+.BR disparPDF ,
+which, run by that name, is always in batch mode, so
+.B \-\-batch
+can be left out.
 
 [EXAMPLES]
 Compare the words of two files:
@@ -31,13 +43,25 @@ Compare the words of two files:
 disparPDF old.pdf new.pdf
 .RE
 .PP
-Compare their appearance without a window, saving the pages that differ
-to
-.IR changes.pdf ,
-and printing the result code and a description:
+Compare them without a window:
 .PP
 .RS
-disparPDF \-\-batch \-\-outType=1 \-\-pdfdiff=changes.pdf old.pdf new.pdf
+.nf
+$ disparPDFc a.pdf b.pdf
+0
+$ disparPDFc \-\-outType=1 a.pdf c.pdf
+1|documents differ at page: 1
+.fi
+.RE
+.PP
+Compare the words of two files without a window, saving the pages that
+differ to
+.IR diff.pdf ,
+and a detailed result, in XML, to
+.IR result.xml :
+.PP
+.RS
+disparPDF \-\-batch \-\-words \-\-pdfdiff=diff.pdf \-\-xmlResult=result.xml a.pdf b.pdf
 .RE
 
 [FILES]
@@ -56,7 +80,6 @@ disparPDF is a port of that to Qt\~6 by Yuwsuke Kieda (2026).
 https://github.com/yuw/disparPDF/issues
 
 [SEE ALSO]
-.BR disparPDFc (1),
 .BR diff (1)
 .PP
 The full documentation is available from the program's Help button

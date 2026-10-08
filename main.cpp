@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
             else
                 out << "Usage: " << CommandName << " [OPTION]... [FILE1 [FILE2]]\n"
                     "  or:  " << CommandName << " --batch [OPTION]... FILE1 FILE2\n"
+                    "  or:  disparPDFc [OPTION]... FILE1 FILE2\n"
                     "Compare two PDF files and show their differences.\n"
                     "\n"
                     "The files are optional and are normally chosen in the "
