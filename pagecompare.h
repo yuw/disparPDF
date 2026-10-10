@@ -78,17 +78,18 @@ PageDifference compareFingerprints(const PageFingerprint &fingerprint1,
                                    const bool compareAppearance);
 
 // Compares page pages1[i] of pdf1 with page pages2[i] of pdf2, for each i,
-// and returns the results in that order.  The pages are fingerprinted
-// using one worker thread per core, or options.maxWorkers if that is set;
-// a page in several pairs is
-// fingerprinted once, and not at all if cache already has it.  A Poppler
-// document must not be rendered from several threads at once, so each
-// worker loads its own copies of the two files (with the same render
-// hints as pdf1 and pdf2).  If cache is given, fingerprints of other
-// files are removed from it and new ones added.  If progress is set it is
-// called on the calling thread, with the number of pages fingerprinted so
-// far and the number to do, every 50 ms or so until done; it may process
-// events.  Setting *cancel stops the comparison early.
+// and returns the results in that order.  The pairs are shared out among
+// one worker thread per core, or options.maxWorkers if that is set; a
+// page is not read again if cache already has its fingerprint, and is
+// rendered only if its pair's words match.  A Poppler document must not
+// be rendered from several threads at once, so each worker loads its own
+// copies of the two files (with the same render hints as pdf1 and pdf2).
+// If cache is given, fingerprints of other files are removed from it and
+// new ones added once the workers have stopped; until then the workers
+// read it, so nothing else may change it while this runs.  If progress is
+// set it is called on the calling thread, with the number of pairs
+// compared so far and the number to do, every 50 ms or so until done; it
+// may process events.  Setting *cancel stops the comparison early.
 QVector<PagePairResult> comparePagesInParallel(
         const QString &filename1, const PdfDocument &pdf1,
         const QList<int> &pages1,

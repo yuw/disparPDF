@@ -59,7 +59,7 @@ MainWindow::MainWindow(const Debug debug,
       actionDockArea(Qt::RightDockWidgetArea),
       marginsDockArea(Qt::RightDockWidgetArea),
       zoningDockArea(Qt::RightDockWidgetArea),
-      logDockArea(Qt::RightDockWidgetArea), cancel(false),
+      logDockArea(Qt::RightDockWidgetArea), cancel(false), comparing(false),
       saveAll(true), savePages(SaveBothPages), language(language),
       debug(debug), aboutForm(0), helpForm(0)
 {
@@ -723,8 +723,7 @@ void MainWindow::updateUi()
     {
         // Stepping one file's page moves from the viewed pair, or from
         // the first pair compared
-        const bool compared = !comparedPages1.isEmpty() &&
-                compareButton->text() != tr("&Cancel");
+        const bool compared = !comparedPages1.isEmpty() && !comparing;
         int index1 = viewedPairIndex;
         if (index1 < 0)
             index1 = qMax(0, -comparedOffset);
@@ -1230,10 +1229,10 @@ QList<int> MainWindow::getPageList(int which, const PdfDocument &pdf)
 
 void MainWindow::compare()
 {
-    if (compareButton->text() == tr("&Cancel")) {
+    if (comparing) {
+        // The button goes back to Compare once the workers have stopped
         cancel = true;
-        compareButton->setText(tr("&Compare"));
-        compareButton->setEnabled(true);
+        compareButton->setEnabled(false);
         return;
     }
     runComparison(true, -1);
@@ -1245,6 +1244,8 @@ void MainWindow::compare()
 // differs.
 void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
 {
+    if (comparing)
+        return;
     currentCompareIndex = compareComboBox->currentIndex() ;
     cancel = false;
     QString filename1 = filename1LineEdit->text();
@@ -1257,11 +1258,13 @@ void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
         return;
     }
 
+    comparing = true;
     comparePrepareUi();
     QElapsedTimer time;
     time.start();
     const QPair<int, int> pair = comparePages(filename1, pdf1, filename2,
                                               pdf2, verbose);
+    comparing = false;
     compareUpdateUi(pair, time.elapsed(), pairIndexToShow);
 }
 
@@ -1499,7 +1502,7 @@ int MainWindow::differingPairNear(const int pairIndex,
 // same page of the other, by changing the page offset
 void MainWindow::stepPage(const int which, const int delta)
 {
-    if (comparedPages1.isEmpty() || compareButton->text() == tr("&Cancel"))
+    if (comparedPages1.isEmpty() || comparing)
         return;
     int index1 = viewedPairIndex >= 0 ? viewedPairIndex
                                       : qMax(0, -comparedOffset);
@@ -1521,7 +1524,7 @@ void MainWindow::stepPage(const int which, const int delta)
 
 void MainWindow::offsetChanged(int offset)
 {
-    if (comparedPages1.isEmpty() || compareButton->text() == tr("&Cancel"))
+    if (comparedPages1.isEmpty() || comparing)
         return; // The next comparison will use it
     // Keep file #1's page if it still has a partner
     const int first = qMax(0, -offset);

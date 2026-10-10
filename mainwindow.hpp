@@ -199,6 +199,11 @@ private:
     Qt::DockWidgetArea zoningDockArea;
     Qt::DockWidgetArea logDockArea;
     std::atomic<bool> cancel;
+    // True from the start of a comparison until comparePages() returns,
+    // including after Cancel while the workers finish their current pairs.
+    // The comparison processes events, and starting another one then
+    // would change fingerprints while the first one's workers read it.
+    bool comparing;
     // Page fingerprints, kept between comparisons
     PageFingerprintCache fingerprints;
     // The last comparison: page pairIndex of comparedPages1 was paired with
