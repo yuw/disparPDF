@@ -231,7 +231,7 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 ```
 
 以下のうち大半はGUIにも操作個所があります．`disparPDFc`向けのINIファイルを
-手で書けるように一覧にしてあります．最後の2つだけはGUIに操作個所がありません．
+手で書けるように一覧にしてあります．最後の表の3つはGUIに操作個所がありません．
 
 ### 比較
 
@@ -256,7 +256,6 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 | `RuleWidth` | `1.5` | オプション ▸ 線幅 | ハイライトの輪郭線の太さ |
 | `SquareSize` | `10` | オプション ▸ 四角のサイズ | ハイライトの四角の大きさ（ピクセル） |
 | `CombineTextHighlighting` | `true` | オプション ▸ ハイライトを結合 | テキストモードで隣接するハイライトをまとめる |
-| `Overlap` | `5` | — | ハイライト矩形を結合する重なりの許容量 |
 | `ShowToolTips` | `true` | オプション ▸ ツールチップを表示 | メインウィンドウでツールチップを表示する |
 | `CacheSizeMB` | `25` | オプション ▸ キャッシュサイズ | レンダリング済みページのキャッシュ上限（MB） |
 
@@ -264,6 +263,7 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 
 | キー | 既定値 | 意味 |
 |---|---|---|
+| `Overlap` | `5` | ハイライト矩形を結合する重なりの許容量 |
 | `CompareThreads` | `0` | 比較に使うワーカースレッド数の上限．`0`はコア数分．各ワーカーが2つの文書を個別に開くため，値を下げるとピークメモリも下がる．1536ページの外観比較を8コアで実行した場合，最大RSSは`0`で223MB，`4`で152MB，`1`で89MB（並列化前は74MB）．所要時間は1.4秒に対し2.8秒 |
 | `compositionMode` | `-1` | 外観比較の差異を描画する`QPainter::CompositionMode`の値．`-1`で通常のハイライトになる．GUIのハイライトモード選択に相当する．22=Difference，23=Exclusion，26=Src Xor Dest，29=Not Src Xor Dest |
 

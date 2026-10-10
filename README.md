@@ -237,8 +237,8 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 ```
 
 Most keys below also have a control in the GUI; they are listed so that an
-INI file for `disparPDFc` can be written by hand. The last two have no GUI
-control at all.
+INI file for `disparPDFc` can be written by hand. The three in the last
+table have no GUI control at all.
 
 ### Comparison
 
@@ -263,7 +263,6 @@ control at all.
 | `RuleWidth` | `1.5` | Options ▸ Rule width | Width of the highlight outline |
 | `SquareSize` | `10` | Options ▸ Square Size | Size of the highlight square, in pixels |
 | `CombineTextHighlighting` | `true` | Options ▸ Combine Highlighting | Merge adjacent highlights in the text modes |
-| `Overlap` | `5` | — | How far highlight rectangles may overlap before they are merged |
 | `ShowToolTips` | `true` | Options ▸ Show Tooltips | Show tool tips in the main window |
 | `CacheSizeMB` | `25` | Options ▸ Cache Size | Limit on the rendered-page cache, in MB |
 
@@ -271,6 +270,7 @@ control at all.
 
 | Key | Default | Meaning |
 |---|---|---|
+| `Overlap` | `5` | How far highlight rectangles may overlap before they are merged |
 | `CompareThreads` | `0` | Upper bound on comparison worker threads; `0` means one per core. Each worker opens its own copy of both documents, so lowering this lowers peak memory. On a 1536-page appearance comparison across 8 cores, peak RSS was 223 MB at `0`, 152 MB at `4` and 89 MB at `1` — against 74 MB before the comparison was threaded, and 2.8 s instead of 1.4 s |
 | `compositionMode` | `-1` | `QPainter::CompositionMode` used to draw appearance differences; `-1` draws the ordinary highlight. This is the batch-mode counterpart of the GUI's highlighting-mode box: 22 Difference, 23 Exclusion, 26 Src Xor Dest, 29 Not Src Xor Dest |
 
