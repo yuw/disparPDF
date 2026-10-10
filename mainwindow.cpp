@@ -694,8 +694,18 @@ void MainWindow::initialize(const QString &filename1,
 void MainWindow::updateUi()
 {
     currentCompareIndex = compareComboBox->currentIndex();
-    compareButton->setEnabled(!filename1LineEdit->text().isEmpty() &&
-                              !filename2LineEdit->text().isEmpty());
+    // While comparing the button is Cancel, so it stays live until it has
+    // been pressed -- otherwise clearing a file name would take away the
+    // only way to stop a long comparison
+    compareButton->setEnabled(comparing
+            ? !cancel
+            : (!filename1LineEdit->text().isEmpty() &&
+               !filename2LineEdit->text().isEmpty()));
+    // Choosing a file or changing the settings during a comparison would
+    // discard the results the workers are still writing into
+    setFile1Button->setEnabled(!comparing);
+    setFile2Button->setEnabled(!comparing);
+    optionsButton->setEnabled(!comparing);
     saveButton->setEnabled(viewDiffComboBox->count() > 1);
     if (!showZonesCheckBox->isEnabled())
         showZonesCheckBox->setChecked(false);
@@ -1004,6 +1014,11 @@ void MainWindow::setFiles2(const QStringList &filenames)
 
 void MainWindow::setFile1(QString filename)
 {
+    // The buttons are disabled while comparing, but a drop on a file
+    // field or a page still arrives here, and forgetComparison() would
+    // clear the results the workers are writing into
+    if (comparing)
+        return;
     if (filename.isEmpty())
         filename = QFileDialog::getOpenFileName(this,
                 tr("%1 — Choose File #1").arg(AboutForm::ProgramName), currentPath,
@@ -1040,6 +1055,8 @@ void MainWindow::setFile1(QString filename)
 
 void MainWindow::setFile2(QString filename)
 {
+    if (comparing)
+        return;   // As in setFile1()
     if (filename.isEmpty())
         filename = QFileDialog::getOpenFileName(this,
                 tr("%1 — Choose File #2").arg(AboutForm::ProgramName), currentPath,
@@ -1306,6 +1323,9 @@ void MainWindow::comparePrepareUi()
     compareButton->setText(tr("&Cancel"));
     compareButton->setEnabled(true);
     compareButton->setFocus();
+    setFile1Button->setEnabled(false);
+    setFile2Button->setEnabled(false);
+    optionsButton->setEnabled(false);
     viewDiffComboBox->clear();
     viewDiffComboBox->addItem(tr("(Not viewing)"));
     saveButton->setEnabled(false);
@@ -1465,6 +1485,16 @@ void MainWindow::forgetComparison()
     viewedPairIndex = -1;
     const QSignalBlocker blocker(offsetSpinBox);
     offsetSpinBox->setValue(0);
+    // The results shown have to go as well.  Left behind, the View box
+    // would still list the pairs of a file that is no longer chosen, and
+    // Save As... would act on them: the pages would come from the new
+    // file while the pair numbers and the differs flag came from the old
+    // comparison, so an identical page could be saved marked as differing.
+    const QSignalBlocker viewBlocker(viewDiffComboBox);
+    viewDiffComboBox->clear();
+    viewDiffComboBox->addItem(tr("(Not viewing)"));
+    comparisonSummary.clear();
+    saveButton->setEnabled(false);
 }
 
 
