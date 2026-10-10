@@ -1280,24 +1280,27 @@ void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
     }
 
     comparing = true;
-    comparePrepareUi();
-    QElapsedTimer time;
-    time.start();
-    QPair<int, int> pair;
+    // Everything from here on is covered: comparePages() renders at a
+    // fixed 72 DPI, but compareUpdateUi() goes on to showPair() and
+    // DifferenceRenderer::pixmaps(), which render at the zoom setting --
+    // up to 800%, and so the likeliest place in a comparison to run out
+    // of memory.  Qt does not support an exception leaving a slot, and
+    // compare() is one, so none may escape here.
     try {
-        pair = comparePages(filename1, pdf1, filename2, pdf2, verbose);
+        comparePrepareUi();
+        QElapsedTimer time;
+        time.start();
+        const QPair<int, int> pair = comparePages(filename1, pdf1,
+                                                  filename2, pdf2, verbose);
+        comparing = false;
+        compareUpdateUi(pair, time.elapsed(), pairIndexToShow);
     } catch (const std::exception &e) {
-        // Not rethrown: Qt does not support an exception leaving a slot,
-        // and compare() is one.  e.what() is a const char*, so nothing is
-        // allocated before comparisonFailed() has put the state back.
+        // e.what() is a const char*, so nothing is allocated before
+        // comparisonFailed() has put the state back
         comparisonFailed(e.what());
-        return;
     } catch (...) {
         comparisonFailed(nullptr);
-        return;
     }
-    comparing = false;
-    compareUpdateUi(pair, time.elapsed(), pairIndexToShow);
 }
 
 
@@ -1312,6 +1315,10 @@ void MainWindow::comparisonFailed(const char *reason)
     comparing = false;
     QApplication::restoreOverrideCursor();
     compareButton->setText(tr("&Compare"));
+    // Otherwise the status keeps the progress callback's "Comparing n/m",
+    // and the summary whatever the last comparison that finished left
+    comparisonSummary.clear();
+    statusLabel->setText(tr("Comparison failed"));
     updateUi();
     writeError(reason
             ? tr("The comparison could not be completed: %1")
