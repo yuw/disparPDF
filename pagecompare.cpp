@@ -155,9 +155,7 @@ static const Poppler::Document::RenderHint AllRenderHints[] = {
 };
 
 
-// Identifies a file's current contents, so cached fingerprints are not
-// used after it changes
-static QString documentKey(const QString &filename)
+QString documentKey(const QString &filename)
 {
     const QFileInfo info(filename);
     return QString("%1:%2:%3").arg(info.canonicalFilePath())

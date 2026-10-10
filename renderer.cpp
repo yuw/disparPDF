@@ -11,6 +11,7 @@
 */
 
 #include "renderer.h"
+#include "pagecompare.h"
 #include "aboutform.hpp"
 #include "sequence_matcher.hpp"
 #include "textitem.hpp"
@@ -80,10 +81,14 @@ QPair<QString, QString> DifferenceRenderer::cacheKeys(
             .arg(settings.zoom).arg(settings.compareMode)
             .arg(settings.compositionMode).arg(zoning).arg(margins)
             .arg(highlighting);
+    // documentKey() rather than the name alone: re-exporting a PDF over
+    // itself leaves the name unchanged, and a pixmap cached from the
+    // previous contents would then be shown for the new ones.  The
+    // comparison keys its fingerprints the same way.
     const QString key1 = QString("1:%1:%2:%3").arg(key).arg(pair.left)
-            .arg(filename1);
+            .arg(documentKey(filename1));
     const QString key2 = QString("2:%1:%2:%3").arg(key).arg(pair.right)
-            .arg(filename2);
+            .arg(documentKey(filename2));
     return qMakePair(key1, key2);
 }
 
