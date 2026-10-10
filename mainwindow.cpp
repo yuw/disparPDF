@@ -1262,10 +1262,40 @@ void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
     comparePrepareUi();
     QElapsedTimer time;
     time.start();
-    const QPair<int, int> pair = comparePages(filename1, pdf1, filename2,
-                                              pdf2, verbose);
+    QPair<int, int> pair;
+    try {
+        pair = comparePages(filename1, pdf1, filename2, pdf2, verbose);
+    } catch (const std::exception &e) {
+        // Not rethrown: Qt does not support an exception leaving a slot,
+        // and compare() is one.  e.what() is a const char*, so nothing is
+        // allocated before comparisonFailed() has put the state back.
+        comparisonFailed(e.what());
+        return;
+    } catch (...) {
+        comparisonFailed(nullptr);
+        return;
+    }
     comparing = false;
     compareUpdateUi(pair, time.elapsed(), pairIndexToShow);
+}
+
+
+// Puts the window back after a comparison that could not finish.
+// compareUpdateUi(), which normally clears the wait cursor and the Cancel
+// button, is not reached then, and comparing would stay set, so every
+// later comparison would be refused by the guard in runComparison().
+void MainWindow::comparisonFailed(const char *reason)
+{
+    // The state first: everything below may allocate, and the likely
+    // reason for being here is that an allocation failed
+    comparing = false;
+    QApplication::restoreOverrideCursor();
+    compareButton->setText(tr("&Compare"));
+    updateUi();
+    writeError(reason
+            ? tr("The comparison could not be completed: %1")
+                    .arg(QString::fromUtf8(reason))
+            : tr("The comparison could not be completed."));
 }
 
 
