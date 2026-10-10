@@ -68,8 +68,12 @@ MainWindow::MainWindow(const Debug debug,
     _status = status ;
     currentPath = QDir::homePath();
     QSettings settings;
+    // The stored preference only.  --any-extension is for this run, so it
+    // is applied in filesMustBePdf() rather than folded in here: mixing
+    // the two meant the Options dialog showed the flag's effect as though
+    // it were the preference, and saved it back as one.
     requirePdfExtension = settings.value("RequirePdfExtension", true)
-            .toBool() && !_startupParameters->anyExtension();
+            .toBool();
     pen.setStyle(Qt::NoPen);
     pen.setColor(Qt::red);
     pen = settings.value("Outline", pen).value<QPen>();
@@ -1467,10 +1471,18 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
 }
 
 
+// Whether only *.pdf may be chosen: the stored preference unless
+// --any-extension was given for this run
+bool MainWindow::filesMustBePdf() const
+{
+    return requirePdfExtension && !_startupParameters->anyExtension();
+}
+
+
 // The file dialog's filters: all files first unless they must be *.pdf
 QString MainWindow::pdfFileFilter() const
 {
-    if (requirePdfExtension)
+    if (filesMustBePdf())
         return tr("PDF files (*.pdf)");
     return tr("All files (*);;PDF files (*.pdf)");
 }
