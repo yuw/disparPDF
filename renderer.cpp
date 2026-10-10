@@ -46,8 +46,12 @@ QRect RenderSettings::pixelRectForMargins(const QSize &imageSize) const
     int left = pixelOffsetForPointValue(DPI, leftMargin);
     int right = pixelOffsetForPointValue(DPI, rightMargin);
     int bottom = pixelOffsetForPointValue(DPI, bottomMargin);
-    return QRect(QPoint(left, top), QPoint(imageSize.width() - right,
-                                           imageSize.height() - bottom));
+    // QSize, not a second QPoint: the two-point form of QRect is
+    // inclusive, so it would cover one pixel more to the right and below
+    // than rectForMargins() gives in points
+    return QRect(QPoint(left, top),
+                 QSize(imageSize.width() - right - left,
+                       imageSize.height() - bottom - top));
 }
 
 
@@ -134,8 +138,14 @@ QPair<QPixmap, QPixmap> DifferenceRenderer::pixmaps(const PdfPage &page1,
             QFont font("Helvetica", 14);
             font.setOverline(true);
             font.setUnderline(true);
-            highlighted1.addText(DPI / 4, DPI / 4, font,
-                tr("%1: False Positive").arg(AboutForm::ProgramName));
+            // Pages of different sizes differ even where nothing on them
+            // does, and there is nowhere to highlight that; say so,
+            // rather than call the comparison wrong
+            const QString banner = image1.size() != image2.size()
+                    ? tr("%1: Page Sizes Differ")
+                      .arg(AboutForm::ProgramName)
+                    : tr("%1: False Positive").arg(AboutForm::ProgramName);
+            highlighted1.addText(DPI / 4, DPI / 4, font, banner);
             paintOnImage(highlighted1, &image1);
         }
         pixmap1 = QPixmap::fromImage(image1);
@@ -168,13 +178,21 @@ void DifferenceRenderer::computeTextHighlights(QPainterPath *highlighted1,
         const PdfPage &page2, const int DPI) const
 {
     const bool ComparingWords = settings.compareMode == CompareWords;
+    QRectF bigRect1;
+    QRectF bigRect2;
+    // Each page's own margins, as the comparison measures them (see
+    // fingerprintPage()).  With page 1's rectangle for both, words
+    // outside it on a page 2 of a different size were dropped here
+    // although the comparison had seen them, so the pair was reported as
+    // differing and then nothing was highlighted.
     QRectF rect1;
     QRectF rect2;
-    QRectF rect;
-    if (settings.excludeMargins)
-        rect = settings.pointRectForMargins(page1->pageSize());
-    const TextBoxList list1 = getTextBoxes(page1, rect);
-    const TextBoxList list2 = getTextBoxes(page2, rect);
+    if (settings.excludeMargins) {
+        rect1 = settings.pointRectForMargins(page1->pageSize());
+        rect2 = settings.pointRectForMargins(page2->pageSize());
+    }
+    const TextBoxList list1 = getTextBoxes(page1, rect1);
+    const TextBoxList list2 = getTextBoxes(page2, rect2);
     TextItems items1 = ComparingWords ? getWords(list1)
                                       : getCharacters(list1);
     TextItems items2 = ComparingWords ? getWords(list2)
@@ -207,13 +225,15 @@ void DifferenceRenderer::computeTextHighlights(QPainterPath *highlighted1,
     std::sort(indexes1.begin(), indexes1.end());
     std::sort(indexes2.begin(), indexes2.end());
     for (int index : indexes1)
-        addHighlighting(&rect1, highlighted1, items1.at(index).rect, DPI);
-    if (!rect1.isNull() && !indexes1.isEmpty())
-        highlighted1->addRect(rect1);
+        addHighlighting(&bigRect1, highlighted1, items1.at(index).rect,
+                        DPI);
+    if (!bigRect1.isNull() && !indexes1.isEmpty())
+        highlighted1->addRect(bigRect1);
     for (int index : indexes2)
-        addHighlighting(&rect2, highlighted2, items2.at(index).rect, DPI);
-    if (!rect2.isNull() && !indexes2.isEmpty())
-        highlighted2->addRect(rect2);
+        addHighlighting(&bigRect2, highlighted2, items2.at(index).rect,
+                        DPI);
+    if (!bigRect2.isNull() && !indexes2.isEmpty())
+        highlighted2->addRect(bigRect2);
 }
 
 
@@ -235,22 +255,55 @@ void DifferenceRenderer::addHighlighting(QRectF *bigRect,
 }
 
 
+// The square of image at rect, with anything beyond the image white:
+// past the edge of a page there is blank paper, while QImage::copy()
+// pads with zeroes, which differ from white.  Padding with those would
+// turn a page larger than the other into one difference covering
+// everything outside it, instead of showing what is actually on it.
+static QImage squareAt(const QImage &image, const QRect &rect)
+{
+    if (QRect(QPoint(0, 0), image.size()).contains(rect))
+        return image.copy(rect);
+    QImage square(rect.size(), image.format());
+    square.fill(Qt::white);
+    QPainter painter(&square);
+    painter.drawImage(QPoint(0, 0), image, rect);
+    painter.end();
+    return square;
+}
+
+
 void DifferenceRenderer::computeVisualHighlights(
         QPainterPath *highlighted1, QPainterPath *highlighted2,
         const QImage &plainImage1, const QImage &plainImage2) const
 {
+    if (plainImage1.isNull() || plainImage2.isNull())
+        return;
     const int SQUARE_SIZE = settings.squareSize;
-    QRect box;
+    // Over both pages, not just page 1: when they are different sizes, a
+    // difference outside page 1 is one the comparison has seen, and
+    // QImage::copy() pads whatever lies outside an image, so a square
+    // present on one page only comes out as a difference.  Excluded
+    // margins are measured on each page, as the comparison measures them
+    // (see renderForComparison()).
+    QRect box = QRect(QPoint(0, 0), plainImage1.size())
+            .united(QRect(QPoint(0, 0), plainImage2.size()));
     if (settings.excludeMargins)
-        box = settings.pixelRectForMargins(plainImage1.size());
+        box = box.intersected(
+                settings.pixelRectForMargins(plainImage1.size()).united(
+                settings.pixelRectForMargins(plainImage2.size())));
     QRect target;
-    for (int x = 0; x < plainImage1.width(); x += SQUARE_SIZE) {
-        for (int y = 0; y < plainImage1.height(); y += SQUARE_SIZE) {
-            const QRect rect(x, y, SQUARE_SIZE, SQUARE_SIZE);
-            if (!box.isEmpty() && !box.contains(rect))
-                continue;
-            QImage temp1 = plainImage1.copy(rect);
-            QImage temp2 = plainImage2.copy(rect);
+    // The squares run from the box's own corner, and the last one in
+    // each direction is cut to it, so that they cover it exactly: on a
+    // grid from the image's origin, a box edge that did not fall on the
+    // grid left a band of up to SQUARE_SIZE-1 pixels unexamined, inside
+    // the area the comparison looks at.
+    for (int x = box.left(); x <= box.right(); x += SQUARE_SIZE) {
+        for (int y = box.top(); y <= box.bottom(); y += SQUARE_SIZE) {
+            const QRect rect = QRect(x, y, SQUARE_SIZE, SQUARE_SIZE)
+                    .intersected(box);
+            QImage temp1 = squareAt(plainImage1, rect);
+            QImage temp2 = squareAt(plainImage2, rect);
             if (temp1 != temp2) {
                 if (rect.adjusted(-1, -1, 1, 1).intersects(target))
                     target = target.united(rect);
