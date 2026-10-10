@@ -110,6 +110,7 @@ private:
     void showPair(const int pairIndex);
     int differingPairNear(const int pairIndex, const bool after) const;
     void stepPage(const int which, const int delta);
+    bool filesMustBePdf() const;
     QString pdfFileFilter() const;
     int writeFileInfo(const QString &filename);
     void writeLine(const QString &text);
