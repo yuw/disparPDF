@@ -103,6 +103,7 @@ private:
     void comparePrepareUi();
     void compareUpdateUi(const QPair<int, int> &pair, const int millisec,
             const int pairIndexToShow);
+    void comparisonFailed(const char *reason);
     void forgetComparison();
     PagePair pairAt(const int pairIndex) const;
     bool isComparedPair(const int pairIndex) const;
