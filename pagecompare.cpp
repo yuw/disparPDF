@@ -17,7 +17,6 @@
 #include <QFuture>
 #include <QImage>
 #include <QMultiHash>
-#include <QSet>
 #include <QThread>
 #include <QtConcurrent>
 
@@ -202,61 +201,89 @@ QVector<PagePairResult> comparePagesInParallel(
         return QString("%1\n%2\n%3").arg(document).arg(page).arg(margins);
     };
 
-    // Find the pages whose fingerprints are missing or, for an Appearance
-    // comparison, lack an image hash
-    struct Job { int which; int page; QString key; };
-    QVector<Job> jobs;
-    QSet<QString> queued;
-    auto need = [&](const int which, const int page) {
-        const QString key = keyFor(which == 1 ? document1 : document2,
-                                   page);
-        if (queued.contains(key))
-            return;
-        const auto it = fingerprints.constFind(key);
-        if (it == fingerprints.constEnd() ||
-            (options.compareAppearance && it->readable &&
-             !it->hasImageHash)) {
-            jobs.append({which, page, key});
-            queued.insert(key);
-        }
-    };
-    for (int i = 0; i < total; ++i) {
-        need(1, pages1.at(i));
-        need(2, pages2.at(i));
-    }
+    // Each pair is one job: a worker opens both of its pages, reads
+    // their words and compares those, and renders the pages only if the
+    // words match, since a pair that already differs textually needs no
+    // rendering at all.  Taking a whole pair at once also means each page
+    // is opened once for both its words and its rendering.
+    struct PairJob { int page1; int page2; QString key1; QString key2; };
+    QVector<PairJob> jobs(total);
+    for (int i = 0; i < total; ++i)
+        jobs[i] = {pages1.at(i), pages2.at(i),
+                   keyFor(document1, pages1.at(i)),
+                   keyFor(document2, pages2.at(i))};
 
-    const int jobCount = jobs.count();
-    QVector<PageFingerprint> results(jobCount);
-    QVector<bool> finished(jobCount, false);
-    for (int j = 0; j < jobCount; ++j)
-        results[j] = fingerprints.value(jobs.at(j).key);
+    QVector<PagePairResult> pairResults(total);
+    // What each job ended up with, to be merged into the cache on this
+    // thread once every worker has stopped
+    struct PairFingerprints { PageFingerprint fingerprint1, fingerprint2; };
+    QVector<PairFingerprints> computed(total);
     // Workers write through these rather than QVector::operator[], which
     // may detach
-    PageFingerprint *const resultData = results.data();
-    bool *const finishedData = finished.data();
+    PagePairResult *const resultData = pairResults.data();
+    PairFingerprints *const computedData = computed.data();
     std::atomic<int> next(0);
     std::atomic<int> done(0);
 
     auto worker = [&]() {
         const PdfDocument doc1 = loadCopy(filename1, pdf1);
         const PdfDocument doc2 = loadCopy(filename2, pdf2);
-        for (int j = next++; j < jobCount; j = next++) {
+        for (int j = next++; j < total; j = next++) {
             if (cancel && *cancel)
                 break;
-            const Job &job = jobs.at(j);
-            const PdfDocument &doc = job.which == 1 ? doc1 : doc2;
-            PdfPage page;
-            if (doc)
-                page = doc->page(job.page);
-            if (page)
-                fingerprintPage(page, options, options.compareAppearance,
-                                &resultData[j]);
-            finishedData[j] = true;
+            const PairJob &job = jobs.at(j);
+            // Reading the cache here is safe: nothing writes to it until
+            // every worker has stopped
+            PageFingerprint fingerprint1 = fingerprints.value(job.key1);
+            PageFingerprint fingerprint2 = fingerprints.value(job.key2);
+            PdfPage page1;
+            PdfPage page2;
+            if (!fingerprint1.readable && doc1)
+                page1 = doc1->page(job.page1);
+            if (!fingerprint2.readable && doc2)
+                page2 = doc2->page(job.page2);
+            if (page1)
+                fingerprintPage(page1, options, false, &fingerprint1);
+            if (page2)
+                fingerprintPage(page2, options, false, &fingerprint2);
+
+            PagePairResult &result = resultData[j];
+            if (!fingerprint1.readable) {
+                result.unreadableFile = 1;
+            } else if (!fingerprint2.readable) {
+                result.unreadableFile = 2;
+            } else {
+                result.difference = compareFingerprints(fingerprint1,
+                        fingerprint2, false);
+                // Only now is rendering worth it: the words match, so the
+                // pages can still differ in appearance
+                if (result.difference == NoPageDifference &&
+                    options.compareAppearance) {
+                    if (!fingerprint1.hasImageHash) {
+                        if (!page1 && doc1)
+                            page1 = doc1->page(job.page1);
+                        if (page1)
+                            fingerprintPage(page1, options, true,
+                                            &fingerprint1);
+                    }
+                    if (!fingerprint2.hasImageHash) {
+                        if (!page2 && doc2)
+                            page2 = doc2->page(job.page2);
+                        if (page2)
+                            fingerprintPage(page2, options, true,
+                                            &fingerprint2);
+                    }
+                    result.difference = compareFingerprints(fingerprint1,
+                            fingerprint2, true);
+                }
+            }
+            result.compared = true;
+            computedData[j] = {fingerprint1, fingerprint2};
             ++done;
         }
     };
 
-    if (jobCount > 0) {
+    if (total > 0) {
         // The first time Poppler processes a page it creates some global
         // colour profiles, without locking (GfxState::sRGBProfile and
         // GfxXYZ2DisplayTransforms::XYZProfile).  Workers doing that at
@@ -269,7 +296,7 @@ QVector<PagePairResult> comparePagesInParallel(
         int wanted = QThread::idealThreadCount();
         if (options.maxWorkers > 0)
             wanted = qMin(wanted, options.maxWorkers);
-        const int workers = qBound(1, wanted, jobCount);
+        const int workers = qBound(1, wanted, total);
         QList<QFuture<void>> futures;
         // The workers write through references to locals, so none of them
         // may still be running once this function returns.  The explicit
@@ -302,35 +329,31 @@ QVector<PagePairResult> comparePagesInParallel(
                 return true;
             };
             while (!allFinished()) {
-                progress(done, jobCount);
+                progress(done, total);
                 QThread::msleep(50);
             }
-            progress(done, jobCount);
+            progress(done, total);
         }
         for (QFuture<void> &future : futures)
             future.waitForFinished();
-        for (int j = 0; j < jobCount; ++j)
-            if (finished.at(j))
-                fingerprints.insert(jobs.at(j).key, results.at(j));
-    }
 
-    QVector<PagePairResult> pairResults(total);
-    for (int i = 0; i < total; ++i) {
-        const auto it1 = fingerprints.constFind(keyFor(document1,
-                                                        pages1.at(i)));
-        const auto it2 = fingerprints.constFind(keyFor(document2,
-                                                        pages2.at(i)));
-        if (it1 == fingerprints.constEnd() || it2 == fingerprints.constEnd())
-            continue; // Cancelled before getting to these pages
-        PagePairResult &result = pairResults[i];
-        if (!it1->readable)
-            result.unreadableFile = 1;
-        else if (!it2->readable)
-            result.unreadableFile = 2;
-        else
-            result.difference = compareFingerprints(*it1, *it2,
-                    options.compareAppearance);
-        result.compared = true;
+        // Keep whichever fingerprint says more: a page in two pairs may
+        // have been rendered for one of them and not for the other
+        auto keep = [&](const QString &key, const PageFingerprint &f) {
+            if (!f.readable)
+                return;
+            const auto it = fingerprints.constFind(key);
+            if (it != fingerprints.constEnd() && it->hasImageHash &&
+                !f.hasImageHash)
+                return;
+            fingerprints.insert(key, f);
+        };
+        for (int j = 0; j < total; ++j) {
+            if (!pairResults.at(j).compared)
+                continue;
+            keep(jobs.at(j).key1, computed.at(j).fingerprint1);
+            keep(jobs.at(j).key2, computed.at(j).fingerprint2);
+        }
     }
     return pairResults;
 }
