@@ -272,7 +272,11 @@ void MainWindow::createWidgets(const QString &filename1,
                 "false positives! Zoning only applies to text "
                 "comparisons."));
     zoningGroupBox->setCheckable(true);
-    zoningGroupBox->setChecked(false);
+    // The one control of this dock that did not persist: Columns and the
+    // tolerances did, and both READMEs list a GUI control for it, but
+    // the checkbox was hardcoded off and closeEvent() never saved it
+    zoningGroupBox->setChecked(
+            settings.value("Zoning/Enable", false).toBool());
     columnsLabel = new QLabel(tr("Co&lumns:"));
     columnsSpinBox = new QSpinBox;
     columnsSpinBox->setRange(1, 16);
@@ -706,10 +710,17 @@ void MainWindow::updateUi()
             : (!filename1LineEdit->text().isEmpty() &&
                !filename2LineEdit->text().isEmpty()));
     // Choosing a file or changing the settings during a comparison would
-    // discard the results the workers are still writing into
+    // discard the results the workers are still writing into.  Changing
+    // the mode would not reach the running comparison but would reach
+    // the highlighting afterwards, so pairs found in Appearance would be
+    // drawn with the highlighting of Words, which finds nothing in them;
+    // and the offset box would come to show one the comparison did not
+    // use.
     setFile1Button->setEnabled(!comparing);
     setFile2Button->setEnabled(!comparing);
     optionsButton->setEnabled(!comparing);
+    compareComboBox->setEnabled(!comparing);
+    offsetSpinBox->setEnabled(!comparing);
     saveButton->setEnabled(viewDiffComboBox->count() > 1);
     if (!showZonesCheckBox->isEnabled())
         showZonesCheckBox->setChecked(false);
@@ -949,8 +960,20 @@ void MainWindow::updateViews(int index)
 }
 
 
-void MainWindow::closeEvent(QCloseEvent*)
+void MainWindow::closeEvent(QCloseEvent *event)
 {
+    if (comparing) {
+        // Closing now would leave the workers and the progress loop
+        // running in a process with no window, until they finished, and
+        // compareUpdateUi() would then work on a closed one.  Stop the
+        // comparison instead and close once it has stopped; the Cancel
+        // button does the same, so take it with it.
+        cancel = true;
+        closeRequested = true;
+        compareButton->setEnabled(false);
+        event->ignore();
+        return;
+    }
     QSettings settings;
     settings.setValue("MainWindow/Geometry", saveGeometry());
     settings.setValue("MainWindow/State", saveState());
@@ -968,6 +991,7 @@ void MainWindow::closeEvent(QCloseEvent*)
     settings.setValue("ShowToolTips", showToolTips);
     settings.setValue("CombineTextHighlighting", combineTextHighlighting);
     settings.setValue("Zoom", zoomSpinBox->value());
+    settings.setValue("Zoning/Enable", zoningGroupBox->isChecked());
     settings.setValue("Columns", columnsSpinBox->value());
     settings.setValue("Tolerance/R", toleranceRSpinBox->value());
     settings.setValue("Tolerance/Y", toleranceYSpinBox->value());
@@ -1301,6 +1325,10 @@ void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
     } catch (...) {
         comparisonFailed(nullptr);
     }
+    // A close during the comparison was deferred until here, so that it
+    // did not leave the workers running behind a closed window
+    if (closeRequested)
+        close();
 }
 
 
@@ -1337,6 +1365,8 @@ void MainWindow::comparePrepareUi()
     setFile1Button->setEnabled(false);
     setFile2Button->setEnabled(false);
     optionsButton->setEnabled(false);
+    compareComboBox->setEnabled(false);
+    offsetSpinBox->setEnabled(false);
     viewDiffComboBox->clear();
     viewDiffComboBox->addItem(tr("(Not viewing)"));
     saveButton->setEnabled(false);
@@ -1449,6 +1479,31 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
                                                  : tr("s were")));
             viewDiffComboBox->setFocus();
             viewDiffComboBox->setCurrentIndex(1);
+        }
+        else if (pair.second == 0) {
+            // The offset puts every page of one file past the end of the
+            // other, so no pair could be formed.  Nothing was compared,
+            // and saying the files look the same would be the wrong way
+            // round to be wrong.
+            writeError(tr("Offset %1 leaves no pages to compare.")
+                       .arg(comparedOffset));
+            const QString message(tr("<p style='font-size: x-large;"
+                    "color: darkred'>%1: Offset %2 leaves no pages to "
+                    "compare.</p>").arg(AboutForm::ProgramName)
+                    .arg(comparedOffset));
+            page1Label->setText(message);
+            page2Label->setText(message);
+        }
+        else if (pair.first == 0) {
+            // Pairs were formed but none could be read; the pages that
+            // failed have each been reported already
+            writeError(tr("None of the %1 page pairs could be read.")
+                       .arg(pair.second));
+            const QString message(tr("<p style='font-size: x-large;"
+                    "color: darkred'>%1: No page pair could be read.</p>")
+                    .arg(AboutForm::ProgramName));
+            page1Label->setText(message);
+            page2Label->setText(message);
         }
         else {
             writeLine(tr("The PDFs appear to be the same."));

@@ -206,6 +206,9 @@ private:
     // The comparison processes events, and starting another one then
     // would change fingerprints while the first one's workers read it.
     bool comparing;
+    // Set when the window is closed during a comparison: the close is
+    // deferred until the workers have stopped, and done then
+    bool closeRequested = false;
     // Page fingerprints, kept between comparisons
     PageFingerprintCache fingerprints;
     // The last comparison: page pairIndex of comparedPages1 was paired with

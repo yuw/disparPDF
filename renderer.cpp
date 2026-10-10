@@ -111,16 +111,26 @@ QPair<QPixmap, QPixmap> DifferenceRenderer::pixmaps(const PdfPage &page1,
 
     const int DPI = settings.dpi();
     const bool compareText = settings.compareMode != CompareAppearance;
-    QImage plainImage1;
-    QImage plainImage2;
-    if (pair.hasVisualDifference || !compareText) {
-        plainImage1 = page1->renderToImage(DPI, DPI);
-        plainImage2 = page2->renderToImage(DPI, DPI);
-    }
+    // Highlighting the differences, rather than composing page 2 over
+    // page 1
+    const bool highlighting = compareText ||
+                              settings.compositionMode == -1;
     QImage image1 = page1->renderToImage(DPI, DPI);
     QImage image2 = page2->renderToImage(DPI, DPI);
+    // The renderings as they are before anything is drawn on them.
+    // QImage is implicitly shared and painting on image1 detaches it, so
+    // these cost nothing until a highlight is painted: each page used to
+    // be rendered a second time for them -- and for the compositing
+    // modes, where they are not read at all, that second rendering was
+    // made and thrown away.
+    QImage plainImage1;
+    QImage plainImage2;
+    if (highlighting && (pair.hasVisualDifference || !compareText)) {
+        plainImage1 = image1;
+        plainImage2 = image2;
+    }
 
-    if (compareText || settings.compositionMode == -1) {
+    if (highlighting) {
         QPainterPath highlighted1;
         QPainterPath highlighted2;
         if (pair.hasVisualDifference || !compareText)

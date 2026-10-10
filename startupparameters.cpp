@@ -27,6 +27,11 @@ StartupParameters::StartupParameters()
     _useXmlResult = false;
     _compareFonts = false;
     _anyExtension = false;
+    // What batch mode settles on when no comparison type is given (see
+    // main.cpp).  It was the one member left uninitialised, and the
+    // command-line error path returns through Status::returnOp(), which
+    // reads it, before main() calls setComparisonMode().
+    _comparisonMode = CompareAppearance;
 }
 
 StartupParameters::~StartupParameters()

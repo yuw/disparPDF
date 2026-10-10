@@ -44,7 +44,9 @@ BatchCompare::BatchCompare(const Debug debug,
     render.compareMode = comparisonMode ;
     render.debug = debug;
     _status = status ;
-    cacheSizeMB = 100 ;
+    // The same default as the GUI's and the one the READMEs document;
+    // readFromSettings() may replace it, and sets the limit again
+    cacheSizeMB = 25 ;
 
     initValues();
     QPixmapCache::setCacheLimit(1000 * qBound(1, cacheSizeMB, 100));
@@ -58,7 +60,6 @@ void BatchCompare::readFromSettings()
         return ;
     }
     QSettings settings(_startupParameters->settingsFile(), QSettings::IniFormat);
-    render.combineTextHighlighting = settings.value("CombineTextHighlighting",true).toBool();
     showHighlight = settings.value("ShowHighlight", -1).toInt();
     render.pen = settings.value("Outline", render.pen).value<QPen>();
     render.brush.setColor(render.pen.color());
@@ -86,6 +87,10 @@ void BatchCompare::readFromSettings()
     render.overlap = settings.value("Overlap", render.overlap).toInt();
     render.combineTextHighlighting = settings.value("CombineTextHighlighting", render.combineTextHighlighting).toBool();
     render.opacity = settings.value("Opacity", render.opacity).toInt();
+    // Here as well as in the constructor, which runs before this: a
+    // CacheSizeMB in the file used only to change the variable, which
+    // --xmlResult then reported as though the limit had been set to it
+    QPixmapCache::setCacheLimit(1000 * qBound(1, cacheSizeMB, 100));
 }
 
 void BatchCompare::writeToSettings(const QString &filePath)
@@ -372,7 +377,6 @@ static QString toBoolString(const bool value)
 
 void BatchCompare::writeParameters(QXmlStreamWriter & writer)
 {
-    writeParam(writer, "CombineTextHighlighting", toBoolString(render.combineTextHighlighting) );
     writeParam(writer, "ShowHighlight", QString::number(showHighlight) );
     QVariant penVariant(render.pen);
     writeParam(writer, "Outline", penVariant );
@@ -389,6 +393,7 @@ void BatchCompare::writeParameters(QXmlStreamWriter & writer)
     writeParam(writer, "Margins/Top", QString::number(render.topMargin) );
     writeParam(writer, "Margins/Bottom", QString::number(render.bottomMargin) );
     writeParam(writer, "CacheSizeMB", QString::number(cacheSizeMB) );
+    writeParam(writer, "CompareThreads", QString::number(compareThreads) );
     writeParam(writer, "compositionMode", QString::number(render.compositionMode) );
 
     writeParam(writer, "SquareSize", QString::number(render.squareSize) );
