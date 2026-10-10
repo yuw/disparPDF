@@ -73,6 +73,10 @@ struct PageFingerprint
 // Keyed by file (path, size and modification time), page, and margins
 typedef QHash<QString, PageFingerprint> PageFingerprintCache;
 
+// Identifies a file's current contents, so that neither cached
+// fingerprints nor cached pixmaps are used after the file changes
+QString documentKey(const QString &filename);
+
 PageDifference compareFingerprints(const PageFingerprint &fingerprint1,
                                    const PageFingerprint &fingerprint2,
                                    const bool compareAppearance);
