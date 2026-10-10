@@ -21,6 +21,29 @@
 #include <QtConcurrent>
 
 
+// The rendering that an Appearance comparison looks at: the page at
+// 72 DPI, cropped to the margins if they are being excluded
+static QImage renderForComparison(const PdfPage &page,
+                                  const PageCompareOptions &options)
+{
+    const QSize size = page->pageSize();
+    const int DPI = POINTS_PER_INCH;
+    int x = -1;
+    int y = -1;
+    int width = -1;
+    int height = -1;
+    if (options.excludeMargins) {
+        x = pixelOffsetForPointValue(DPI, options.leftMargin);
+        y = pixelOffsetForPointValue(DPI, options.topMargin);
+        width = pixelOffsetForPointValue(DPI, size.width() -
+                (options.leftMargin + options.rightMargin));
+        height = pixelOffsetForPointValue(DPI, size.height() -
+                (options.topMargin + options.bottomMargin));
+    }
+    return page->renderToImage(DPI, DPI, x, y, width, height);
+}
+
+
 // Fills in what *fingerprint lacks: the words if it is not yet readable,
 // and the image hash if withImageHash and it has none.
 static void fingerprintPage(const PdfPage &page,
@@ -28,8 +51,8 @@ static void fingerprintPage(const PdfPage &page,
                             const bool withImageHash,
                             PageFingerprint *fingerprint)
 {
-    const QSize size = page->pageSize();
     if (!fingerprint->readable) {
+        const QSize size = page->pageSize();
         QRectF rect;
         if (options.excludeMargins)
             rect = rectForMargins(size.width(), size.height(),
@@ -40,21 +63,7 @@ static void fingerprintPage(const PdfPage &page,
         fingerprint->readable = true;
     }
     if (withImageHash && !fingerprint->hasImageHash) {
-        const int DPI = POINTS_PER_INCH;
-        int x = -1;
-        int y = -1;
-        int width = -1;
-        int height = -1;
-        if (options.excludeMargins) {
-            x = pixelOffsetForPointValue(DPI, options.leftMargin);
-            y = pixelOffsetForPointValue(DPI, options.topMargin);
-            width = pixelOffsetForPointValue(DPI, size.width() -
-                    (options.leftMargin + options.rightMargin));
-            height = pixelOffsetForPointValue(DPI, size.height() -
-                    (options.topMargin + options.bottomMargin));
-        }
-        const QImage image = page->renderToImage(DPI, DPI, x, y, width,
-                                                 height);
+        const QImage image = renderForComparison(page, options);
         QCryptographicHash hash(QCryptographicHash::Sha1);
         hash.addData(QByteArray::number(static_cast<int>(image.format())));
         for (int row = 0; row < image.height(); ++row)
@@ -182,6 +191,11 @@ QVector<PagePairResult> comparePagesInParallel(
     const int total = qMin(pages1.count(), pages2.count());
     PageFingerprintCache localCache;
     PageFingerprintCache &fingerprints = cache ? *cache : localCache;
+    // An image hash only earns its cost when something will ask about the
+    // same rendering again, which needs a cache to keep it in.  Without
+    // one -- the batch path -- a pair's two renderings are compared
+    // directly and dropped, so neither is hashed or stored.
+    const bool hashImages = cache != nullptr;
 
     // Forget the fingerprints of other files
     const QString document1 = documentKey(filename1);
@@ -259,26 +273,42 @@ QVector<PagePairResult> comparePagesInParallel(
                 // pages can still differ in appearance
                 if (result.difference == NoPageDifference &&
                     options.compareAppearance) {
-                    if (!fingerprint1.hasImageHash) {
-                        if (!page1 && doc1)
-                            page1 = doc1->page(job.page1);
+                    if (!hashImages) {
+                        // Nothing will ask about these renderings again,
+                        // so compare them and let them go.  QImage's
+                        // comparison stops at the first differing byte,
+                        // where hashing has to read all of both.
+                        QImage image1;
+                        QImage image2;
                         if (page1)
-                            fingerprintPage(page1, options, true,
-                                            &fingerprint1);
-                    }
-                    if (!fingerprint2.hasImageHash) {
-                        if (!page2 && doc2)
-                            page2 = doc2->page(job.page2);
+                            image1 = renderForComparison(page1, options);
                         if (page2)
-                            fingerprintPage(page2, options, true,
-                                            &fingerprint2);
+                            image2 = renderForComparison(page2, options);
+                        if (image1 != image2)
+                            result.difference = VisualPageDifference;
+                    } else {
+                        if (!fingerprint1.hasImageHash) {
+                            if (!page1 && doc1)
+                                page1 = doc1->page(job.page1);
+                            if (page1)
+                                fingerprintPage(page1, options, true,
+                                                &fingerprint1);
+                        }
+                        if (!fingerprint2.hasImageHash) {
+                            if (!page2 && doc2)
+                                page2 = doc2->page(job.page2);
+                            if (page2)
+                                fingerprintPage(page2, options, true,
+                                                &fingerprint2);
+                        }
+                        result.difference = compareFingerprints(fingerprint1,
+                                fingerprint2, true);
                     }
-                    result.difference = compareFingerprints(fingerprint1,
-                            fingerprint2, true);
                 }
             }
             result.compared = true;
-            computedData[j] = {fingerprint1, fingerprint2};
+            if (hashImages)
+                computedData[j] = {fingerprint1, fingerprint2};
             ++done;
         }
     };
@@ -338,21 +368,24 @@ QVector<PagePairResult> comparePagesInParallel(
             future.waitForFinished();
 
         // Keep whichever fingerprint says more: a page in two pairs may
-        // have been rendered for one of them and not for the other
-        auto keep = [&](const QString &key, const PageFingerprint &f) {
-            if (!f.readable)
-                return;
-            const auto it = fingerprints.constFind(key);
-            if (it != fingerprints.constEnd() && it->hasImageHash &&
-                !f.hasImageHash)
-                return;
-            fingerprints.insert(key, f);
-        };
-        for (int j = 0; j < total; ++j) {
-            if (!pairResults.at(j).compared)
-                continue;
-            keep(jobs.at(j).key1, computed.at(j).fingerprint1);
-            keep(jobs.at(j).key2, computed.at(j).fingerprint2);
+        // have been rendered for one of them and not for the other.
+        // Without a cache there is nothing to keep them for.
+        if (hashImages) {
+            auto keep = [&](const QString &key, const PageFingerprint &f) {
+                if (!f.readable)
+                    return;
+                const auto it = fingerprints.constFind(key);
+                if (it != fingerprints.constEnd() && it->hasImageHash &&
+                    !f.hasImageHash)
+                    return;
+                fingerprints.insert(key, f);
+            };
+            for (int j = 0; j < total; ++j) {
+                if (!pairResults.at(j).compared)
+                    continue;
+                keep(jobs.at(j).key1, computed.at(j).fingerprint1);
+                keep(jobs.at(j).key2, computed.at(j).fingerprint2);
+            }
         }
     }
     return pairResults;
