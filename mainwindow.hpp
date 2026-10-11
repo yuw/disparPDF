@@ -48,6 +48,8 @@ class QSplitter;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+    // The GUI tests (test/guitest.cpp) look at and drive its widgets
+    friend class MainWindowTest;
 
 public:
     MainWindow(const Debug debug,
@@ -122,6 +124,8 @@ private:
     BoxClip boxClip() const;
     PdfDocument comparedPdf(const int which, const QString &filename);
     bool boxedViews(BoxedView *view1, BoxedView *view2);
+    void prepareBoxedFiles();
+    void updateMarginRanges();
     void logBoxWarnings(const QList<int> &pages1, const QList<int> &pages2,
                         const bool verbose);
     RenderSettings renderSettings() const;
@@ -258,6 +262,9 @@ private:
     // gave, which are used but not saved
     bool pageBoxFromCommandLine = false;
     bool boxClipFromCommandLine = false;
+    // The first page of the file chosen last, from which the margins'
+    // ranges come when the whole page is compared
+    QSize marginPageSize;
 };
 
 #endif // MAINWINDOW_HPP

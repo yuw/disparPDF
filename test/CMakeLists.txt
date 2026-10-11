@@ -7,6 +7,34 @@ target_link_libraries(pageboxtest PRIVATE ${QT_LIBS} ${POPPLER_TARGET}
 add_test(NAME pagebox
          COMMAND pageboxtest ${CMAKE_CURRENT_SOURCE_DIR}/data/boxes.pdf)
 
+# Tests of what is drawn for pages compared inside a page box, and of the
+# window's page box controls (rendertest.cpp, guitest.cpp).  They are
+# built from the program's own sources, compiled once for both; the
+# resources are left out, since neither needs them.
+set(_program_sources)
+foreach(_source ${COMMON_SOURCES})
+    # (the generated resources are the one absolute path)
+    if(NOT IS_ABSOLUTE "${_source}")
+        list(APPEND _program_sources ${CMAKE_SOURCE_DIR}/${_source})
+    endif()
+endforeach()
+add_library(disparpdf_program_objects OBJECT ${_program_sources})
+target_include_directories(disparpdf_program_objects PUBLIC
+    ${CMAKE_SOURCE_DIR})
+target_compile_definitions(disparpdf_program_objects PUBLIC
+    POPPLER_VERSION="${POPPLER_VERSION_STR}"
+    DISPARPDF_VERSION="${PROJECT_VERSION}")
+target_link_libraries(disparpdf_program_objects PUBLIC ${QT_LIBS}
+    ${POPPLER_TARGET} disparpdf_qpdf)
+foreach(_test rendertest guitest)
+    add_executable(${_test} ${_test}.cpp)
+    target_link_libraries(${_test} PRIVATE disparpdf_program_objects)
+    add_test(NAME ${_test}
+             COMMAND ${_test} ${CMAKE_CURRENT_SOURCE_DIR}/data)
+endforeach()
+set_tests_properties(rendertest guitest PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
+
 # The original batch-mode tests (testbase.sh, using ../data)
 add_test(NAME batch-legacy
          COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/testbase.sh
