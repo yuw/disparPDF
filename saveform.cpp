@@ -14,6 +14,7 @@
 #include "aboutform.hpp"
 #include <QDialogButtonBox>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QImageWriter>
@@ -130,7 +131,10 @@ void SaveForm::chooseFile()
 void SaveForm::accept()
 {
     *m_filename = filenameLineEdit->text();
-    if (!m_filename->contains("."))
+    // The name alone, not the whole path: a dot in a directory name was
+    // taken for a suffix, so no .pdf was added and the save then went
+    // down the image path
+    if (!QFileInfo(*m_filename).fileName().contains("."))
         *m_filename += ".pdf";
     *m_saveAll = saveAllRadioButton->isChecked();
     if (leftPagesRadioButton->isChecked())

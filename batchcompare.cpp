@@ -50,7 +50,6 @@ BatchCompare::BatchCompare(const Debug debug,
 
     initValues();
     QPixmapCache::setCacheLimit(1000 * qBound(1, cacheSizeMB, 100));
-    //writeToSettings("test.ini");
 }
 
 
@@ -91,39 +90,6 @@ void BatchCompare::readFromSettings()
     // CacheSizeMB in the file used only to change the variable, which
     // --xmlResult then reported as though the limit had been set to it
     QPixmapCache::setCacheLimit(1000 * qBound(1, cacheSizeMB, 100));
-}
-
-void BatchCompare::writeToSettings(const QString &filePath)
-{
-    //WARNING: this function still to be completed.
-    QSettings settings(filePath, QSettings::IniFormat );
-    settings.setValue("CombineTextHighlighting", render.combineTextHighlighting);
-    settings.setValue("ShowHighlight", showHighlight);
-    settings.setValue("Outline", render.pen);
-    settings.setValue("Fill", render.brush);
-    settings.setValue("Zoning/Enable", render.zoning);
-
-    settings.setValue("Zoom", render.zoom);
-    settings.setValue("Columns", render.columns);
-    settings.setValue("Tolerance/R", render.toleranceR);
-    settings.setValue("Tolerance/Y", render.toleranceY);
-    settings.setValue("Margins/Exclude", render.excludeMargins);
-    /*
-    render.leftMargin = settings.value("Margins/Left", 0).toInt();
-    render.rightMargin = settings.value("Margins/Right", 0).toInt();
-    render.topMargin = settings.value("Margins/Top", 0).toInt();
-    render.bottomMargin = settings.value("Margins/Bottom", 0).toInt();
-    cacheSizeMB = settings.value("CacheSizeMB", 25).toInt();
-    render.compositionMode = settings.value("compositionMode", -1).toInt();
-*/
-    settings.setValue("SquareSize", render.squareSize);
-    settings.setValue("RuleWidth", render.ruleWidth);
-
-    settings.setValue("Overlap", render.overlap);
-    settings.setValue("CombineTextHighlighting", render.combineTextHighlighting);
-    settings.setValue("Opacity", render.opacity);
-
-    settings.sync();
 }
 
 void BatchCompare::initValues()

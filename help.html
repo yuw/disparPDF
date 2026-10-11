@@ -140,14 +140,27 @@ image formats). The dialog supports saving the current or all left
 pages, right pages, or both pages. 
 
 <h3 id="opt">The Options Dialog</h3>
-<p>This dialog is invoked by clicking the <b>Options</b> button. 
-The dialog supports changing the highlighting color, whether to use 
-a pen or fill or both, and the fill's opacity. The Square Size is used 
-when doing Appearance mode comparisons: the smaller the size the more 
-fine-grained the highlighting is&mdash;and the slower to compute. 
-The Rule width determines the thickness of the margin rules which are 
-used to indicate the vertical position of differences; the rules can 
-be switched off using a Rule width of 0.
+<p>This dialog is invoked by clicking the <b>Options</b> button. It has
+three tabs.
+
+<p><b>General</b> has <b>Show Tooltips</b>, which turns off the
+tooltips of every control; <b>Rule width</b>, the thickness of the
+margin rules that indicate the vertical position of differences, which
+a width of 0 switches off; and <b>Files to compare</b>, choosing
+whether the Choose dialogs offer only files whose names end in
+<tt>.pdf</tt> or any file. (A name typed into the File&nbsp;#1 or
+File&nbsp;#2 box, or a file dropped on the window, is taken whatever it
+is called; on the command line, <tt>--any-extension</tt> allows any
+name.)
+
+<p><b>Highlighting</b> has the base color, whether to use an outline or
+a fill or both, and the fill's opacity, and <b>Combine
+highlighting</b>, which merges neighbouring highlights into one.
+
+<p><b>Performance</b> has the <b>Square Size</b>, used in Appearance
+mode comparisons&mdash;the smaller the size the more fine-grained the
+highlighting is, and the slower to compute&mdash;and the <b>Cache
+Size</b>, the memory in MB that rendered pages may use.
 
 <h3 id="dock">Dock Windows</h3>
 <p>The Controls, Actions, Margins, Zoning, and Log views are in dock
@@ -159,60 +172,78 @@ views may be shown tabbed: if there is enough space they can be dragged
 out of their tabs and all shown in full.
 
 <h3 id="cli">Command Line Usage</h3>
-<p><font color="darkgreen">disparPDF</font> can be run from a console in two modes:
-<ul>
-<li>batch for automating checks, without GUI</li>
-<li>opening the GUI and comparing files</li>
-</ul>
-files listed on the command line, 
-<font color="darkgreen">disparPDF</font> will start up and
-immediately compare them in Words mode, or in Appearance mode 
-if their names are preceded with <tt>-a</tt> or 
-<tt>--appearance</tt> on the command line, 
-or in Characters mode if their names are preceded with <tt>-c</tt> or 
-<tt>--character</tt> on the command line. Run 
-<font color="darkgreen">disparPDF </font> with <tt>--help</tt> to see all
-the command line options. (This won't work on Windows, although the
-other command line options will.) Here is the <tt>--help</tt>
-output:
+<p><font color="darkgreen">disparPDF</font> can be run from a console
+in two ways: with the window, given the files to compare, and in batch
+mode for automating checks, without a window.
+
+<p>Given two files on the command line,
+<font color="darkgreen">disparPDF</font> starts up and compares them
+straight away, in Words mode unless <tt>-a</tt>
+(<tt>--appearance</tt>) or <tt>-c</tt> (<tt>--characters</tt>) comes
+first. With <tt>--batch</tt>, or run under the name
+<tt>disparPDFc</tt>, it compares them without a window and prints a
+result code instead; <tt>--interactive</tt> asks for the window back.
+
+<p>Run it with <tt>--help</tt> to see all the options. (This won't
+work on Windows, although the other command line options will.) Here
+is the <tt>--help</tt> output:
 <pre>
-usage: disparPDF [options] [file1.pdf [file2.pdf]]
+Usage: disparPDF [OPTION]... [FILE1 [FILE2]]
+  or:  disparPDF --batch [OPTION]... FILE1 FILE2
+  or:  disparPDFc [OPTION]... FILE1 FILE2
+Compare two PDF files and show their differences.
 
-A GUI program that compares two PDF files and shows
-their differences that can be scripted.
+The files are optional and are normally chosen in the window.  With --batch,
+they are compared without a window, and the result code (see below) is
+printed.
 
-The files are optional and are normally set through
-the user interface.
+Options:
+  -a, --appearance       compare the appearance of the pages (the default in
+                           batch mode)
+  -c, --characters       compare the text character by character
+  -w, --words            compare the text word by word (the default otherwise)
+      --any-extension    accept files whose names do not end in .pdf
+      --language=LANG    use the given translation language, e.g., en for
+                           English, cz for Czech; English is used if there is
+                           no translation
+      --debug=2          write the text fed to the sequence matcher into
+                           temporary files (e.g., /tmp/page1.txt)
+      --debug=3          as --debug=2, but also with the coordinates, in y, x
+                           order
+  -h, --help             display this help and exit
+      --version          output version information and exit
 
-options:
---help             show this usage text and terminate (run the
-                   program without this option and press F1 for
-                   online help)
---version          show the version and terminate
---any-extension    accept files whose names do not end in .pdf
-                   (also an option in the Options dialog)
---appearance  -a   set the initial comparison mode to Appearance
---characters  -c   set the initial comparison mode to Characters
---words       -w   set the initial comparison mode to Words
---language=xx      set the program to use the given translation
-                   language, e.g., en for English, cz for Czech;
-                   English will be used if there is no translation
-                   available
---debug=2          write the text fed to the sequence matcher into
-                   temporary files (e.g., /tmp/page1.txt etc.)
---debug=3          as --debug=2 but also includes coordinates in
-                    y, x order
---batch -b         activates the batch mode
---outType=0        prints only the return code in batch mode
---outType=1        prints the return code and a description in batch mode
---pages=nn         the number of pages to compare (default all)
---startPage1=nn    the stating page number for file 1
---startPage2=nn    the stating page number for file 2
---pdfdiff=path     generates a pdf with differences
---xmlResult=path   generates file with the comparison result in XML
---key=aKey         a key to be recorded in the result file
---settings=file    settings (in INI format) to override default parameters
---compareFonts     compare the fonts
+Batch mode options:
+  -b, --batch            compare without a window
+      --interactive      show the window (the default, except as disparPDFc)
+      --outType=0        print only the result code (the default)
+      --outType=1        print the result code and a description
+      --pages=N          compare N pages (default all)
+      --startPage1=N     start at page N of FILE1
+      --startPage2=N     start at page N of FILE2
+      --pdfdiff=FILE     save the pages that differ, highlighted, to FILE
+      --xmlResult=FILE   write the result, in XML, to FILE
+      --key=KEY          record KEY in the XML result
+      --settings=FILE    read settings (zoom, margins, tolerances, colors,
+                           etc.) from FILE, in INI format, instead of using
+                           the defaults
+      --compareFonts     also compare the fonts the files use
+
+Result codes, printed in batch mode and also the exit status (modulo 256):
+   0  the files are the same
+   1  the files differ
+   2  the files have different numbers of pages
+   3  a start page is beyond the end of its file
+   4  a file has fewer pages than --pages asks for
+   5  the same file was given twice
+   6  the files use different fonts (with --compareFonts)
+  -1  a command line error
+  -3, -4  FILE1 or FILE2 cannot be read
+  -5  a page cannot be read
+  -6, -7  the --pdfdiff or --xmlResult file cannot be written
+
+In the window, press F1 for the full documentation, and click About for the
+copyright and license details.
 </pre>
 
 A typical command line for automated checks is:

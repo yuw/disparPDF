@@ -140,9 +140,12 @@ void OptionsForm::createWidgets()
     requirePdfExtensionRadioButton = new QRadioButton(
             tr("Only files &named *.pdf"));
     anyExtensionRadioButton = new QRadioButton(tr("Any fi&le name"));
-    const QString fileNamesToolTip(tr("<p>Which files can be chosen to "
-            "compare: only those whose names end in .pdf, or any. (On the "
-            "command line, --any-extension allows any name.)"));
+    const QString fileNamesToolTip(tr("<p>Which files the Choose "
+            "dialogs offer: only those whose names end in .pdf, or any. "
+            "A name typed into the File #1 or File #2 box, or a file "
+            "dropped on the window, is taken whatever it is called. "
+            "(On the command line, where the setting is enforced, "
+            "--any-extension allows any name.)"));
     requirePdfExtensionRadioButton->setToolTip(fileNamesToolTip);
     anyExtensionRadioButton->setToolTip(fileNamesToolTip);
     requirePdfExtensionRadioButton->setChecked(*m_requirePdfExtension);

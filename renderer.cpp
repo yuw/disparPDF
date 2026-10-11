@@ -429,6 +429,12 @@ bool DifferenceRenderer::saveAsPdf(const QString &outputFile,
     printer.setPageOrientation(savePages == SaveBothPages
             ? QPageLayout::Landscape : QPageLayout::Portrait);
     QPainter painter(&printer);
+    // The output file could not be opened.  Going on would render every
+    // pair into a painter that is not active, which costs the whole
+    // comparison's rendering and fills the terminal with Qt's warnings
+    // before the return value says it failed.
+    if (!painter.isActive())
+        return false;
     painter.setRenderHints(QPainter::Antialiasing|
             QPainter::TextAntialiasing|QPainter::SmoothPixmapTransform);
     painter.setFont(QFont("Helvetica", 11));

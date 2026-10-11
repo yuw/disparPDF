@@ -59,7 +59,7 @@ MainWindow::MainWindow(const Debug debug,
       actionDockArea(Qt::RightDockWidgetArea),
       marginsDockArea(Qt::RightDockWidgetArea),
       zoningDockArea(Qt::RightDockWidgetArea),
-      logDockArea(Qt::RightDockWidgetArea), cancel(false), comparing(false),
+      cancel(false), comparing(false),
       saveAll(true), savePages(SaveBothPages), language(language),
       debug(debug), aboutForm(0), helpForm(0)
 {
@@ -985,8 +985,6 @@ void MainWindow::closeEvent(QCloseEvent *event)
                       static_cast<int>(zoningDockArea));
     settings.setValue("MainWindow/MarginsDockArea",
                       static_cast<int>(marginsDockArea));
-    settings.setValue("MainWindow/LogDockArea",
-                      static_cast<int>(logDockArea));
     settings.setValue("MainWindow/ViewSplitter", splitter->saveState());
     settings.setValue("ShowToolTips", showToolTips);
     settings.setValue("CombineTextHighlighting", combineTextHighlighting);
@@ -1367,8 +1365,15 @@ void MainWindow::comparePrepareUi()
     optionsButton->setEnabled(false);
     compareComboBox->setEnabled(false);
     offsetSpinBox->setEnabled(false);
-    viewDiffComboBox->clear();
-    viewDiffComboBox->addItem(tr("(Not viewing)"));
+    {
+        // Blocked, as in forgetComparison(): clear() and addItem() each
+        // emit currentIndexChanged, and updateViews(0) then emptied both
+        // page views, so every re-comparison blanked them on the way.
+        // compareUpdateUi() fills them again, or says it was cancelled.
+        const QSignalBlocker viewBlocker(viewDiffComboBox);
+        viewDiffComboBox->clear();
+        viewDiffComboBox->addItem(tr("(Not viewing)"));
+    }
     saveButton->setEnabled(false);
     statusLabel->setText(tr("Ready"));
 }
@@ -1515,6 +1520,17 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
         }
     }
 
+    if (cancel) {
+        // The views are no longer blanked when a comparison starts, so
+        // say what happened: otherwise they would go on showing the
+        // pages of the previous comparison as though they were this
+        // one's
+        const QString message(tr("<p style='font-size: x-large;"
+                "color: darkred'>%1: Cancelled.</p>")
+                .arg(AboutForm::ProgramName));
+        page1Label->setText(message);
+        page2Label->setText(message);
+    }
     compareButton->setText(tr("&Compare"));
     if (differ == 1) // Separated the cases for ease of translation
         comparisonSummary = tr("1 differs %1/%2 compared").arg(pair.first)
@@ -1729,15 +1745,21 @@ void MainWindow::save()
                 .arg(filename2)
                 .arg(QDate::currentDate().toString(Qt::ISODate)).arg(AboutForm::ProgramName);
         else
-            header = tr("%4 %1 %2 vs. %3 %1 %4").arg(bullet)
+            // %5 for the name, not a second %4: with %4 twice, the
+            // date filled both and the program name had nowhere to go,
+            // so the header read "date | file1 vs. file2 | date"
+            header = tr("%5 %1 %2 vs. %3 %1 %4").arg(bullet)
                 .arg(filename1).arg(filename2)
                 .arg(QDate::currentDate().toString(Qt::ISODate)).arg(AboutForm::ProgramName);
+        bool saved = true;
         if (saveFilename.toLower().endsWith(".pdf"))
-            saveAsPdf(start, end, pdf1, pdf2, header);
+            saved = saveAsPdf(start, end, pdf1, pdf2, header);
         else
             saveAsImages(start, end, pdf1, pdf2, header);
         updateViews(originalIndex);
-        if (saveFilename.toLower().endsWith(".pdf"))
+        // Only if it worked: a failed save used to log "Failed to save"
+        // and then "Saved", one after the other
+        if (saved && saveFilename.toLower().endsWith(".pdf"))
             writeLine(tr("Saved %1").arg(saveFilename));
         saveButton->setEnabled(true);
     }
@@ -1755,22 +1777,32 @@ void MainWindow::saveAsImages(const int start, const int end,
     PdfPage page2 = pdf2->page(0);
     if (!page2)
         return;
+    // The page these are sized from: page 1, except when only page 2 is
+    // being saved
+    const PdfPage &page = savePages == SaveRightPages ? page2 : page1;
     int width = 2 * (savePages == SaveBothPages
             ? page1->pageSize().width() + page2->pageSize().width()
-            : page1->pageSize().width());
+            : page->pageSize().width());
     const int y = fontMetrics().lineSpacing();
-    const int height = (2 * page1->pageSize().height()) - y;
+    // The header, and below it the pages at twice their size.  The
+    // image used to be y shorter than that while the rectangles ran to
+    // the full height from y, so the foot of each page was cut off.
+    const int pageHeight = 2 * page->pageSize().height();
+    const int height = y + pageHeight;
     const int gap = 30;
     const QRect rect(0, 0, width, height);
     if (savePages == SaveBothPages)
         width = (width / 2) - gap;
-    const QRect leftRect(0, y, width, height);
-    const QRect rightRect(width + gap, y, width, height);
+    const QRect leftRect(0, y, width, pageHeight);
+    const QRect rightRect(width + gap, y, width, pageHeight);
     int count = 0;
     QString imageFilename = saveFilename;
-    int i = imageFilename.lastIndexOf(".");
-    if (i > -1)
-        imageFilename.insert(i, "-%1");
+    // QFileInfo, not lastIndexOf("."): a dot in a directory name was
+    // taken for the start of the suffix
+    const QString suffix = QFileInfo(imageFilename).suffix();
+    if (!suffix.isEmpty())
+        imageFilename.insert(imageFilename.length() - suffix.length() - 1,
+                             "-%1");
     else
         imageFilename += "-%1.png";
     for (int index = start; index < end; ++index) {
@@ -1795,10 +1827,12 @@ void MainWindow::saveAsImages(const int start, const int end,
         else
             writeLine(tr("Failed to save %1").arg(filename));
     }
+    if (!count)
+        writeError(tr("Nothing to save: no page pair is selected."));
 }
 
 
-void MainWindow::saveAsPdf(const int start, const int end,
+bool MainWindow::saveAsPdf(const int start, const int end,
         const PdfDocument &pdf1, const PdfDocument &pdf2,
         const QString &header)
 {
@@ -1809,10 +1843,19 @@ void MainWindow::saveAsPdf(const int start, const int end,
         if (pair.left >= 0 && pair.right >= 0) // Not "(Not viewing)"
             pairs.append(pair);
     }
+    // Saving with "(Not viewing)" selected left no pairs, and writing
+    // them produced a one-page blank PDF and a "Saved" line
+    if (pairs.isEmpty()) {
+        writeError(tr("Nothing to save: no page pair is selected."));
+        return false;
+    }
     if (!DifferenceRenderer(renderSettings()).saveAsPdf(saveFilename,
             pdf1, filename1LineEdit->text(), pdf2,
-            filename2LineEdit->text(), pairs, header, savePages))
+            filename2LineEdit->text(), pairs, header, savePages)) {
         writeError(tr("Failed to save %1").arg(saveFilename));
+        return false;
+    }
+    return true;
 }
 
 

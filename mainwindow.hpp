@@ -121,7 +121,7 @@ private:
     void showZones(const int Width, const TextBoxList &list,
             QLabel *label);
     void showMargins(QLabel *label);
-    void saveAsPdf(const int start, const int end, const PdfDocument &pdf1,
+    bool saveAsPdf(const int start, const int end, const PdfDocument &pdf1,
             const PdfDocument &pdf2, const QString &header);
     void saveAsImages(const int start, const int end,
             const PdfDocument &pdf1, const PdfDocument &pdf2,
@@ -199,7 +199,6 @@ private:
     Qt::DockWidgetArea actionDockArea;
     Qt::DockWidgetArea marginsDockArea;
     Qt::DockWidgetArea zoningDockArea;
-    Qt::DockWidgetArea logDockArea;
     std::atomic<bool> cancel;
     // True from the start of a comparison until comparePages() returns,
     // including after Cancel while the workers finish their current pairs.

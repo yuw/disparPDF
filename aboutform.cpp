@@ -17,8 +17,6 @@
 #endif
 #include <QApplication>
 #include <QHBoxLayout>
-#include <QSettings>
-#include <QShortcut>
 #include <QTabWidget>
 #include <QTextBrowser>
 
