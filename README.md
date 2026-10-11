@@ -122,8 +122,11 @@ disparPDFc -b 2>&1 | head -1
 Homebrew's `poppler` does not include Qt6 bindings.
 Use the `poppler-qt6.rb` formula in `packaging/homebrew/` to install via a local tap.
 
+disparPDF also needs [qpdf](https://qpdf.sourceforge.io/), which reads and
+rewrites the page boundaries.
+
 ```sh
-brew install qt@6
+brew install qt@6 qpdf
 
 mkdir -p ~/homebrew-disparPDF/Formula
 cp packaging/homebrew/poppler-qt6.rb ~/homebrew-disparPDF/Formula/

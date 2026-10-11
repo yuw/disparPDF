@@ -13,6 +13,10 @@
 #   marginbox.pdf  a small box on page 1, 0.25in from the top (in a 1in margin)
 #   inserted.pdf   an extra page between pages 1 and 2
 #
+# boxes.pdf is not compared with base.pdf: its pages have page boundaries
+# (CropBox, BleedBox, TrimBox, ArtBox, /Rotate) for the unit tests of
+# pagebox.cpp (see boxes_pages below).
+#
 # (The other files here are described in README.)
 #
 # Requires ps2pdf (Ghostscript).
@@ -93,6 +97,32 @@ inserted_page() {
     echo showpage
 }
 
+# boxes_page PDFMARK: a page with the boundaries PDFMARK gives it, set with
+# a /PAGE pdfmark, and words at fixed places in default user space
+boxes_page() {
+    echo "[ $1 /PAGE pdfmark"
+    show 400 MARK
+    echo '45 300 moveto (ARTGAP) show'      # inside the trim box, not the art box
+    echo '5 100 moveto (OUTCROP) show'      # inside the media box, not the crop box
+    echo '-15 500 moveto (NOMEDIA) show'    # starts outside the media box
+    echo showpage
+}
+
+# Letter pages, the media box [0 0 612 792] unless given:
+#   1-4  crop [18 18 594 774], bleed [27 27 585 765], trim [36 36 576 756],
+#        art [72 72 540 720], rotated by 0, 90, 180 and 270
+#   5    media [-100 -50 512 742] and no other boxes
+#   6    crop [36 36 576 756], bleed [18 18 594 774] (outside the crop
+#        box) and trim [-20 36 576 756] (outside the media box), no art box
+boxes_pages() {
+    all='/CropBox [18 18 594 774] /BleedBox [27 27 585 765] /TrimBox [36 36 576 756] /ArtBox [72 72 540 720]'
+    for rotate in 0 90 180 270; do
+        boxes_page "$all /Rotate $rotate"
+    done
+    boxes_page '/MediaBox [-100 -50 512 742]'
+    boxes_page '/CropBox [36 36 576 756] /BleedBox [18 18 594 774] /TrimBox [-20 36 576 756]'
+}
+
 generate() {
     name=$1
     shift
@@ -120,3 +150,4 @@ generate bold bold_pages
 generate box box_pages
 generate marginbox marginbox_pages
 generate inserted inserted_pages
+generate boxes boxes_pages

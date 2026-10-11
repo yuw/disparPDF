@@ -1,5 +1,12 @@
 # Tests, run with "ctest" in the build directory.  They need no display.
 
+# Unit tests of the page boundaries (pagebox.cpp), on data/boxes.pdf
+add_executable(pageboxtest pageboxtest.cpp ${CMAKE_SOURCE_DIR}/pagebox.cpp)
+target_link_libraries(pageboxtest PRIVATE ${QT_LIBS} ${POPPLER_TARGET}
+    disparpdf_qpdf)
+add_test(NAME pagebox
+         COMMAND pageboxtest ${CMAKE_CURRENT_SOURCE_DIR}/data/boxes.pdf)
+
 # The original batch-mode tests (testbase.sh, using ../data)
 add_test(NAME batch-legacy
          COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/testbase.sh

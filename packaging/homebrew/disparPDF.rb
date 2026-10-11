@@ -14,6 +14,7 @@ class Disparpdf < Formula
   depends_on "cmake"     => :build
   depends_on "help2man"  => :build
   depends_on "pkgconf"   => :build
+  depends_on "qpdf"
   depends_on "qt@6"
   depends_on "yuw/disparPDF/poppler-qt6"
 

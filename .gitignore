@@ -13,3 +13,6 @@ Makefile
 # lupdate / lrelease がリポジトリ直下に残すランダム名のプロジェクト記述ファイル
 # (例: HfUhTd.json) — 6文字の英字のみという命名規則に合わせている
 /[A-Za-z][A-Za-z][A-Za-z][A-Za-z][A-Za-z][A-Za-z].json
+
+# 個人利用ライセンスの規格書（ISO 32000-2など）．複製・共有禁止なので追跡しない
+/doc_spec/

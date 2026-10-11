@@ -115,9 +115,10 @@ disparPDFc -b 2>&1 | head -1
 
 Homebrewの`poppler`はQt6バインディングを含まないため，
 このリポジトリの`packaging/homebrew/poppler-qt6.rb`を使って個人tapからインストールします．
+ページボックスの読み取りと書き換えのために，[qpdf](https://qpdf.sourceforge.io/)も必要です．
 
 ```sh
-brew install qt@6
+brew install qt@6 qpdf
 
 mkdir -p ~/homebrew-disparPDF/Formula
 cp packaging/homebrew/poppler-qt6.rb ~/homebrew-disparPDF/Formula/
