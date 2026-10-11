@@ -2,11 +2,13 @@ class Disparpdf < Formula
   desc "PDF comparison tool — compares text or visual appearance of two PDF files"
   homepage "https://github.com/yuw/disparPDF"
 
-  # リリースタグを打った後は以下のurl/sha256をタグのものに更新する:
-  #   url "https://github.com/yuw/disparPDF/archive/refs/tags/v1.0.tar.gz"
-  #   sha256 "<brew fetchでのhash>"
+  # これはmasterのtarballを指すテンプレートで，tap（yuw/homebrew-disparPDF）の
+  # formulaとはurl/sha256/versionだけが違う．リリースタグを打った後は，tapの
+  # 側でurl/sha256をタグのものにする:
+  #   url "https://github.com/yuw/disparPDF/archive/refs/tags/v1.1.1.tar.gz"
+  #   sha256 "<shasum -a 256の値>"
   url "https://github.com/yuw/disparPDF/archive/refs/heads/master.tar.gz"
-  version "1.0"
+  version "1.1.1"
   sha256 :no_check
 
   license any_of: ["GPL-2.0-or-later"]
@@ -38,17 +40,32 @@ class Disparpdf < Formula
     # GUIをbinからも呼び出せるようにラッパースクリプトを作成する．
     # cmake --installはmacOSでは.appバンドルとCLIのリンクだけを置き，
     # bin/disparPDFは作らないのでここで補う．
-    # 引数を絶対パスに変換してから渡す（相対パスだとcannot loadエラーになる）
+    # バッチモード，--help，--versionは端末に出力して終了ステータスを返すので，
+    # openを通さず.app内の本体を直接実行する（openは出力もステータスも返さない）．
+    # ウィンドウはopenで開く．アプリはこのディレクトリで動かないので，
+    # ファイル名は絶対パスにして，空白を含んでもそのまま渡す．
     (bin/"disparPDF").write <<~SHELL
       #!/bin/sh
-      args=""
-      for f in "$@"; do
-        case "$f" in
-          -*) args="$args $f" ;;
-          *)  args="$args $(cd "$(dirname "$f")" 2>/dev/null && pwd)/$(basename "$f")" ;;
+      app="#{prefix}/disparPDF.app"
+      for a in "$@"; do
+        case "$a" in
+          --) break ;;
+          -b|--batch|-h|--help|--version)
+            exec "$app/Contents/MacOS/disparPDF" "$@" ;;
         esac
       done
-      exec open "#{prefix}/disparPDF.app" --args $args
+      n=$#
+      while [ "$n" -gt 0 ]; do
+        a=$1
+        shift
+        n=$((n - 1))
+        case "$a" in
+          -*) ;;
+          *) [ -e "$a" ] && a="$(cd "$(dirname "$a")" && pwd)/$(basename "$a")" ;;
+        esac
+        set -- "$@" "$a"
+      done
+      exec open "$app" --args "$@"
     SHELL
     chmod 0755, bin/"disparPDF"
   end
@@ -80,7 +97,8 @@ class Disparpdf < Formula
       ditto preserves the code signature, so no re-signing is needed.
 
       CLI commands available:
-        disparPDF   — launch GUI with optional file arguments
+        disparPDF   — launch GUI with optional file arguments (with
+                      --batch, --help or --version, run in the terminal)
         disparPDFc  — batch/command line mode
 
       "man disparPDF" covers both, and shell completions for bash and zsh
@@ -92,6 +110,8 @@ class Disparpdf < Formula
     assert_predicate prefix/"disparPDF.app", :exist?
     assert_predicate bin/"disparPDFc", :exist?
     assert_match "disparPDFc", shell_output("#{bin}/disparPDFc --version")
+    # ラッパーも--versionと--batchは端末で実行し，出力を返す
+    assert_match "disparPDF #{version}", shell_output("#{bin}/disparPDF --version")
     # cmake --installが置くもの．補完はCMAKE_INSTALL_DATADIR配下に入るため，
     # etc/bash_completion.dを指すbash_completionヘルパーでは見つからない
     assert_predicate man1/"disparPDF.1", :exist?
