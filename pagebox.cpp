@@ -11,7 +11,9 @@
 */
 
 #include "pagebox.h"
+#include <QCoreApplication>
 #include <QFile>
+#include <QStringList>
 #include <qpdf/Buffer.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
@@ -25,7 +27,7 @@
 QString pageBoxName(PageBox box)
 {
     switch (box) {
-        case PageBox::None: break;
+        case PageBox::None: return "none";
         case PageBox::Media: return "media";
         case PageBox::Crop: return "crop";
         case PageBox::Bleed: return "bleed";
@@ -38,8 +40,8 @@ QString pageBoxName(PageBox box)
 
 bool parsePageBox(const QString &name, PageBox *box)
 {
-    for (PageBox b : {PageBox::Media, PageBox::Crop, PageBox::Bleed,
-                      PageBox::Trim, PageBox::Art})
+    for (PageBox b : {PageBox::None, PageBox::Media, PageBox::Crop,
+                      PageBox::Bleed, PageBox::Trim, PageBox::Art})
         if (name.compare(pageBoxName(b), Qt::CaseInsensitive) == 0) {
             *box = b;
             return true;
@@ -275,10 +277,16 @@ QByteArray BoxedDocument::rewritten(const QVector<BoxRegion> &regions,
             return QByteArray();
         }
         for (size_t i = 0; i < pages.size(); ++i) {
-            const BoxRect &r = regions.at(static_cast<int>(i)).rect;
+            BoxRect r = regions.at(static_cast<int>(i)).rect;
+            QPDFObjectHandle dict = pages[i].getObjectHandle();
+            if (r.isEmpty()) {
+                r = BoxRect(r.llx, r.lly, r.llx + 1, r.lly + 1);
+                dict.replaceKey("/Contents",
+                                QPDFObjectHandle::newStream(&pdf, ""));
+                dict.removeKey("/Annots");
+            }
             QPDFObjectHandle box = QPDFObjectHandle::newFromRectangle(
                     QPDFObjectHandle::Rectangle(r.llx, r.lly, r.urx, r.ury));
-            QPDFObjectHandle dict = pages[i].getObjectHandle();
             dict.replaceKey("/MediaBox", box);
             dict.replaceKey("/CropBox", box);
         }
@@ -294,4 +302,136 @@ QByteArray BoxedDocument::rewritten(const QVector<BoxRegion> &regions,
         *error = QString::fromLocal8Bit(e.what());
         return QByteArray();
     }
+}
+
+
+QVector<BoxRegion> BoxedDocument::regions(PageBox box, BoxClip clip) const
+{
+    QVector<BoxRegion> result;
+    result.reserve(m_boxes.size());
+    for (const PageBoxes &boxes : m_boxes)
+        result.append(boxRegion(boxes, box, clip));
+    return result;
+}
+
+
+namespace {
+
+// The key's name, as the PDF spells it
+QString boxKeyName(PageBox box)
+{
+    switch (box) {
+        case PageBox::None: break;
+        case PageBox::Media: return "MediaBox";
+        case PageBox::Crop: return "CropBox";
+        case PageBox::Bleed: return "BleedBox";
+        case PageBox::Trim: return "TrimBox";
+        case PageBox::Art: return "ArtBox";
+    }
+    return QString();
+}
+
+
+// 1-based page numbers, sorted, with runs shortened: "1-3, 5"
+QString pageRanges(QList<int> pages)
+{
+    std::sort(pages.begin(), pages.end());
+    QStringList parts;
+    for (int i = 0; i < pages.count(); ) {
+        int j = i;
+        while (j + 1 < pages.count() && pages.at(j + 1) == pages.at(j) + 1)
+            ++j;
+        parts << (i == j ? QString::number(pages.at(i) + 1)
+                         : QString("%1-%2").arg(pages.at(i) + 1)
+                                           .arg(pages.at(j) + 1));
+        i = j + 1;
+    }
+    return parts.join(", ");
+}
+
+} // anonymous namespace
+
+
+QVector<BoxWarning> boxWarnings(const QVector<PageBoxes> &boxes1,
+                                const QVector<BoxRegion> &regions1,
+                                const QList<int> &pages1,
+                                const QVector<PageBoxes> &boxes2,
+                                const QVector<BoxRegion> &regions2,
+                                const QList<int> &pages2,
+                                PageBox box)
+{
+    QVector<BoxWarning> warnings;
+    const QString name = boxKeyName(box);
+    const int total = qMin(pages1.count(), pages2.count());
+    const QVector<BoxRegion> *regions[] = {&regions1, &regions2};
+    const QList<int> *pages[] = {&pages1, &pages2};
+    for (int file = 0; file < 2; ++file) {
+        QList<int> absent, beyondCrop, beyondMedia, empty;
+        for (int i = 0; i < total; ++i) {
+            const int page = pages[file]->at(i);
+            const BoxRegion &region = regions[file]->at(page);
+            if (region.absent)
+                absent << page;
+            if (region.beyondCrop)
+                beyondCrop << page;
+            if (region.beyondMedia)
+                beyondMedia << page;
+            if (region.rect.isEmpty())
+                empty << page;
+        }
+        // In each message %1 is the file, %2 the pages and %3 the box
+        auto add = [&](const char *kind, const QList<int> &list,
+                       const char *message) {
+            if (list.isEmpty())
+                return;
+            const QString ranges = pageRanges(list);
+            warnings.append({kind, file + 1, ranges,
+                    QCoreApplication::translate("PageBox", message)
+                            .arg(file + 1).arg(ranges, name)});
+        };
+        add("absent", absent, QT_TRANSLATE_NOOP("PageBox",
+                "file %1 has no %3 on page(s) %2, so its default was "
+                "used"));
+        add("beyond-crop", beyondCrop, QT_TRANSLATE_NOOP("PageBox",
+                "on page(s) %2 of file %1, the %3 extends past the "
+                "CropBox; only the part inside it is compared"));
+        add("beyond-media", beyondMedia, QT_TRANSLATE_NOOP("PageBox",
+                "on page(s) %2 of file %1, the %3 extends past the "
+                "MediaBox; it is compared as written"));
+        add("empty", empty, QT_TRANSLATE_NOOP("PageBox",
+                "on page(s) %2 of file %1, nothing is left of the %3 once "
+                "it is clipped, so there is nothing to compare"));
+    }
+
+    // The same box in a different place on the page, or of a different
+    // size: where Poppler shows it, i.e. after the crop box and /Rotate
+    QList<int> differ;
+    QStringList pairs;
+    bool samePageNumbers = true;
+    for (int i = 0; i < total; ++i) {
+        const int page1 = pages1.at(i);
+        const int page2 = pages2.at(i);
+        const QRectF r1 = boxes1.at(page1).toPageCoordinates(
+                regions1.at(page1).rect);
+        const QRectF r2 = boxes2.at(page2).toPageCoordinates(
+                regions2.at(page2).rect);
+        const BoxRect a(r1.left(), r1.top(), r1.right(), r1.bottom());
+        const BoxRect b(r2.left(), r2.top(), r2.right(), r2.bottom());
+        if (!a.fuzzyEquals(b, 0.01)) {
+            differ << page1;
+            pairs << QString("%1/%2").arg(page1 + 1).arg(page2 + 1);
+        }
+        samePageNumbers = samePageNumbers && page1 == page2;
+    }
+    if (!differ.isEmpty()) {
+        // Page numbers are given as FILE1/FILE2 when they differ
+        const QString list = samePageNumbers ? pageRanges(differ)
+                                             : pairs.join(", ");
+        warnings.append({"differ", 0, list,
+                QCoreApplication::translate("PageBox",
+                        "the %1 differs between the two files, in size "
+                        "or position, on page(s) %2; each page is "
+                        "compared within its own").arg(name, list)});
+    }
+    return warnings;
 }

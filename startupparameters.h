@@ -16,6 +16,7 @@
 
 #include <QString>
 #include "generic.hpp"
+#include "pagebox.h"
 
 class Status ;
 
@@ -44,6 +45,10 @@ class StartupParameters
     QString _settingsFile;
     bool _compareFonts;
     bool _anyExtension;
+    PageBox _box;
+    BoxClip _boxClip;
+    bool _boxGiven;
+    bool _boxClipGiven;
 public:
     StartupParameters();
     ~StartupParameters();
@@ -88,6 +93,12 @@ public:
     bool isCompareFonts();
     // True if --any-extension was given: files need not be named *.pdf
     bool anyExtension() const;
+    // --box=BOX and --box-clip=CLIP, which override the settings; the
+    // values are meaningful only if given
+    PageBox pageBox() const;
+    bool pageBoxGiven() const;
+    BoxClip boxClip() const;
+    bool boxClipGiven() const;
 };
 
 #endif // STARTUPPARAMETERS_H

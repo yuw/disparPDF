@@ -42,6 +42,12 @@ struct PageCompareOptions
     int bottomMargin = 0;
     int leftMargin = 0;
     int rightMargin = 0;
+    // When comparing inside a page box (see pagebox.h): the two files
+    // rewritten to it, which the workers open instead of the files, and
+    // what identifies the box in the fingerprint cache (empty otherwise)
+    QByteArray boxedDocument1;
+    QByteArray boxedDocument2;
+    QString boxKey;
     // Upper bound on worker threads; 0 means one per core.  Each worker
     // holds its own pair of open documents, so peak memory grows with
     // this number: lower it on machines with many cores and little RAM.

@@ -28,6 +28,7 @@
 #include <QPlainTextEdit>
 #include <QPrinter>
 #include <QSettings>
+#include <QTextStream>
 #include <QUrl>
 #include <QXmlStreamWriter>
 #include <QBuffer>
@@ -86,6 +87,9 @@ void BatchCompare::readFromSettings()
     render.overlap = settings.value("Overlap", render.overlap).toInt();
     render.combineTextHighlighting = settings.value("CombineTextHighlighting", render.combineTextHighlighting).toBool();
     render.opacity = settings.value("Opacity", render.opacity).toInt();
+    // A value that is not a box or a clip leaves the default alone
+    parsePageBox(settings.value("PageBox/Box").toString(), &render.box);
+    parseBoxClip(settings.value("PageBox/Clip").toString(), &render.boxClip);
     // Here as well as in the constructor, which runs before this: a
     // CacheSizeMB in the file used only to change the variable, which
     // --xmlResult then reported as though the limit had been set to it
@@ -123,6 +127,8 @@ void BatchCompare::initValues()
     render.overlap = 5 ;
     render.combineTextHighlighting = true ;
     render.opacity = 13 ;
+    render.box = PageBox::None;
+    render.boxClip = BoxClip::Media;
 }
 
 PdfDocument BatchCompare::getPdf(const QString &filename)
@@ -154,6 +160,8 @@ void BatchCompare::batchOperation()
     }
     _status->setDoc1Info(docInfo(pdf1, _startupParameters->file1()));
     _status->setDoc2Info(docInfo(pdf2,_startupParameters->file2() ));
+    if (!boxDocuments(&pdf1, &pdf2))
+        return;
 
     CompareResults results;
     comparePagesBatch( _status, results,
@@ -168,6 +176,63 @@ void BatchCompare::batchOperation()
             saveResultsBatch(_status, results, pdf1, pdf2 ) ;
         }
     }
+}
+
+void BatchCompare::warn(const BoxWarning &warning)
+{
+    _status->addWarning(warning);
+    QTextStream err(stderr);
+    err << tr("warning: %1").arg(warning.message) << "\n";
+}
+
+// Comparing inside a page box: replaces *pdf1 and *pdf2 with copies of
+// the files rewritten to the regions to compare, which the comparison and
+// --pdfdiff then use.  --box and --box-clip override the settings file.
+bool BatchCompare::boxDocuments(PdfDocument *pdf1, PdfDocument *pdf2)
+{
+    if (_startupParameters->pageBoxGiven())
+        render.box = _startupParameters->pageBox();
+    if (_startupParameters->boxClipGiven())
+        render.boxClip = _startupParameters->boxClip();
+    if (render.box == PageBox::None) {
+        if (_startupParameters->boxClipGiven())
+            warn({"clip-without-box", 0, QString(),
+                  tr("--box-clip is ignored without --box")});
+        return true;
+    }
+    const QString filenames[] = {_startupParameters->file1(),
+                                 _startupParameters->file2()};
+    PdfDocument *pdfs[] = {pdf1, pdf2};
+    const EError errors[] = {ErrorUnableToLoadFile1, ErrorUnableToLoadFile2};
+    for (int i = 0; i < 2; ++i) {
+        QString error;
+        bool locked = false;
+        PdfDocument pdf;
+        if (boxed[i].load(filenames[i], &error)) {
+            regions[i] = boxed[i].regions(render.box, render.boxClip);
+            boxedData[i] = boxed[i].rewritten(regions[i], &error);
+            if (!boxedData[i].isEmpty()) {
+                pdf = loadPdfData(boxedData[i], &locked);
+                if (!pdf)
+                    error = tr("the rewritten copy cannot be read");
+            }
+        }
+        // Pages are numbered the same in both, so they must agree on how
+        // many there are
+        if (pdf && pdf->numPages() != (*pdfs[i])->numPages()) {
+            error = tr("qpdf finds %1 pages and Poppler %2")
+                    .arg(pdf->numPages()).arg((*pdfs[i])->numPages());
+            pdf.reset();
+        }
+        if (!pdf) {
+            _status->setStatusWithDescription(errors[i],
+                    tr("Cannot compare inside the page boxes of '%1': %2")
+                    .arg(filenames[i], error));
+            return false;
+        }
+        *pdfs[i] = std::move(pdf);
+    }
+    return true;
 }
 
 QList<int> BatchCompare::getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet)
@@ -223,6 +288,18 @@ void BatchCompare::comparePagesBatch(
     options.leftMargin = render.leftMargin;
     options.rightMargin = render.rightMargin;
     options.maxWorkers = compareThreads;
+    if (render.box != PageBox::None) {
+        options.boxedDocument1 = boxedData[0];
+        options.boxedDocument2 = boxedData[1];
+        options.boxKey = pageBoxName(render.box) + "/" +
+                         boxClipName(render.boxClip);
+        const int total = qMin(pages1.count(), pages2.count());
+        for (const BoxWarning &warning : boxWarnings(
+                 boxed[0].allBoxes(), regions[0], pages1.mid(0, total),
+                 boxed[1].allBoxes(), regions[1], pages2.mid(0, total),
+                 render.box))
+            warn(warning);
+    }
     const QVector<PagePairResult> pairResults = comparePagesInParallel(
             filename1, pdf1, pages1, filename2, pdf2, pages2, options);
     for (int i = 0; i < pairResults.count(); ++i) {
@@ -368,6 +445,12 @@ void BatchCompare::writeParameters(QXmlStreamWriter & writer)
     writeParam(writer, "Overlap", QString::number(render.overlap) );
     writeParam(writer, "CombineTextHighlighting", toBoolString(render.combineTextHighlighting));
     writeParam(writer, "Opacity", QString::number(render.opacity) );
+    // Only when comparing inside a page box, so that the XML is as it was
+    // without one
+    if (render.box != PageBox::None) {
+        writeParam(writer, "PageBox/Box", pageBoxName(render.box));
+        writeParam(writer, "PageBox/Clip", boxClipName(render.boxClip));
+    }
 }
 
 QString BatchCompare::makeFontKey(LFontInfo *l)

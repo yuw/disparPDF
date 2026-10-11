@@ -164,9 +164,12 @@ QString documentKey(const QString &filename)
 }
 
 
-static PdfDocument loadCopy(const QString &filename, const PdfDocument &model)
+// Another copy of model, from the file or from data if it is not empty
+static PdfDocument loadCopy(const QString &filename, const QByteArray &data,
+                            const PdfDocument &model)
 {
-    PdfDocument pdf(Poppler::Document::load(filename));
+    PdfDocument pdf(data.isEmpty() ? Poppler::Document::load(filename)
+                                   : Poppler::Document::loadFromData(data));
     if (!pdf || pdf->isLocked())
         return PdfDocument();
     const Poppler::Document::RenderHints hints = model->renderHints();
@@ -210,7 +213,8 @@ QVector<PagePairResult> comparePagesInParallel(
                 .arg(options.bottomMargin).arg(options.leftMargin)
                 .arg(options.rightMargin);
     auto keyFor = [&](const QString &document, const int page) {
-        return QString("%1\n%2\n%3").arg(document).arg(page).arg(margins);
+        return QString("%1\n%2\n%3\n%4").arg(document).arg(page)
+                .arg(margins, options.boxKey);
     };
 
     // Each pair is one job: a worker opens both of its pages, reads
@@ -238,8 +242,10 @@ QVector<PagePairResult> comparePagesInParallel(
     std::atomic<int> done(0);
 
     auto worker = [&]() {
-        const PdfDocument doc1 = loadCopy(filename1, pdf1);
-        const PdfDocument doc2 = loadCopy(filename2, pdf2);
+        const PdfDocument doc1 = loadCopy(filename1, options.boxedDocument1,
+                                          pdf1);
+        const PdfDocument doc2 = loadCopy(filename2, options.boxedDocument2,
+                                          pdf2);
         for (int j = next++; j < total; j = next++) {
             if (cancel && *cancel)
                 break;

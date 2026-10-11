@@ -13,6 +13,7 @@
 */
 
 #include "generic.hpp"
+#include "pagebox.h"
 #include "saveform.hpp"
 #include <QBrush>
 #include <QCoreApplication>
@@ -44,6 +45,10 @@ struct RenderSettings
     int bottomMargin = 0;
     int leftMargin = 0;
     int rightMargin = 0;
+    // Comparing only inside a page box (see pagebox.h): the documents are
+    // then copies rewritten to it, and their pages are the box
+    PageBox box = PageBox::None;
+    BoxClip boxClip = BoxClip::Media;
     // In Appearance mode: -1 to highlight the differences, or the
     // QPainter::CompositionMode with which to show page 2 over page 1
     int compositionMode = -1;
@@ -113,5 +118,7 @@ private:
 // cannot be read, in which case *locked says whether it was because it is
 // locked
 PdfDocument loadPdf(const QString &filename, bool *locked);
+// The same, for a PDF in memory (such as one rewritten to a page box)
+PdfDocument loadPdfData(const QByteArray &data, bool *locked);
 
 #endif // RENDERER_H

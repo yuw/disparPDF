@@ -15,6 +15,7 @@
 #define STATUS_H
 
 #include "docinfo.h"
+#include "pagebox.h"
 #include "startupparameters.h"
 #include <QXmlStreamWriter>
 
@@ -50,6 +51,7 @@ class Status
     DocInfo *_doc1Info;
     DocInfo *_doc2Info;
     int _pagesNotEqualCount;
+    QVector<BoxWarning> _warnings;
 public:
     Status();
     ~Status();
@@ -71,6 +73,11 @@ public:
 
     int pagesNotEqualCount() const;
     void setPagesNotEqualCount(int pagesNotEqualCount);
+
+    // Warnings, which leave the result code alone; written to the XML
+    // result
+    void addWarning(const BoxWarning &warning);
+    const QVector<BoxWarning> &warnings() const;
 
 private:
     void writeInfo(QXmlStreamWriter &writer, DocInfo *info);

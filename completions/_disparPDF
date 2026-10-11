@@ -20,6 +20,8 @@ _arguments -s -S \
   '(-a --appearance -c --characters -w --words)'{-c,--characters}'[compare the text character by character]' \
   '(-a --appearance -c --characters -w --words)'{-w,--words}'[compare the text word by word]' \
   '--any-extension[accept files whose names do not end in .pdf]' \
+  '--box=[compare only what is inside a page box]:page box:(none media crop bleed trim art)' \
+  '--box-clip=[how the page box is clipped]:clip:((media\:"to the media box" crop\:"to the media and crop boxes" none\:"not at all"))' \
   '--language=[use the given translation language]:language:(cz de en fr)' \
   '--debug=[write the text fed to the sequence matcher into temporary files]:level:((2\:"the text" 3\:"the text, with coordinates"))' \
   $batch \

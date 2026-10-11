@@ -17,6 +17,17 @@
 # (CropBox, BleedBox, TrimBox, ArtBox, /Rotate) for the unit tests of
 # pagebox.cpp (see boxes_pages below).
 #
+# These have one page, page 1 of base.pdf, for comparing inside the trim
+# box (--box=trim):
+#   plain.pdf      no boxes
+#   trim.pdf       a TrimBox of [36 36 576 756], with a mark outside it in
+#                  the lower left
+#   trim-mark.pdf  the same, but the mark in the lower right
+#   trim-word.pdf  the same as trim.pdf, but with word.pdf's changed word
+#   bleed.pdf      plain.pdf's page with 18pt of bleed all round: a larger
+#                  MediaBox, the TrimBox where plain.pdf's page was, and a
+#                  mark in the bleed
+#
 # (The other files here are described in README.)
 #
 # Requires ps2pdf (Ghostscript).
@@ -123,6 +134,26 @@ boxes_pages() {
     boxes_page '/CropBox [36 36 576 756] /BleedBox [18 18 594 774] /TrimBox [-20 36 576 756]'
 }
 
+# trimmed_page X VARIANT: page 1 with a TrimBox, and a mark at X, 10
+# outside it
+trimmed_page() {
+    echo '[ /TrimBox [36 36 576 756] /PAGE pdfmark'
+    page 1 "$2" | sed '$d'
+    echo "$1 10 10 10 rectfill"
+    echo showpage
+}
+
+# Page 1 on a page 36pt larger, moved into the middle of it, trimmed to
+# where it was, with a mark in the bleed
+bled_page() {
+    echo '<< /PageSize [648 828] >> setpagedevice'
+    echo '[ /TrimBox [18 18 630 810] /PAGE pdfmark'
+    echo '18 18 translate'
+    page 1 | sed '$d'
+    echo '-15 -15 10 10 rectfill'
+    echo showpage
+}
+
 generate() {
     name=$1
     shift
@@ -151,3 +182,8 @@ generate box box_pages
 generate marginbox marginbox_pages
 generate inserted inserted_pages
 generate boxes boxes_pages
+generate plain page 1
+generate trim trimmed_page 10
+generate trim-mark trimmed_page 590
+generate trim-word trimmed_page 10 word
+generate bleed bled_page

@@ -13,6 +13,7 @@
 */
 
 #include <QByteArray>
+#include <QList>
 #include <QRectF>
 #include <QString>
 #include <QVector>
@@ -34,7 +35,7 @@ enum class PageBox {None, Media, Crop, Bleed, Trim, Art};
 //   None   not at all: the box as written
 enum class BoxClip {Media, Crop, None};
 
-QString pageBoxName(PageBox box);   // "media" ... "art", "" for None
+QString pageBoxName(PageBox box);   // "none", "media" ... "art"
 bool parsePageBox(const QString &name, PageBox *box);
 QString boxClipName(BoxClip clip);  // "media", "crop", "none"
 bool parseBoxClip(const QString &name, BoxClip *clip);
@@ -97,6 +98,27 @@ struct BoxRegion
 
 BoxRegion boxRegion(const PageBoxes &boxes, PageBox box, BoxClip clip);
 
+// What is said about one kind of warning, for one file or for the pair
+struct BoxWarning
+{
+    QString kind;   // "absent", "beyond-crop", "beyond-media", "empty",
+                    // "differ" or "clip-without-box"
+    int file = 0;   // 1 or 2, or 0 for both
+    QString pages;  // e.g. "1-3, 5" (pages of FILE1, for "differ")
+    QString message;
+};
+
+// The warnings for comparing pages1 of the first file with pages2 of the
+// second (0-based, as many of each as are compared), each kind reported
+// once per file with the pages it applies to
+QVector<BoxWarning> boxWarnings(const QVector<PageBoxes> &boxes1,
+                                const QVector<BoxRegion> &regions1,
+                                const QList<int> &pages1,
+                                const QVector<PageBoxes> &boxes2,
+                                const QVector<BoxRegion> &regions2,
+                                const QList<int> &pages2,
+                                PageBox box);
+
 // A PDF's page boxes, and copies of it rewritten to a region per page
 class BoxedDocument
 {
@@ -108,9 +130,15 @@ public:
     const PageBoxes &boxes(int page) const { return m_boxes.at(page); }
 
     // A copy of the document in which every page's MediaBox and CropBox
-    // are regions[page].rect; empty on failure, with *error set
+    // are regions[page].rect; empty on failure, with *error set.  A page
+    // whose region is empty becomes a blank 1pt square, since Poppler
+    // replaces a MediaBox without an area by a default one.
     QByteArray rewritten(const QVector<BoxRegion> &regions,
                          QString *error) const;
+
+    // boxRegion() for every page
+    QVector<BoxRegion> regions(PageBox box, BoxClip clip) const;
+    const QVector<PageBoxes> &allBoxes() const { return m_boxes; }
 
 private:
     QByteArray m_data;  // the file, so rewriting does not read it again

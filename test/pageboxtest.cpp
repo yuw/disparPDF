@@ -308,6 +308,32 @@ static void testRewritten(const BoxedDocument &doc, Poppler::Document *pdf)
     }
 }
 
+// A region with nothing left in it makes a blank page, not one of
+// Poppler's default size
+static void testEmptyRegion(const BoxedDocument &doc)
+{
+    if (doc.pageCount() != 6)
+        return;
+    QVector<BoxRegion> regions = doc.regions(PageBox::Trim, BoxClip::Media);
+    regions[0].rect = BoxRect(700, 100, 800, 200)
+                      .intersected(doc.boxes(0).media);
+    check(regions[0].rect.isEmpty(), "outside the media box is empty");
+    QString error;
+    std::unique_ptr<Poppler::Document> pdf =
+            Poppler::Document::loadFromData(doc.rewritten(regions, &error));
+    check(pdf != nullptr, "rewriting with an empty region: " + error);
+    if (!pdf)
+        return;
+    std::unique_ptr<Poppler::Page> page = pdf->page(0);
+    check(page->pageSizeF() == QSizeF(1, 1),
+          QString("the empty page is %1x%2").arg(page->pageSizeF().width())
+                  .arg(page->pageSizeF().height()));
+    check(page->textList().empty(), "the empty page has no text");
+    std::unique_ptr<Poppler::Page> other = pdf->page(1);
+    check(!wordBox(other.get(), "MARK").isNull(),
+          "the other pages are as before");
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -329,6 +355,7 @@ int main(int argc, char *argv[])
         testPageCoordinates(doc, pdf.get());
         testRewritten(doc, pdf.get());
     }
+    testEmptyRegion(doc);
 
     BoxedDocument missing;
     check(!missing.load(filename + ".missing", &error),

@@ -79,12 +79,15 @@ QPair<QString, QString> DifferenceRenderer::cacheKeys(
             .arg(settings.brush.style()).arg(settings.opacity)
             .arg(settings.squareSize).arg(settings.ruleWidth)
             .arg(settings.overlap).arg(settings.combineTextHighlighting);
-    const QString key = QString("%1%2:%3:%4:%5:%6:%7:%8")
+    QString box;
+    if (settings.box != PageBox::None)
+        box = pageBoxName(settings.box) + "/" + boxClipName(settings.boxClip);
+    const QString key = QString("%1%2:%3:%4:%5:%6:%7:%8:%9")
             .arg(pair.differs ? "D" : "S")
             .arg(pair.hasVisualDifference ? "V" : "T")
             .arg(settings.zoom).arg(settings.compareMode)
             .arg(settings.compositionMode).arg(zoning).arg(margins)
-            .arg(highlighting);
+            .arg(box).arg(highlighting);
     // documentKey() rather than the name alone: re-exporting a PDF over
     // itself leaves the name unchanged, and a pixmap cached from the
     // previous contents would then be shown for the new ones.  The
@@ -465,10 +468,9 @@ bool DifferenceRenderer::saveAsPdf(const QString &outputFile,
 }
 
 
-PdfDocument loadPdf(const QString &filename, bool *locked)
+static PdfDocument preparePdf(PdfDocument pdf, bool *locked)
 {
     *locked = false;
-    PdfDocument pdf(Poppler::Document::load(filename));
     if (pdf && pdf->isLocked()) {
         *locked = true;
         pdf.reset();
@@ -481,4 +483,16 @@ PdfDocument loadPdf(const QString &filename, bool *locked)
         pdf->setRenderHint(Poppler::Document::TextAntialiasing);
     }
     return pdf;
+}
+
+
+PdfDocument loadPdf(const QString &filename, bool *locked)
+{
+    return preparePdf(Poppler::Document::load(filename), locked);
+}
+
+
+PdfDocument loadPdfData(const QByteArray &data, bool *locked)
+{
+    return preparePdf(Poppler::Document::loadFromData(data), locked);
 }

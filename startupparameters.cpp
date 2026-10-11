@@ -32,6 +32,10 @@ StartupParameters::StartupParameters()
     // command-line error path returns through Status::returnOp(), which
     // reads it, before main() calls setComparisonMode().
     _comparisonMode = CompareAppearance;
+    _box = PageBox::None;
+    _boxClip = BoxClip::Media;
+    _boxGiven = false;
+    _boxClipGiven = false;
 }
 
 StartupParameters::~StartupParameters()
@@ -51,6 +55,8 @@ static const QString Key = "--key=";
 static const QString SettingsFile = "--settings=";
 static const QString CompareFonts = "--compareFonts";
 static const QString AnyExtension = "--any-extension";
+static const QString Box = "--box=";
+static const QString BoxClipOption = "--box-clip=";
 
 bool StartupParameters::parseArgument(const QString &arg, Status *status)
 {
@@ -108,6 +114,14 @@ bool StartupParameters::parseArgument(const QString &arg, Status *status)
         _compareFonts = true;
     } else if( arg == AnyExtension ) {
         _anyExtension = true;
+    } else if( arg.startsWith(Box)) {
+        error = !parsePageBox(arg.mid(Box.length()), &_box);
+        _boxGiven = !error;
+        status->setParamError(error, Box);
+    } else if( arg.startsWith(BoxClipOption)) {
+        error = !parseBoxClip(arg.mid(BoxClipOption.length()), &_boxClip);
+        _boxClipGiven = !error;
+        status->setParamError(error, BoxClipOption);
     } else {
         return false;
     }
@@ -277,4 +291,24 @@ bool StartupParameters::isCompareFonts()
 bool StartupParameters::anyExtension() const
 {
     return _anyExtension;
+}
+
+PageBox StartupParameters::pageBox() const
+{
+    return _box;
+}
+
+bool StartupParameters::pageBoxGiven() const
+{
+    return _boxGiven;
+}
+
+BoxClip StartupParameters::boxClip() const
+{
+    return _boxClip;
+}
+
+bool StartupParameters::boxClipGiven() const
+{
+    return _boxClipGiven;
 }

@@ -56,6 +56,8 @@ protected:
 
 private:
     PdfDocument getPdf(const QString &filename);
+    bool boxDocuments(PdfDocument *pdf1, PdfDocument *pdf2);
+    void warn(const BoxWarning &warning);
 
     // batch operations
     QList<int> getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet);
@@ -78,6 +80,11 @@ private:
     StartupParameters *_startupParameters;
     Status *_status;
     CompareNotifier *_notifier;
+    // When comparing inside a page box: each file's boxes, the region
+    // compared on each page, and the file rewritten to those regions
+    BoxedDocument boxed[2];
+    QVector<BoxRegion> regions[2];
+    QByteArray boxedData[2];
 
     //---------------
 public:

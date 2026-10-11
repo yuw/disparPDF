@@ -121,6 +121,74 @@ disparpdf_test(confrontapdf-fonts-words 0 0 -- --words
 disparpdf_test(confrontapdf-compare-fonts 6 - -- --words --compareFonts
                ${CPDF}/doca1pagi1.pdf ${CPDF}/doca1pagi2.pdf)
 
+# Comparing inside the trim box (see data/make-test-pdfs.sh)
+foreach(mode appearance characters words)
+    # The two differ only in a mark outside the trim box, which only an
+    # appearance comparison of whole pages sees
+    if(mode STREQUAL appearance)
+        disparpdf_test(trim-mark-${mode} 1 1 -- --${mode}
+                       ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+    endif()
+    disparpdf_test(box-trim-mark-${mode} 0 0 -- --${mode} --box=trim
+                   ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+    # A word inside it differs, and that is found and saved
+    disparpdf_test(box-trim-word-${mode} 1 1 -- --${mode} --box=trim
+                   ${DATA}/trim.pdf ${DATA}/trim-word.pdf)
+    # With and without bleed: the trim boxes are lined up by their
+    # corners, though plain.pdf's is its default, the whole page
+    disparpdf_test(box-trim-bleed-${mode} 0 0
+                   --stderr "file 1 has no TrimBox on page(s) 1"
+                   --stderr "the TrimBox differs between the two files"
+                   -- --${mode} --box=trim
+                   ${DATA}/plain.pdf ${DATA}/bleed.pdf)
+endforeach()
+disparpdf_test(trim-bleed-appearance 1 1 -- --appearance
+               ${DATA}/plain.pdf ${DATA}/bleed.pdf)
+# The settings file can choose the box, and --box overrides it, also to
+# compare whole pages
+disparpdf_test(box-trim-setting 0 0 --setting PageBox/Box=trim --
+               --appearance ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+disparpdf_test(box-none-overrides-setting 1 1 --setting PageBox/Box=trim --
+               --appearance --box=none ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+# The media box takes in the mark, and so, clipped to it, does the bleed
+# box, which defaults to the media box here
+disparpdf_test(box-media-mark 1 1 -- --appearance --box=media
+               ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+disparpdf_test(box-bleed-mark 1 1 --stderr "has no BleedBox" -- --appearance
+               --box=bleed ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+# Margins are measured from the box: the changed word's line is 191pt
+# below the top of the trim box and 227pt below the top of the page, so a
+# 200pt top margin hides it only inside the trim box
+set(margins --setting Margins/Exclude=true --setting Margins/Top=200)
+disparpdf_test(box-trim-margins 0 0 ${margins} -- --appearance --box=trim
+               ${DATA}/trim.pdf ${DATA}/trim-word.pdf)
+disparpdf_test(trim-margins 1 1 ${margins} -- --appearance
+               ${DATA}/trim.pdf ${DATA}/trim-word.pdf)
+# Page 6 of boxes.pdf has a BleedBox outside its CropBox and a TrimBox
+# outside its MediaBox (compared with a copy, since a file is not compared
+# with itself)
+configure_file(${DATA}/boxes.pdf ${CMAKE_CURRENT_BINARY_DIR}/boxes-copy.pdf
+               COPYONLY)
+disparpdf_test(box-bleed-beyond-crop 0 0
+               --stderr "on page(s) 6 of file 1, the BleedBox extends past the CropBox"
+               --stderr "on page(s) 6 of file 2, the BleedBox extends past the CropBox"
+               -- --appearance --box=bleed --box-clip=crop
+               ${DATA}/boxes.pdf ${CMAKE_CURRENT_BINARY_DIR}/boxes-copy.pdf)
+disparpdf_test(box-trim-beyond-media 0 0
+               --stderr "on page(s) 6 of file 1, the TrimBox extends past the MediaBox"
+               --stderr "file 1 has no TrimBox on page(s) 5"
+               -- --appearance --box=trim --box-clip=none
+               ${DATA}/boxes.pdf ${CMAKE_CURRENT_BINARY_DIR}/boxes-copy.pdf)
+# --box-clip alone does nothing but say so
+disparpdf_test(box-clip-without-box 1 1
+               --stderr "--box-clip is ignored without --box" --
+               --appearance --box-clip=none ${DATA}/trim.pdf
+               ${DATA}/trim-mark.pdf)
+disparpdf_test(invalid-box -1 0 -- --box=page
+               ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+disparpdf_test(invalid-box-clip -1 0 -- --box=trim --box-clip=trim
+               ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
+
 # Command line handling
 disparpdf_test(same-file 5 0 -- --words ${DATA}/base.pdf ${DATA}/base.pdf)
 disparpdf_test(missing-file -4 0 -- ${DATA}/base.pdf ${DATA}/no-such.pdf)

@@ -193,6 +193,21 @@ int Status::returnOp(const EReturnType retType, StartupParameters *params, Batch
             stream.writeAttribute("pdfDiffFile", params->pdfDiffFilePath());
             stream.writeEndElement(); // run
 
+            if( !_warnings.isEmpty() ) {
+                stream.writeStartElement("warnings");
+                for (const BoxWarning &warning : std::as_const(_warnings)) {
+                    stream.writeStartElement("warning");
+                    stream.writeAttribute("kind", warning.kind);
+                    if (warning.file > 0)
+                        stream.writeAttribute("file", QString::number(warning.file));
+                    if (!warning.pages.isEmpty())
+                        stream.writeAttribute("pages", warning.pages);
+                    stream.writeAttribute("message", warning.message);
+                    stream.writeEndElement(); // warning
+                }
+                stream.writeEndElement(); // warnings
+            }
+
             if( NULL != compare ) {
                 stream.writeStartElement("parameters");
                 compare->writeParameters(stream);
@@ -227,6 +242,16 @@ int Status::returnOp(const EReturnType retType, StartupParameters *params, Batch
     }
     out.flush();
     return retCode;
+}
+
+void Status::addWarning(const BoxWarning &warning)
+{
+    _warnings.append(warning);
+}
+
+const QVector<BoxWarning> &Status::warnings() const
+{
+    return _warnings;
 }
 
 //----

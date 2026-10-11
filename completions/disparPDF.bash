@@ -27,6 +27,14 @@ _disparPDF()
                 COMPREPLY=($(compgen -W '2 3' -- "${cur#*=}"))
                 return
                 ;;
+            --box=*)
+                COMPREPLY=($(compgen -W 'none media crop bleed trim art' -- "${cur#*=}"))
+                return
+                ;;
+            --box-clip=*)
+                COMPREPLY=($(compgen -W 'media crop none' -- "${cur#*=}"))
+                return
+                ;;
             --outType=*)
                 COMPREPLY=($(compgen -W '0 1' -- "${cur#*=}"))
                 return
@@ -54,7 +62,7 @@ _disparPDF()
 
         if [[ $cur == -* ]]; then
             local opts='-a --appearance -c --characters -w --words
-                --any-extension --language= --debug=2 --debug=3
+                --any-extension --box= --box-clip= --language= --debug=2 --debug=3
                 --outType=0 --outType=1 --pages= --startPage1= --startPage2=
                 --pdfdiff= --xmlResult= --key= --settings= --compareFonts
                 --interactive -h --help --version --'
