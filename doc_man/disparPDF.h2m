@@ -37,14 +37,11 @@ between the files, go to standard error and into the
 .B \-\-xmlResult
 file, and do not change the result code.
 .PP
-With
-.BR \-\-batch ,
-the files are compared without a window, which needs no display, and the
-result code is printed; by default the appearance of the pages is
-compared.  Settings such as the zoom, the tolerances and the margins to
-leave out can be given in a file
+In batch mode the appearance of the pages is compared by default, and it
+needs no display.  Settings such as the zoom, the tolerances and the
+margins to leave out can be given in an INI file
 .RB ( \-\-settings ),
-in the same format as the configuration file (see
+whose keys are those of the configuration file (see
 .BR FILES ).
 .PP
 .B disparPDFc
@@ -92,9 +89,18 @@ disparPDFc \-\-box=trim a.pdf b.pdf
 [FILES]
 .TP
 .I ~/.config/disparPDF/disparPDF.conf
-Settings of the window (layout, zoom, margins, highlighting, etc.).
-Batch mode does not use them; see
+Settings of the window (layout, zoom, margins, page box, highlighting,
+etc.) on Linux and the BSDs, in INI format.  Batch mode does not use
+them; see
 .BR \-\-settings .
+.TP
+.I ~/Library/Preferences/com.disparpdf.disparPDF.plist
+The same on macOS, as a property list.
+
+[COPYRIGHT]
+Copyright \(co 2026 Yuwsuke Kieda; ConfrontaPDF \(co 2015 Luca Bellonda;
+DiffPDF \(co 2008\(en2013 Qtrac Ltd.
+License GPLv2+: GNU GPL version 2 or later <https://gnu.org/licenses/gpl.html>.
 
 [AUTHORS]
 DiffPDF was written by Mark Summerfield (2008\(en2013).  ConfrontaPDF,

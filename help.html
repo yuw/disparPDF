@@ -18,7 +18,8 @@
 </ul>
 
 This tool can be used via command line or as a GUI program.
-<br/>disparPDFc is optimized for command line processing on Windows and operates without GUI.
+<br/>disparPDFc is disparPDF run by another name (a symbolic link to it, or
+on Windows a copy), which is always in batch mode and needs no display.
 
 <h3 id="bas">GUI Basic Usage</h3>
 <p>Click the <b>File #1</b> button to choose one PDF file and then
@@ -48,7 +49,8 @@ different sizes&mdash;a difference with nowhere to mark it&mdash;and
 <b>disparPDF: False Positive</b> otherwise.
 
 <h3 id="txt">Words Comparison Mode</h3>
-<p>The default comparison mode is Words which does a smart text 
+<p>The default comparison mode in the window is Words (batch mode compares
+the appearance unless told otherwise), which does a smart text 
 comparison word by word for each pair of pages. This mode is 
 fairly liberal regarding 
 whitespace and tries to ignore layout changes (within a page) insofar 
@@ -80,7 +82,7 @@ differences that aren't immediately apparent.
 <p>Zoning is an experimental feature designed to produce more accurate
 results (i.e., fewer false positives). Its main use is for pages that
 have tables or that mix alphabetic and logographic text, since these can
-cause the underlying popplar PDF library to provide the page's words
+cause the underlying Poppler PDF library to provide the page's words
 mixed up. <font color="red">Warning:</font> using zoning for large
 complex pages (bigger than A4, multiple columns, tables) in Characters
 mode can be very slow. (The current focus for the zoning code is
@@ -95,8 +97,8 @@ rectangles for the rectangles to be placed in the same zone. Lower
 values create more zones; higher values create fewer zones. More
 zones are  expensive to compute but can produce more accurate 
 results; fewer zones may reduce false positives. The Tolerance/Y value
-is is used for rounding <i>y</i> coordinates to the nearest multiple of
-this value. For example, if Tolerance/Y is 5
+is used for rounding <i>y</i> coordinates up to a multiple of this
+value. For example, if Tolerance/Y is 5
 and a word at position (452,137) is followed by a superscript at
 (468,140), both will be treated as having a <i>y</i> coordinate of 140.
 
@@ -132,13 +134,15 @@ comparing again, is quick.
 
 <h3 id="mar">Margins</h3>
 <p>It is possible to make <font color="darkgreen">disparPDF</font> ignore
-any text that is above a specified top margin, below a specified bottom
+anything that is above a specified top margin, below a specified bottom
 margin, left of a specified left margin, and right of a specified right
 margin. One or more of these margins can be specified by, first,
 checking the <b>Exclude Margins</b> checkbox, and second by setting
 any of the margins. Margins can be set by clicking on a page view or by
-using the margin spinboxes. When comparing inside a page box, the
-margins are measured from the box's edges.
+using the margin spinboxes. Each can be up to half the page's width or
+height, less 10pt (of the first page of the file chosen last). When
+comparing inside a page box, the margins are measured from the box's
+edges, and can be up to half the smaller of the two files' boxes.
 
 <h3 id="box">Page Boxes</h3>
 <p>A PDF page can have up to five boundaries (ISO 32000-2:2020, 14.11.2):
@@ -154,7 +158,7 @@ pages as they are, and <b>Restore Default</b> goes back to it.
 <p><b>Clipped to</b> says what the box is clipped to: the
 <b>MediaBox</b>, as the standard requires (the default); the
 <b>MediaBox and CropBox</b>, so that only what a viewer shows is
-compared; or <b>Nothing</b>, so that all of the box is, even where it
+compared; or <b>Nothing (as written)</b>, so that all of the box is, even where it
 extends past the MediaBox.
 
 <p>A page without the chosen box uses its default: the CropBox for the
@@ -190,8 +194,8 @@ pages, right pages, or both pages.
 <p>This dialog is invoked by clicking the <b>Options</b> button. It has
 three tabs.
 
-<p><b>General</b> has <b>Show Tooltips</b>, which turns off the
-tooltips of every control; <b>Rule width</b>, the thickness of the
+<p><b>General</b> has <b>Show Tooltips in the Main Window</b>, which
+turns off the tooltips of the main window's controls; <b>Rule width</b>, the thickness of the
 margin rules that indicate the vertical position of differences, which
 a width of 0 switches off; and <b>Files to compare</b>, choosing
 whether the Choose dialogs offer only files whose names end in
@@ -201,8 +205,8 @@ is called; on the command line, <tt>--any-extension</tt> allows any
 name.)
 
 <p><b>Highlighting</b> has the base color, whether to use an outline or
-a fill or both, and the fill's opacity, and <b>Combine
-highlighting</b>, which merges neighbouring highlights into one.
+a fill or both, and the fill's opacity, and <b>Combine Highlighting in
+Text Modes</b>, which merges neighbouring text highlights into one.
 
 <p><b>Performance</b> has the <b>Square Size</b>, used in Appearance
 mode comparisons&mdash;the smaller the size the more fine-grained the
@@ -225,15 +229,14 @@ mode for automating checks, without a window.
 
 <p>Given two files on the command line,
 <font color="darkgreen">disparPDF</font> starts up and compares them
-straight away, in Words mode unless <tt>-a</tt>
-(<tt>--appearance</tt>) or <tt>-c</tt> (<tt>--characters</tt>) comes
-first. With <tt>--batch</tt>, or run under the name
+straight away, in the mode last used in the window (Words at first)
+unless <tt>-a</tt> (<tt>--appearance</tt>), <tt>-c</tt>
+(<tt>--characters</tt>) or <tt>-w</tt> (<tt>--words</tt>) is given. With <tt>--batch</tt>, or run under the name
 <tt>disparPDFc</tt>, it compares them without a window and prints a
 result code instead; <tt>--interactive</tt> asks for the window back.
 
-<p>Run it with <tt>--help</tt> to see all the options. (This won't
-work on Windows, although the other command line options will.) Here
-is the <tt>--help</tt> output:
+<p>Run it with <tt>--help</tt> to see all the options. Here is the
+<tt>--help</tt> output:
 <pre>
 Usage: disparPDF [OPTION]... [FILE1 [FILE2]]
   or:  disparPDF --batch [OPTION]... FILE1 FILE2
@@ -260,7 +263,8 @@ Options:
                            English, cz for Czech; English is used if there is
                            no translation
       --debug=2          write the text fed to the sequence matcher into
-                           temporary files (e.g., /tmp/page1.txt)
+                           files in the temporary directory (e.g., page1-1.txt
+                           and page1-2.txt) when highlighting
       --debug=3          as --debug=2, but also with the coordinates, in y, x
                            order
   -h, --help             display this help and exit
@@ -309,36 +313,22 @@ or:
 disparPDFc -b --pdfdiff=file_diff.pdf --xmlResult=file_results.xml --key=opkey file1.pdf file2.pdf
 </pre>
 
-Return codes when invoked in batch:
-
-<ul>
-<li>0: no difference discovered between the documents</li>
-<li>1: documents are different</li>
-<li>2: the page count differs</li>
-<li>3: error in the initial page specification</li>
-<li>4: error in the final page specification</li>
-<li>5: the same file has been specified as candidate and reference</li>
-<li>6: fonts differ</li>
-<li>-1: invocation parameters error</li>
-<li>-2: unexpected error</li>
-<li>-3: unable to load first PDF</li>
-<li>-4: unable to load second PDF</li>
-<li>-5: error loading a page</li>
-<li>-6: error writing the PDF difference file</li>
-<li>-7: error writing the XML results file</li>
-<li>-8: error loading a document</li>
-</ul>
+The result codes are those listed at the end of the <tt>--help</tt>
+output above.
 
 <p>
 The text reordering is done by the
 <tt>TextItems::columnZoneYxOrder()</tt> method in the
 <tt>textitem.cpp</tt> file: suggestions for improvement are welcome!
-(Note that when using <tt>--debug3</tt> coordinates are output in
+(Note that when using <tt>--debug=3</tt> coordinates are output in
 <i>y</i>, <i>x</i> order.)
 
 <p>
-This project is a fork of DiffPDF, that was created and maintained by Mark
-Summerfield 2008-2013. This fork, by Luca Bellonda &lt;lbellonda@gmail.com&gt;, begun in 2015.
+<font color="darkgreen">disparPDF</font> is a port to Qt&nbsp;6, by
+Yuwsuke Kieda in 2026, of ConfrontaPDF, a fork by Luca Bellonda, begun in
+2015, of DiffPDF, which was created and maintained by Mark Summerfield
+2008-2013. Its source is at
+<a href="https://github.com/yuw/disparPDF">https://github.com/yuw/disparPDF</a>.
 
 The source for the last release of Mark's open source version is
 available from: <a href="http://www.qtrac.eu/diffpdf-foss.html">http://www.qtrac.eu/diffpdf-foss.html</a>

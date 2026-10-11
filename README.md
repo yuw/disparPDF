@@ -18,7 +18,7 @@ This Qt6 port was created by Yuwsuke Kieda in 2026 with the assistance of AI too
 - Margin exclusion
 - Comparing only inside a page boundary — the MediaBox, CropBox, BleedBox,
   TrimBox or ArtBox (`--box`) — with the pages lined up on its corner
-- Font comparison (`--compareFonts`)
+- Font comparison (`--compareFonts`, in batch mode)
 - Pages compared in parallel, one worker thread per core
 - Batch/command line mode (`disparPDFc`), which can also show the window
   with `--interactive`
@@ -51,8 +51,8 @@ After installation:
 | Location | Description |
 |---|---|
 | `/Applications/disparPDF.app` | GUI app (Finder) |
-| `/opt/homebrew/opt/disparPDF/disparPDF.app` | Homebrew-managed copy |
-| `/opt/homebrew/bin/disparPDF` | CLI wrapper (launches GUI) |
+| `/opt/homebrew/opt/disparpdf/disparPDF.app` | Homebrew-managed copy |
+| `/opt/homebrew/bin/disparPDF` | Opens the window; with `--batch`, `--help` or `--version`, runs in the terminal |
 | `/opt/homebrew/bin/disparPDFc` | CLI batch mode |
 
 ## Upgrading
@@ -114,7 +114,7 @@ ditto /opt/homebrew/opt/disparpdf/disparPDF.app /Applications/disparPDF.app
 
 # 5. Verify
 open /Applications/disparPDF.app
-disparPDFc -b 2>&1 | head -1
+disparPDFc --version
 ```
 
 ## Build from source
@@ -151,7 +151,7 @@ Debian and Ubuntu):
 
 ```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(sysctl -n hw.logicalcpu)
+cmake --build build --parallel
 ```
 
 To use a Qt or Poppler installation elsewhere, pass it explicitly — an
@@ -164,7 +164,10 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release \
 
 ### Test
 
-The tests run the batch mode on small PDFs and need no display:
+The tests are unit tests of the page boundaries, batch-mode comparisons
+of small PDFs, tests of what is drawn and of the window (run on Qt's
+offscreen platform), and tests of the shell completions (skipped without
+bash-completion or zsh). None needs a display:
 
 ```sh
 ctest --test-dir build
@@ -186,15 +189,17 @@ codesign --force --sign - /usr/local/disparPDF.app/Contents/MacOS/disparPDF
 # keeps the signature; cp -r would nest the new copy inside the old one)
 ditto /usr/local/disparPDF.app /Applications/disparPDF.app
 
-# Optional: add symlink for CLI use
+# Optional: add symlink for CLI use (bin/disparPDFc is installed already)
 sudo ln -sf /usr/local/disparPDF.app/Contents/MacOS/disparPDF /usr/local/bin/disparPDF
 ```
 
-On Linux and the BSDs, `cmake --install` also installs the manual page
-(`man disparPDF`, or `man disparPDFc`), bash and zsh completion (set
-`BASH_COMPLETION_DIR` and `ZSH_COMPLETION_DIR` to choose where), a desktop
-file and icon for the application menus, and the README; packagers can use
-`DESTDIR` and the usual `CMAKE_INSTALL_*` directories.  The manual page is
+`cmake --install` also installs `disparPDFc`, as a symbolic link (on
+Windows, a copy), the manual page (`man disparPDF`, or `man disparPDFc`),
+bash and zsh completion (set `BASH_COMPLETION_DIR` and
+`ZSH_COMPLETION_DIR` to choose where), and the README and CHANGES; on
+Linux and the BSDs, also a desktop file and icon for the application
+menus.  Packagers can use `DESTDIR` and the usual `CMAKE_INSTALL_*`
+directories.  The manual page is
 generated with `help2man` from `--help`; without it, or when cross
 compiling, the copy in `doc_man/` is installed instead (refresh it with
 `cmake --build build --target update-manpage`).
@@ -268,8 +273,8 @@ one of them. `none` compares whole pages, as without the option.
   rather than the CropBox's. So a page with bleed matches the same page
   trimmed.
 - **Excluded margins are measured from the box's edges.**
-- **The views and saved differences show the whole page**: the CropBox and
-  the box together. Everything outside the box is dimmed, the box is
+- **The views and saved differences show the whole page**: the CropBox
+  (within the MediaBox) and the box together. Everything outside the box is dimmed, the box is
   outlined in blue, and nothing outside it is highlighted.
 - **Warnings** are given once per file, or for the pair, with the pages
   they apply to, when:
@@ -284,10 +289,12 @@ one of them. `none` compares whole pages, as without the option.
 
   `disparPDFc` writes them to standard error and leaves the result code
   alone. With `--xmlResult` they also go into the XML, as a `<warnings>`
-  element holding one `<warning>` per kind: `kind` is the name in brackets
-  above, `file` is 1 or 2 (left out for the pair), `pages` lists the pages,
-  e.g. `1-3, 5` (for `differ`, FILE1/FILE2 pairs such as `3/4` when the
-  page numbers differ), and `message` is the text. The GUI writes them to
+  element holding one `<warning>` per kind and file: `kind` is the name in
+  brackets above, `file` is 1 or 2 (left out for the pair and for
+  `clip-without-box`), `pages` lists the pages, e.g. `1-3, 5` (left out for
+  `clip-without-box`; for `differ`, if any pair compared has different
+  page numbers in the two files, every entry is a FILE1/FILE2 pair such as
+  `3/4`), and `message` is the text. The GUI writes them to
   the log and counts them in the status line.
 - **In the GUI**, changing the box or the clipping forgets the
   comparison, which was made inside another box, so click Compare again.
@@ -315,8 +322,9 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 ```
 
 Most keys below also have a control in the GUI; they are listed so that an
-INI file for `disparPDFc` can be written by hand. The three in the last
-table have no GUI control at all.
+INI file for `disparPDFc` can be written by hand. Those in the last table
+have no GUI control at all. The GUI also keeps its window layout (keys
+under `MainWindow/` and `HelpForm/`), which batch mode ignores.
 
 ### Comparison
 
@@ -324,14 +332,14 @@ table have no GUI control at all.
 |---|---|---|---|
 | `InitialComparisonMode` | `2` | Compare box | Mode the GUI starts in: 0 appearance, 1 characters, 2 words. Batch mode ignores this and compares appearance unless `-a`, `-c` or `-w` is given |
 | `Margins/Exclude` | `false` | Exclude Margins | Ignore everything outside the margins below |
-| `Margins/Top`, `/Bottom`, `/Left`, `/Right` | `0` | Margins dock | Margin sizes, in points; inside a page box, from its edges |
+| `Margins/Top`, `/Bottom`, `/Left`, `/Right` | `0` | Margins dock | Margin sizes, in points; inside a page box, from its edges. In the GUI each can be up to half the width or height, less 10pt, of the first page of the file chosen last, or inside a page box, of the smaller of the two files' boxes |
 | `PageBox/Box` | `none` | Page Box dock ▸ Page boundary | Compare only inside this page box: `none`, `media`, `crop`, `bleed`, `trim` or `art` (see [Comparing inside a page box](#comparing-inside-a-page-box)). `--box` overrides it |
 | `PageBox/Clip` | `media` | Page Box dock ▸ Clipped to | What that box is clipped to: `media`, `crop` or `none`. `--box-clip` overrides it |
 | `Zoning/Enable` | `false` | Zoning | Group text into zones before comparing |
 | `Columns` | `1` | Columns | How many columns the page has; improves zoning |
 | `Tolerance/R` | `8` | Tolerance/R | Largest distance (4–144) between word rectangles for them to land in the same zone |
-| `Tolerance/Y` | `10` | Tolerance/Y | Text *y* coordinates are rounded to this (0–32) when zoning |
-| `RequirePdfExtension` | `true` | Options ▸ Files to compare | Accept only files named `*.pdf` on the command line and show only those in the file dialogs. Batch mode ignores this and always requires `*.pdf` unless `--any-extension` is given |
+| `Tolerance/Y` | `10` | Tolerance/Y | Text *y* coordinates are rounded up to a multiple of this (0–32) when zoning |
+| `RequirePdfExtension` | `true` | Options ▸ Files to compare | Accept only files named `*.pdf` on the command line and show only those in the file dialogs (a name typed in the window, or a file dropped on it, is taken whatever it is called). Batch mode ignores this and always requires `*.pdf` unless `--any-extension` is given |
 
 ### Display and highlighting
 
@@ -339,20 +347,21 @@ table have no GUI control at all.
 |---|---|---|---|
 | `Zoom` | `100` | Zoom | View magnification, per cent |
 | `Outline`, `Fill` | — | Options ▸ Highlighting | Pen and brush for highlights. These are serialised Qt values, so set them through the dialog rather than by hand |
-| `Opacity` | `13` | Options ▸ Fill Opacity | Fill opacity, per cent |
-| `RuleWidth` | `1.5` | Options ▸ Rule width | Width of the highlight outline |
-| `SquareSize` | `10` | Options ▸ Square Size | Size of the highlight square, in pixels |
-| `CombineTextHighlighting` | `true` | Options ▸ Combine Highlighting | Merge adjacent highlights in the text modes |
-| `ShowToolTips` | `true` | Options ▸ Show Tooltips | Show tool tips in the main window |
-| `CacheSizeMB` | `25` | Options ▸ Cache Size | Limit on the rendered-page cache, in MB |
+| `Opacity` | `13` | Options ▸ Fill Opacity | Fill opacity, per cent (1–100) |
+| `RuleWidth` | `1.5` | Options ▸ Rule width | Width of the rule drawn at the left edge of the page beside each difference (0–10); `0` turns the rules off |
+| `SquareSize` | `10` | Options ▸ Square Size | Size of the squares in which appearance differences are found and highlighted, in pixels (2–40) |
+| `CombineTextHighlighting` | `true` | Options ▸ Combine Highlighting in Text Modes | Merge adjacent highlights in the text modes |
+| `ShowToolTips` | `true` | Options ▸ Show Tooltips in the Main Window | Show tool tips in the main window |
+| `CacheSizeMB` | `25` | Options ▸ Cache Size | Limit on the rendered-page cache, in MB (1–100) |
 
 ### No GUI control
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Overlap` | `5` | How far highlight rectangles may overlap before they are merged |
-| `CompareThreads` | `0` | Upper bound on comparison worker threads; `0` means one per core. Each worker opens its own copy of both documents, so lowering this lowers peak memory. On a 1536-page appearance comparison across 8 cores, peak RSS was 223 MB at `0`, 152 MB at `4` and 89 MB at `1` — against 74 MB before the comparison was threaded, and 2.8 s instead of 1.4 s |
-| `compositionMode` | `-1` | `QPainter::CompositionMode` used to draw appearance differences; `-1` draws the ordinary highlight. This is the batch-mode counterpart of the GUI's highlighting-mode box: 22 Difference, 23 Exclusion, 26 Src Xor Dest, 29 Not Src Xor Dest |
+| `Overlap` | `5` | With `CombineTextHighlighting`, how close (in pixels) text highlights must be to be merged. The GUI reads it from its own settings too |
+| `CompareThreads` | `0` | Upper bound on comparison worker threads; `0` means one per core. Each worker opens its own copy of both documents, so lowering this lowers peak memory. On a 1536-page appearance comparison across 8 cores, peak RSS was 223 MB at `0`, 152 MB at `4` and 89 MB at `1` — against 74 MB before the comparison was threaded — and it took 2.8 s at `1` against 1.4 s at `0`. The GUI reads it from its own settings too |
+| `compositionMode` | `-1` | `QPainter::CompositionMode` used to draw appearance differences; `-1` draws the ordinary highlight. This is the batch-mode counterpart of the GUI's **Show** box, whose choice is not saved (the GUI does not read this key): 22 Difference, 23 Exclusion, 26 Src Xor Dest, 29 Not Src Xor Dest |
+| `ShowHighlight` | `-1` | Read and copied into the `--xmlResult` parameters, but it has no effect |
 
 ## License
 

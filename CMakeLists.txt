@@ -355,7 +355,11 @@ if(HELP2MAN_EXECUTABLE AND NOT CMAKE_CROSSCOMPILING)
     set(_h2m ${CMAKE_CURRENT_SOURCE_DIR}/doc_man/disparPDF.h2m)
     add_custom_command(
         OUTPUT ${MANPAGE}
+        # --version-string rather than running --version, whose other
+        # lines (the build's Qt and Poppler) help2man put at the end of
+        # the options; the copyright comes from the [COPYRIGHT] section
         COMMAND ${HELP2MAN_EXECUTABLE} --no-info --include=${_h2m}
+                "--version-string=disparPDF ${PROJECT_VERSION}"
                 --output=${MANPAGE} $<TARGET_FILE:disparPDF>
         DEPENDS disparPDF ${_h2m}
         COMMENT "Generating the manual page with help2man"
