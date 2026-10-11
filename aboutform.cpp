@@ -33,7 +33,7 @@ AboutForm::AboutForm(QWidget *parent) : QDialog(parent)
     "<table border=0>"
     "<tr><td width=90%><b>%1 %2</b> by Yuwsuke Kieda</td>"
          "<td rowspan=6><img align=right src=\":/icon.png\"></td></tr>"
-    "<tr><td>Site: <a href='https://github.com/yuw/ConfrontaPDF'>github.com/yuw/ConfrontaPDF</a></td></tr>"
+    "<tr><td>Site: <a href='https://github.com/yuw/disparPDF'>github.com/yuw/disparPDF</a></td></tr>"
     "<tr><td>This Qt6 port was created with the assistance of AI tools (Claude by Anthropic).</td></tr>"
     "<hr/>"
     "<tr><td><b>%1 %2</b> is based on ConfrontaPDF 1.1 by Luca Bellonda.</td></tr>"
@@ -52,7 +52,7 @@ AboutForm::AboutForm(QWidget *parent) : QDialog(parent)
     "Source: <a href='https://github.com/lbellonda/ConfrontaPDF'>github.com/lbellonda/ConfrontaPDF</a></p>"
     "<p>This <b>Qt6 port (v%2)</b> was created by <b>Yuwsuke Kieda</b> in 2026, "
     "with the assistance of AI tools.<br/>"
-    "Source: <a href='https://github.com/yuw/ConfrontaPDF'>github.com/yuw/ConfrontaPDF</a></p>"
+    "Source: <a href='https://github.com/yuw/disparPDF'>github.com/yuw/disparPDF</a></p>"
     ).arg(qApp->applicationName())
             .arg(Version).arg(qVersion()).arg(POPPLER_VERSION));
     QTextBrowser *contributorsBrowser = new QTextBrowser;
