@@ -57,6 +57,7 @@ protected:
 private:
     PdfDocument getPdf(const QString &filename);
     bool boxDocuments(PdfDocument *pdf1, PdfDocument *pdf2);
+    bool boxedView(int file, BoxedView *view);
     void warn(const BoxWarning &warning);
 
     // batch operations

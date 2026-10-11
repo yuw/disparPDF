@@ -91,6 +91,13 @@ BoxRect BoxRect::intersected(const BoxRect &other) const
 }
 
 
+BoxRect BoxRect::united(const BoxRect &other) const
+{
+    return BoxRect(std::min(llx, other.llx), std::min(lly, other.lly),
+                   std::max(urx, other.urx), std::max(ury, other.ury));
+}
+
+
 bool BoxRect::contains(const BoxRect &other) const
 {
     return other.llx >= llx && other.lly >= lly &&
@@ -186,6 +193,21 @@ BoxRegion boxRegion(const PageBoxes &boxes, PageBox box, BoxClip clip)
             break;
     }
     return region;
+}
+
+
+BoxDisplay boxDisplay(const PageBoxes &boxes, const BoxRegion &region)
+{
+    BoxDisplay display;
+    display.area = boxes.visible();
+    if (!region.rect.isEmpty())
+        display.area = display.area.united(region.rect);
+    PageBoxes shown;
+    shown.media = display.area;
+    shown.rotate = boxes.rotate;
+    if (!region.rect.isEmpty())
+        display.boxRect = shown.toPageCoordinates(region.rect);
+    return display;
 }
 
 

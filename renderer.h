@@ -24,6 +24,7 @@
 #include <QRect>
 #include <QRectF>
 #include <QString>
+#include <QVector>
 
 class QImage;
 class QPainter;
@@ -66,6 +67,15 @@ struct RenderSettings
     QRect pixelRectForMargins(const QSize &imageSize) const;
 };
 
+// How the pages of a file compared inside a page box are shown: a copy of
+// the file rewritten to each page's display area (see boxDisplay() in
+// pagebox.h), and where on each of its pages the box is, in points
+struct BoxedView
+{
+    PdfDocument display;
+    QVector<QRectF> boxRects;
+};
+
 // Renders pairs of pages with their differences highlighted (or, in
 // Appearance mode, page 2 composed over page 1), for display and for
 // saving.  Rendered pixmaps are kept in QPixmapCache.
@@ -76,10 +86,14 @@ class DifferenceRenderer
 public:
     explicit DifferenceRenderer(const RenderSettings &settings);
 
-    // The two pages of pair, rendered at the zoom
+    // The two pages of pair, rendered at the zoom.  Compared inside a page
+    // box, page1 and page2 are the boxes; given view1 and view2, each is
+    // then shown on its whole page, with the rest dimmed.
     QPair<QPixmap, QPixmap> pixmaps(const PdfPage &page1,
             const QString &filename1, const PdfPage &page2,
-            const QString &filename2, const PagePair &pair) const;
+            const QString &filename2, const PagePair &pair,
+            const BoxedView *view1 = nullptr,
+            const BoxedView *view2 = nullptr) const;
 
     // Paints pair, with header above it, into leftRect and rightRect (or
     // only leftRect if savePages is not SaveBothPages); false if a page
@@ -89,14 +103,17 @@ public:
             const QString &filename2, const PagePair &pair,
             const QString &header, const SavePages savePages,
             const QRectF &rect, const QRectF &leftRect,
-            const QRectF &rightRect) const;
+            const QRectF &rightRect, const BoxedView *view1 = nullptr,
+            const BoxedView *view2 = nullptr) const;
 
     // Saves the pairs to outputFile, one per page; false if a pair could
     // not be painted or the file could not be written
     bool saveAsPdf(const QString &outputFile, const PdfDocument &pdf1,
             const QString &filename1, const PdfDocument &pdf2,
             const QString &filename2, const QList<PagePair> &pairs,
-            const QString &header, const SavePages savePages) const;
+            const QString &header, const SavePages savePages,
+            const BoxedView *view1 = nullptr,
+            const BoxedView *view2 = nullptr) const;
 
 private:
     QPair<QString, QString> cacheKeys(const QString &filename1,
@@ -110,6 +127,8 @@ private:
             QPainterPath *highlighted2, const QImage &plainImage1,
             const QImage &plainImage2) const;
     void paintOnImage(const QPainterPath &path, QImage *image) const;
+    QImage onWholePage(const QImage &box, const BoxedView &view,
+                       const int page, const int DPI) const;
 
     const RenderSettings settings;
 };

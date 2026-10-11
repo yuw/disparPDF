@@ -235,6 +235,27 @@ bool BatchCompare::boxDocuments(PdfDocument *pdf1, PdfDocument *pdf2)
     return true;
 }
 
+// The file (0 or 1) rewritten to its pages' display areas, for showing
+// what was compared inside a page box on the whole page; false if that
+// cannot be done, when the boxes alone are shown
+bool BatchCompare::boxedView(const int file, BoxedView *view)
+{
+    QVector<BoxRegion> areas;
+    for (int page = 0; page < boxed[file].pageCount(); ++page) {
+        const BoxDisplay display = boxDisplay(boxed[file].boxes(page),
+                                              regions[file].at(page));
+        BoxRegion area;
+        area.rect = display.area;
+        areas.append(area);
+        view->boxRects.append(display.boxRect);
+    }
+    QString error;
+    bool locked = false;
+    view->display = loadPdfData(boxed[file].rewritten(areas, &error),
+                                &locked);
+    return view->display != nullptr;
+}
+
 QList<int> BatchCompare::getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet)
 {
     // Poppler has 0-based page numbers; the UI has 1-based page numbers
@@ -331,11 +352,17 @@ void BatchCompare::saveResultsBatch(Status *status, CompareResults &results, con
     header = tr("%5 %1 %2 vs. %3 %1 %4").arg(bullet)
         .arg(_startupParameters->file1()).arg(_startupParameters->file2())
         .arg(QDateTime::currentDateTime().toString(Qt::ISODate)).arg(AboutForm::ProgramName);
+    // Compared inside a page box, the pages are shown whole around it
+    BoxedView views[2];
+    const bool wholePages = render.box != PageBox::None &&
+                            boxedView(0, &views[0]) &&
+                            boxedView(1, &views[1]);
     if (!DifferenceRenderer(render).saveAsPdf(
             _startupParameters->pdfDiffFilePath(), pdf1,
             _startupParameters->file1(), pdf2, _startupParameters->file2(),
             results.differences().mid(start, end - start), header,
-            savePages))
+            savePages, wholePages ? &views[0] : nullptr,
+            wholePages ? &views[1] : nullptr))
         status->setStatusWithDescriptionUncond(ErrorWritingPDFDiffFile,
                 tr("error while writing differences file"));
 }

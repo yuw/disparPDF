@@ -308,6 +308,46 @@ static void testRewritten(const BoxedDocument &doc, Poppler::Document *pdf)
     }
 }
 
+// What is shown: the crop box and the region together, and where in that
+// the region is
+static void testDisplay(const BoxedDocument &doc)
+{
+    if (doc.pageCount() != 6)
+        return;
+    struct Case { int page; PageBox box; BoxClip clip; BoxRect area;
+                  QRectF boxRect; };
+    const Case cases[] = {
+        // The trim box inside the crop box: the crop box is shown
+        {0, PageBox::Trim, BoxClip::Media, BoxRect(18, 18, 594, 774),
+         QRectF(18, 18, 540, 720)},
+        // ... and rotated by 90, the box comes 18pt from the top left of
+        // the turned page too, and is turned with it
+        {1, PageBox::Trim, BoxClip::Media, BoxRect(18, 18, 594, 774),
+         QRectF(18, 18, 720, 540)},
+        // The media box beyond the crop box: all of it is shown
+        {0, PageBox::Media, BoxClip::Media, BoxRect(0, 0, 612, 792),
+         QRectF(0, 0, 612, 792)},
+        // An unclipped trim box beyond the media box widens what is shown
+        {5, PageBox::Trim, BoxClip::None, BoxRect(-20, 36, 576, 756),
+         QRectF(0, 0, 596, 720)},
+    };
+    for (const Case &c : cases) {
+        const BoxDisplay d = boxDisplay(doc.boxes(c.page),
+                boxRegion(doc.boxes(c.page), c.box, c.clip));
+        const QString what = QString("page %1 %2/%3 shown").arg(c.page + 1)
+                .arg(pageBoxName(c.box), boxClipName(c.clip));
+        checkRect(d.area, c.area, what);
+        check(near(d.boxRect, c.boxRect, 0.001),
+              QString("%1: the box at %2, expected %3").arg(what)
+                      .arg(str(d.boxRect), str(c.boxRect)));
+    }
+    // An empty region shows the page, with no box on it
+    BoxRegion empty;
+    const BoxDisplay d = boxDisplay(doc.boxes(0), empty);
+    checkRect(d.area, BoxRect(18, 18, 594, 774), "an empty region shown");
+    check(d.boxRect.isNull(), "an empty region has no box shown");
+}
+
 // A region with nothing left in it makes a blank page, not one of
 // Poppler's default size
 static void testEmptyRegion(const BoxedDocument &doc)
@@ -355,6 +395,7 @@ int main(int argc, char *argv[])
         testPageCoordinates(doc, pdf.get());
         testRewritten(doc, pdf.get());
     }
+    testDisplay(doc);
     testEmptyRegion(doc);
 
     BoxedDocument missing;

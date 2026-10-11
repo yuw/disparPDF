@@ -56,6 +56,7 @@ struct BoxRect
     double height() const { return ury - lly; }
     bool isEmpty() const { return width() <= 0 || height() <= 0; }
     BoxRect intersected(const BoxRect &other) const;
+    BoxRect united(const BoxRect &other) const;  // the smallest around both
     bool contains(const BoxRect &other) const;
     bool fuzzyEquals(const BoxRect &other, double tolerance) const;
 };
@@ -97,6 +98,18 @@ struct BoxRegion
 };
 
 BoxRegion boxRegion(const PageBoxes &boxes, PageBox box, BoxClip clip);
+
+// How a page compared inside region is shown: the area displayed, which
+// is the crop box and the region together (in default user space), and
+// where in it the region is, in the coordinates Poppler uses for a page
+// that is that area (points from its top-left corner, after /Rotate)
+struct BoxDisplay
+{
+    BoxRect area;
+    QRectF boxRect;
+};
+
+BoxDisplay boxDisplay(const PageBoxes &boxes, const BoxRegion &region);
 
 // What is said about one kind of warning, for one file or for the pair
 struct BoxWarning

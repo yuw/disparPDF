@@ -102,10 +102,15 @@ QPair<QString, QString> DifferenceRenderer::cacheKeys(
 
 QPair<QPixmap, QPixmap> DifferenceRenderer::pixmaps(const PdfPage &page1,
         const QString &filename1, const PdfPage &page2,
-        const QString &filename2, const PagePair &pair) const
+        const QString &filename2, const PagePair &pair,
+        const BoxedView *view1, const BoxedView *view2) const
 {
-    const QPair<QString, QString> keys = cacheKeys(filename1, filename2,
-                                                   pair);
+    QPair<QString, QString> keys = cacheKeys(filename1, filename2, pair);
+    const bool wholePages = view1 && view2;
+    if (wholePages) {
+        keys.first += ":whole";
+        keys.second += ":whole";
+    }
     QPixmap pixmap1;
     QPixmap pixmap2;
     if (QPixmapCache::find(keys.first, &pixmap1) &&
@@ -161,6 +166,10 @@ QPair<QPixmap, QPixmap> DifferenceRenderer::pixmaps(const PdfPage &page1,
             highlighted1.addText(DPI / 4, DPI / 4, font, banner);
             paintOnImage(highlighted1, &image1);
         }
+        if (wholePages) {
+            image1 = onWholePage(image1, *view1, pair.left, DPI);
+            image2 = onWholePage(image2, *view2, pair.right, DPI);
+        }
         pixmap1 = QPixmap::fromImage(image1);
         pixmap2 = QPixmap::fromImage(image2);
     } else {
@@ -178,6 +187,13 @@ QPair<QPixmap, QPixmap> DifferenceRenderer::pixmaps(const PdfPage &page1,
                 QPainter::CompositionMode_DestinationOver);
         painter.fillRect(composed.rect(), Qt::white);
         painter.end();
+        // The pages are composed where they are compared, in the boxes,
+        // so that is shown on page 1's page
+        if (wholePages) {
+            pixmap1 = QPixmap::fromImage(onWholePage(image1, *view1,
+                                                     pair.left, DPI));
+            composed = onWholePage(composed, *view1, pair.left, DPI);
+        }
         pixmap2 = QPixmap::fromImage(composed);
     }
     QPixmapCache::insert(keys.first, pixmap1);
@@ -380,12 +396,47 @@ void DifferenceRenderer::paintOnImage(const QPainterPath &path,
 }
 
 
+// box, the rendering of a page compared inside a page box, on the page it
+// is on: the rest of the page is dimmed, and the box outlined
+QImage DifferenceRenderer::onWholePage(const QImage &box,
+        const BoxedView &view, const int page, const int DPI) const
+{
+    const PdfPage displayed = view.display->page(page);
+    if (!displayed || page >= view.boxRects.count())
+        return box;
+    QImage image = displayed->renderToImage(DPI, DPI);
+    if (image.isNull())
+        return box;
+    QRectF rect = view.boxRects.at(page);
+    scaleRect(DPI, &rect);
+    const QRect target(rect.topLeft().toPoint(), box.size());
+    QPainter painter(&image);
+    QPainterPath outside;
+    outside.addRect(QRectF(image.rect()));
+    if (!rect.isEmpty()) {
+        QPainterPath inside;
+        inside.addRect(QRectF(target));
+        outside = outside.subtracted(inside);
+    }
+    painter.fillPath(outside, QColor(255, 255, 255, 160));
+    if (!rect.isEmpty()) {
+        painter.drawImage(target.topLeft(), box);
+        painter.setPen(QPen(QColor(0, 112, 192), qMax(1, DPI / 72)));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawRect(QRectF(target).adjusted(-0.5, -0.5, 0.5, 0.5));
+    }
+    painter.end();
+    return image;
+}
+
+
 bool DifferenceRenderer::paintPair(QPainter *painter,
         const PdfDocument &pdf1, const QString &filename1,
         const PdfDocument &pdf2, const QString &filename2,
         const PagePair &pair, const QString &header,
         const SavePages savePages, const QRectF &rect,
-        const QRectF &leftRect, const QRectF &rightRect) const
+        const QRectF &leftRect, const QRectF &rightRect,
+        const BoxedView *view1, const BoxedView *view2) const
 {
     if (pair.left < 0 || pair.right < 0)
         return false;
@@ -396,7 +447,7 @@ bool DifferenceRenderer::paintPair(QPainter *painter,
     if (!page2)
         return false;
     const QPair<QPixmap, QPixmap> images = pixmaps(page1, filename1,
-            page2, filename2, pair);
+            page2, filename2, pair, view1, view2);
     if (!header.isEmpty())
         painter->drawText(rect, header, QTextOption(Qt::AlignHCenter|
                                                     Qt::AlignTop));
@@ -422,7 +473,8 @@ bool DifferenceRenderer::saveAsPdf(const QString &outputFile,
         const PdfDocument &pdf1, const QString &filename1,
         const PdfDocument &pdf2, const QString &filename2,
         const QList<PagePair> &pairs, const QString &header,
-        const SavePages savePages) const
+        const SavePages savePages, const BoxedView *view1,
+        const BoxedView *view2) const
 {
     QPrinter printer(QPrinter::HighResolution);
     printer.setOutputFileName(outputFile);
@@ -456,7 +508,7 @@ bool DifferenceRenderer::saveAsPdf(const QString &outputFile,
     for (int i = 0; i < pairs.count(); ++i) {
         if (!paintPair(&painter, pdf1, filename1, pdf2, filename2,
                        pairs.at(i), header, savePages, rect, leftRect,
-                       rightRect)) {
+                       rightRect, view1, view2)) {
             ok = false;
             continue;
         }
