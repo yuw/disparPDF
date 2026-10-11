@@ -131,6 +131,20 @@ int main(int argc, char *argv[])
     });
     closer.start(100);
 
+    // A saved margin over 99pt survives start-up, before any file has set
+    // the spin boxes' ranges
+    QSettings().setValue("Margins/Top", 150);
+    {
+        StartupParameters parameters;
+        Status status;
+        MainWindow window(DebugOff, CompareAppearance, QString(), QString(),
+                          "en", &parameters, &status);
+        check(MainWindowTest(&window).top()->value() == 150,
+              QString("a saved 150pt top margin is %1pt at start-up")
+                      .arg(MainWindowTest(&window).top()->value()));
+        MainWindowTest(&window).top()->setValue(0);
+        window.close();
+    }
     {
         StartupParameters parameters;
         Status status;

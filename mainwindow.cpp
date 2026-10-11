@@ -317,6 +317,9 @@ void MainWindow::createWidgets(const QString &filename1,
                 false).toBool());
     topMarginLabel = new QLabel(tr("&Top:"));
     topMarginSpinBox = new QSpinBox;
+    // Room for any saved value: QSpinBox's default maximum of 99 cut a
+    // larger one before a file had set the range (updateMarginRanges())
+    topMarginSpinBox->setRange(0, 9999);
     topMarginSpinBox->setSuffix(" pt");
     topMarginSpinBox->setValue(settings.value("Margins/Top", 0).toInt());
     topMarginSpinBox->setAlignment(Qt::AlignVCenter|Qt::AlignRight);
@@ -325,6 +328,7 @@ void MainWindow::createWidgets(const QString &filename1,
     topMarginLabel->setBuddy(topMarginSpinBox);
     bottomMarginLabel = new QLabel(tr("&Bottom:"));
     bottomMarginSpinBox = new QSpinBox;
+    bottomMarginSpinBox->setRange(0, 9999);
     bottomMarginSpinBox->setSuffix(" pt");
     bottomMarginSpinBox->setValue(settings.value("Margins/Bottom", 0)
             .toInt());
@@ -334,6 +338,7 @@ void MainWindow::createWidgets(const QString &filename1,
     bottomMarginLabel->setBuddy(bottomMarginSpinBox);
     leftMarginLabel = new QLabel(tr("Le&ft:"));
     leftMarginSpinBox = new QSpinBox;
+    leftMarginSpinBox->setRange(0, 9999);
     leftMarginSpinBox->setSuffix(" pt");
     leftMarginSpinBox->setValue(settings.value("Margins/Left", 0).toInt());
     leftMarginSpinBox->setAlignment(Qt::AlignVCenter|Qt::AlignRight);
@@ -342,6 +347,7 @@ void MainWindow::createWidgets(const QString &filename1,
     leftMarginLabel->setBuddy(leftMarginSpinBox);
     rightMarginLabel = new QLabel(tr("R&ight:"));
     rightMarginSpinBox = new QSpinBox;
+    rightMarginSpinBox->setRange(0, 9999);
     rightMarginSpinBox->setSuffix(" pt");
     rightMarginSpinBox->setValue(settings.value("Margins/Right", 0)
             .toInt());

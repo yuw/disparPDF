@@ -335,7 +335,8 @@ void BatchCompare::saveResultsBatch(Status *status, CompareResults &results, con
 DocInfo *BatchCompare::docInfo(const PdfDocument &pdf, const QString &fileName)
 {
     DocInfo *info = new DocInfo();
-    info->fileName = QFileInfo(fileName).canonicalPath();
+    // The file, not its directory, which canonicalPath() gave
+    info->fileName = QFileInfo(fileName).canonicalFilePath();
     for (const QString &key : pdf->infoKeys()) {
         if (key == "CreationDate" || key == "ModDate")
             continue;

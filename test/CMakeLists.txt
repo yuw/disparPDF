@@ -217,6 +217,11 @@ disparpdf_test(invalid-box -1 0 -- --box=page
 disparpdf_test(invalid-box-clip -1 0 -- --box=trim --box-clip=trim
                ${DATA}/trim.pdf ${DATA}/trim-mark.pdf)
 
+# The XML result names the files compared, not their directories
+disparpdf_test(xml-file-names 1 1 --xml "/base.pdf\" pageCount="
+               --xml "/word.pdf\" pageCount=" --
+               --words ${DATA}/base.pdf ${DATA}/word.pdf)
+
 # Command line handling
 disparpdf_test(same-file 5 0 -- --words ${DATA}/base.pdf ${DATA}/base.pdf)
 disparpdf_test(missing-file -4 0 -- ${DATA}/base.pdf ${DATA}/no-such.pdf)
