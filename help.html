@@ -11,6 +11,7 @@
 <li><a href="#ran">Page Ranges</a></li>
 <li><a href="#off">Page Offset</a></li>
 <li><a href="#mar">Margins</a></li>
+<li><a href="#box">Page Boxes</a></li>
 <li><a href="#sav">Saving</a></li>
 <li><a href="#opt">The Options Dialog</a></li>
 <li><a href="#dock">Dock Windows</a></li>
@@ -136,7 +137,41 @@ margin, left of a specified left margin, and right of a specified right
 margin. One or more of these margins can be specified by, first,
 checking the <b>Exclude Margins</b> checkbox, and second by setting
 any of the margins. Margins can be set by clicking on a page view or by
-using the margin spinboxes.
+using the margin spinboxes. When comparing inside a page box, the
+margins are measured from the box's edges.
+
+<h3 id="box">Page Boxes</h3>
+<p>A PDF page can have up to five boundaries (ISO 32000-2:2020, 14.11.2):
+the <b>MediaBox</b>, the physical medium; the <b>CropBox</b>, to which it
+is clipped when displayed or printed; the <b>BleedBox</b>, to which it is
+clipped in production; the <b>TrimBox</b>, the finished page after
+trimming; and the <b>ArtBox</b>, the page's meaningful content. In the
+<b>Page Box</b> dock, <b>Page boundary</b> chooses one of them, and only
+what is inside it is compared&mdash;crop marks, colour bars or bleed
+outside the trim box, say, are ignored. <b>Whole page</b> compares the
+pages as they are, and <b>Restore Default</b> goes back to it.
+
+<p><b>Clipped to</b> says what the box is clipped to: the
+<b>MediaBox</b>, as the standard requires (the default); the
+<b>MediaBox and CropBox</b>, so that only what a viewer shows is
+compared; or <b>Nothing</b>, so that all of the box is, even where it
+extends past the MediaBox.
+
+<p>A page without the chosen box uses its default: the CropBox for the
+BleedBox, TrimBox and ArtBox, the MediaBox for the CropBox. Text is
+judged character by character, so in a word that straddles the box's
+edge only the characters inside it count. The pages are lined up on the
+box's top left corner, so a page with bleed matches the same page
+trimmed. Each page is shown whole, the part outside the box dimmed and
+the box outlined in blue; nothing outside it is highlighted.
+
+<p>Changing the box or the clipping forgets the comparison: click
+<b>Compare</b> again. Warnings&mdash;a box missing, the two files' boxes
+in different places or of different sizes, a box past the CropBox or
+the MediaBox, or nothing left of it&mdash;go to the Log, and the status
+counts them; in batch mode they go to standard error and into the
+<tt>--xmlResult</tt> file, and leave the result code alone. The choice is kept for next time, except when it came from
+<tt>--box</tt> or <tt>--box-clip</tt> and was not changed in the window.
 
 <h3 id="sav">Saving</h3>
 <p>Use the <b>Save As</b> button to pop up a Save dialog. This dialog
@@ -169,10 +204,10 @@ highlighting is, and the slower to compute&mdash;and the <b>Cache
 Size</b>, the memory in MB that rendered pages may use.
 
 <h3 id="dock">Dock Windows</h3>
-<p>The Controls, Actions, Margins, Zoning, and Log views are in dock
+<p>The Controls, Actions, Margins, Page Box, Zoning, and Log views are in dock
 widgets&mdash;these can be dragged into other dock areas (in which case
 they will reshape themselves as necessary), or dragged to float free.
-The Margins, Zoning, and Log views can also be closed; right click a
+The Margins, Page Box, Zoning, and Log views can also be closed; right click a
 dock area splitter and check their checkbox to open them again. These
 views may be shown tabbed: if there is enough space they can be dragged
 out of their tabs and all shown in full.
@@ -209,6 +244,12 @@ Options:
   -c, --characters       compare the text character by character
   -w, --words            compare the text word by word (the default otherwise)
       --any-extension    accept files whose names do not end in .pdf
+      --box=BOX          compare only what is inside the page box BOX: media,
+                           crop, bleed, trim or art (none, the default,
+                           compares whole pages)
+      --box-clip=CLIP    clip that box to the media box (media, the default),
+                           to the media and crop boxes (crop), or not at all
+                           (none)
       --language=LANG    use the given translation language, e.g., en for
                            English, cz for Czech; English is used if there is
                            no translation

@@ -16,6 +16,8 @@ This Qt6 port was created by Yuwsuke Kieda in 2026 with the assistance of AI too
 - Page range specification, and a page offset for when one document has
   pages the other does not
 - Margin exclusion
+- Comparing only inside a page boundary — the MediaBox, CropBox, BleedBox,
+  TrimBox or ArtBox (`--box`) — with the pages lined up on its corner
 - Font comparison (`--compareFonts`)
 - Pages compared in parallel, one worker thread per core
 - Batch/command line mode (`disparPDFc`), which can also show the window
@@ -220,10 +222,66 @@ disparPDFc -b --outType=1 a.pdf b.pdf
 disparPDFc -b --xmlResult=result.xml a.pdf b.pdf
 ```
 
+```sh
+# Only what is inside the trim box: crop marks, colour bars and bleed are
+# ignored, and a page with bleed matches the same page without it
+disparPDFc -b --box=trim a.pdf b.pdf
+```
+
 `disparPDFc` is not a separate program but a symbolic link to `disparPDF`
 (on Windows, a copy of it): run by that name, it is in batch mode, so
 `-b` is optional, and it needs no display.  `disparPDF -b` does the
 same, and `disparPDFc --interactive` shows the window, as `disparPDF` does.
+
+### Comparing inside a page box
+
+A PDF page can have up to five boundaries (ISO 32000-2:2020, 14.11.2):
+
+- the **MediaBox**, the physical medium;
+- the **CropBox**, to which it is clipped when displayed or printed;
+- the **BleedBox**, to which it is clipped in production;
+- the **TrimBox**, the finished page after trimming;
+- the **ArtBox**, the page's meaningful content.
+
+`--box=BOX` (or the GUI's **Page Box** dock) compares only what is inside
+one of them. `none` compares whole pages, as without the option.
+
+- **A page without the box** uses its default from the standard's Table 31:
+  the CropBox for the BleedBox, TrimBox and ArtBox, and the MediaBox for the
+  CropBox. A warning says so.
+- **Clipping**, chosen with `--box-clip=CLIP`:
+
+  | `CLIP` | what is compared |
+  |---|---|
+  | `media` (the default) | the box clipped to the MediaBox, as 14.11.2.1 requires of a processor |
+  | `crop` | the box clipped to the MediaBox and the CropBox, i.e. only what a viewer shows |
+  | `none` | the box as written, even where it extends past the MediaBox or the CropBox |
+
+- **Text** is judged character by character. In a word that straddles the
+  box's edge, the characters inside it count. A character on the edge, or
+  overlapping it, counts as inside. The character's box is the one Poppler
+  gives, not where the glyph actually puts ink. **Appearance** is compared
+  on the pixels inside the box.
+- **The pages are lined up on the box's top left corner**, after `/Rotate`,
+  rather than the CropBox's. So a page with bleed matches the same page
+  trimmed.
+- **Excluded margins are measured from the box's edges.**
+- **The views and saved differences show the whole page**: the CropBox and
+  the box together. Everything outside the box is dimmed, the box is
+  outlined in blue, and nothing outside it is highlighted.
+- **Warnings** are given once per file, with the pages they apply to, when:
+  - the box is absent;
+  - the two files' boxes differ in size or position by more than 0.01pt;
+  - with `crop`, the box extends past the CropBox;
+  - with `none`, it extends past the MediaBox;
+  - nothing is left once it is clipped.
+
+  `disparPDFc` writes them to standard error and into the `--xmlResult`
+  file, as `<warnings>`, and leaves the result code alone. The GUI writes
+  them to the log and counts them in the status line.
+- The boxes are read, and the pages rewritten to them, with
+  [qpdf](https://qpdf.sourceforge.io/). A file qpdf cannot read is reported
+  as unreadable (`-3` or `-4`) rather than compared whole.
 
 ## Settings
 
@@ -249,7 +307,9 @@ table have no GUI control at all.
 |---|---|---|---|
 | `InitialComparisonMode` | `2` | Compare box | Mode the GUI starts in: 0 appearance, 1 characters, 2 words. Batch mode ignores this and compares appearance unless `-a`, `-c` or `-w` is given |
 | `Margins/Exclude` | `false` | Exclude Margins | Ignore everything outside the margins below |
-| `Margins/Top`, `/Bottom`, `/Left`, `/Right` | `0` | Margins dock | Margin sizes, in points |
+| `Margins/Top`, `/Bottom`, `/Left`, `/Right` | `0` | Margins dock | Margin sizes, in points; inside a page box, from its edges |
+| `PageBox/Box` | `none` | Page Box dock ▸ Page boundary | Compare only inside this page box: `none`, `media`, `crop`, `bleed`, `trim` or `art` (see [Comparing inside a page box](#comparing-inside-a-page-box)). `--box` overrides it |
+| `PageBox/Clip` | `media` | Page Box dock ▸ Clipped to | What that box is clipped to: `media`, `crop` or `none`. `--box-clip` overrides it |
 | `Zoning/Enable` | `false` | Zoning | Group text into zones before comparing |
 | `Columns` | `1` | Columns | How many columns the page has; improves zoning |
 | `Tolerance/R` | `8` | Tolerance/R | Largest distance (4–144) between word rectangles for them to land in the same zone |
