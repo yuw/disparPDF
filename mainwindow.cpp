@@ -31,6 +31,7 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QFileDialog>
+#include <QGridLayout>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
@@ -348,6 +349,53 @@ void MainWindow::createWidgets(const QString &filename1,
     rightMarginSpinBox->setToolTip(tr("<p>The right margin in points. "
                 "Anything right of this will be ignored."));
     rightMarginLabel->setBuddy(rightMarginSpinBox);
+    pageBoxLabel = new QLabel(tr("Page bo&undary:"));
+    pageBoxComboBox = new QComboBox;
+    pageBoxComboBox->addItem(tr("Whole page"), pageBoxName(PageBox::None));
+    for (PageBox box : {PageBox::Media, PageBox::Crop, PageBox::Bleed,
+                        PageBox::Trim, PageBox::Art})
+        pageBoxComboBox->addItem(QString("%1Box").arg(
+                pageBoxName(box).left(1).toUpper() + pageBoxName(box).mid(1)),
+                pageBoxName(box));
+    pageBoxComboBox->setToolTip(tr("<p>Compare only what is inside this "
+                "page boundary (ISO 32000-2, 14.11.2). A page without it "
+                "uses its default: the CropBox for the BleedBox, TrimBox "
+                "and ArtBox, the MediaBox for the CropBox. The pages are "
+                "lined up on the boundary's top left corner, and the rest "
+                "of each page is shown dimmed."));
+    pageBoxLabel->setBuddy(pageBoxComboBox);
+    boxClipLabel = new QLabel(tr("Clippe&d to:"));
+    boxClipComboBox = new QComboBox;
+    boxClipComboBox->addItem(tr("MediaBox"), boxClipName(BoxClip::Media));
+    boxClipComboBox->addItem(tr("MediaBox and CropBox"),
+                             boxClipName(BoxClip::Crop));
+    boxClipComboBox->addItem(tr("Nothing (as written)"),
+                             boxClipName(BoxClip::None));
+    boxClipComboBox->setToolTip(tr("<p>What the page boundary is clipped "
+                "to: the MediaBox, as ISO 32000-2 requires; the MediaBox "
+                "and the CropBox, i.e. only what a viewer shows; or "
+                "nothing, so that all of it is compared, even outside the "
+                "MediaBox."));
+    boxClipLabel->setBuddy(boxClipComboBox);
+    {
+        // --box and --box-clip are used for this run, but not saved
+        PageBox box = PageBox::None;
+        parsePageBox(settings.value("PageBox/Box").toString(), &box);
+        BoxClip clip = BoxClip::Media;
+        parseBoxClip(settings.value("PageBox/Clip").toString(), &clip);
+        pageBoxFromCommandLine = _startupParameters->pageBoxGiven();
+        if (pageBoxFromCommandLine)
+            box = _startupParameters->pageBox();
+        boxClipFromCommandLine = _startupParameters->boxClipGiven();
+        if (boxClipFromCommandLine)
+            clip = _startupParameters->boxClip();
+        pageBoxComboBox->setCurrentIndex(
+                pageBoxComboBox->findData(pageBoxName(box)));
+        boxClipComboBox->setCurrentIndex(
+                boxClipComboBox->findData(boxClipName(clip)));
+    }
+    defaultPageBoxButton = new QPushButton(tr("Restore Default"));
+    defaultPageBoxButton->setToolTip(tr("<p>Compare whole pages again."));
     statusLabel = new QLabel(tr("Choose files..."));
     statusLabel->setFrameStyle(QFrame::StyledPanel|QFrame::Sunken);
     statusLabel->setMaximumHeight(statusLabel->minimumSizeHint().height());
@@ -385,7 +433,8 @@ void MainWindow::createWidgets(const QString &filename1,
             << toleranceYLabel << toleranceYSpinBox << marginsGroupBox
             << topMarginLabel << topMarginSpinBox << bottomMarginSpinBox
             << bottomMarginLabel << leftMarginLabel << leftMarginSpinBox
-            << rightMarginLabel << rightMarginSpinBox << saveButton
+            << rightMarginLabel << rightMarginSpinBox << pageBoxComboBox
+            << boxClipComboBox << defaultPageBoxButton << saveButton
             << helpButton << aboutButton << quitButton << logEdit
             << previousButton << nextButton << showZonesCheckBox
             << previousPage1Button << nextPage1Button
@@ -533,6 +582,22 @@ void MainWindow::createDockWidgets()
     marginsDockWidget->setWidget(marginsGroupBox);
     addDockWidget(marginsDockArea, marginsDockWidget);
 
+    pageBoxDockWidget = new QDockWidget(tr("Page Box"), this);
+    pageBoxDockWidget->setObjectName("PageBox");
+    pageBoxDockWidget->setFeatures(features|
+                                   QDockWidget::DockWidgetClosable);
+    QGridLayout *pageBoxLayout = new QGridLayout;
+    pageBoxLayout->addWidget(pageBoxLabel, 0, 0);
+    pageBoxLayout->addWidget(pageBoxComboBox, 0, 1);
+    pageBoxLayout->addWidget(boxClipLabel, 1, 0);
+    pageBoxLayout->addWidget(boxClipComboBox, 1, 1);
+    pageBoxLayout->addWidget(defaultPageBoxButton, 2, 1);
+    pageBoxLayout->setRowStretch(3, 1);
+    widget = new QWidget;
+    widget->setLayout(pageBoxLayout);
+    pageBoxDockWidget->setWidget(widget);
+    addDockWidget(marginsDockArea, pageBoxDockWidget);
+
     zoningDockWidget = new QDockWidget(tr("Zoning"), this);
     zoningDockWidget->setObjectName("Zoning");
     zoningDockWidget->setFeatures(features|
@@ -563,6 +628,7 @@ void MainWindow::createDockWidgets()
     addDockWidget(Qt::RightDockWidgetArea, logDockWidget);
 
     tabifyDockWidget(marginsDockWidget, controlDockWidget);
+    tabifyDockWidget(marginsDockWidget, pageBoxDockWidget);
     tabifyDockWidget(logDockWidget, zoningDockWidget);
     tabifyDockWidget(zoningDockWidget, actionDockWidget);
 }
@@ -647,6 +713,12 @@ void MainWindow::createConnections()
             this, SLOT(updateViews()));
     connect(bottomMarginSpinBox, SIGNAL(valueChanged(int)),
             this, SLOT(updateViews()));
+    connect(pageBoxComboBox, SIGNAL(currentIndexChanged(int)),
+            this, SLOT(pageBoxChanged()));
+    connect(boxClipComboBox, SIGNAL(currentIndexChanged(int)),
+            this, SLOT(pageBoxChanged()));
+    connect(defaultPageBoxButton, &QPushButton::clicked,
+            this, &MainWindow::restoreDefaultPageBox);
     connect(page1Label, SIGNAL(clicked(const QPoint&)),
             this, SLOT(setAMargin(const QPoint&)));
     connect(page2Label, SIGNAL(clicked(const QPoint&)),
@@ -721,6 +793,10 @@ void MainWindow::updateUi()
     optionsButton->setEnabled(!comparing);
     compareComboBox->setEnabled(!comparing);
     offsetSpinBox->setEnabled(!comparing);
+    pageBoxComboBox->setEnabled(!comparing);
+    boxClipComboBox->setEnabled(!comparing && pageBox() != PageBox::None);
+    defaultPageBoxButton->setEnabled(!comparing &&
+                                     pageBox() != PageBox::None);
     saveButton->setEnabled(viewDiffComboBox->count() > 1);
     if (!showZonesCheckBox->isEnabled())
         showZonesCheckBox->setChecked(false);
@@ -931,7 +1007,7 @@ void MainWindow::updateViews(int index)
     currentCompareIndex = compareComboBox->currentIndex();
 
     QString filename1 = filename1LineEdit->text();
-    PdfDocument pdf1 = getPdf(filename1);
+    PdfDocument pdf1 = comparedPdf(0, filename1);
     if (!pdf1)
         return;
     PdfPage page1 = pdf1->page(pair.left);
@@ -939,7 +1015,7 @@ void MainWindow::updateViews(int index)
         return;
 
     QString filename2 = filename2LineEdit->text();
-    PdfDocument pdf2 = getPdf(filename2);
+    PdfDocument pdf2 = comparedPdf(1, filename2);
     if (!pdf2)
         return;
     PdfPage page2 = pdf2->page(pair.right);
@@ -947,10 +1023,25 @@ void MainWindow::updateViews(int index)
         return;
 
     QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
-    const QPair<QPixmap, QPixmap> pixmaps = DifferenceRenderer(
-            renderSettings()).pixmaps(page1, filename1, page2, filename2,
-                                      pair);
+    // Compared inside a page box, the pages are shown whole around it
+    BoxedView view1;
+    BoxedView view2;
+    const bool whole = boxedViews(&view1, &view2);
+    const RenderSettings settings = renderSettings();
+    const QPair<QPixmap, QPixmap> pixmaps = DifferenceRenderer(settings)
+            .pixmaps(page1, filename1, page2, filename2, pair,
+                     whole ? &view1 : nullptr, whole ? &view2 : nullptr);
     QApplication::restoreOverrideCursor();
+    const BoxedView *views[] = {&view1, &view2};
+    const int pages[] = {pair.left, pair.right};
+    for (int i = 0; i < 2; ++i) {
+        shownBox[i] = QRect();
+        if (whole && pages[i] < views[i]->boxRects.count()) {
+            QRectF rect = views[i]->boxRects.at(pages[i]);
+            scaleRect(settings.dpi(), &rect);
+            shownBox[i] = rect.toAlignedRect();
+        }
+    }
     page1Label->setPixmap(pixmaps.first);
     page2Label->setPixmap(pixmaps.second);
     if (showZonesCheckBox->isChecked())
@@ -1002,6 +1093,11 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue("Margins/Right", rightMarginSpinBox->value());
     settings.setValue("Margins/Top", topMarginSpinBox->value());
     settings.setValue("Margins/Bottom", bottomMarginSpinBox->value());
+    // Not what --box or --box-clip gave, unless changed since
+    if (!pageBoxFromCommandLine)
+        settings.setValue("PageBox/Box", pageBoxName(pageBox()));
+    if (!boxClipFromCommandLine)
+        settings.setValue("PageBox/Clip", boxClipName(boxClip()));
     QMainWindow::close();
 }
 
@@ -1130,6 +1226,108 @@ PdfDocument MainWindow::getPdf(const QString &filename)
 }
 
 
+PageBox MainWindow::pageBox() const
+{
+    PageBox box = PageBox::None;
+    parsePageBox(pageBoxComboBox->currentData().toString(), &box);
+    return box;
+}
+
+
+BoxClip MainWindow::boxClip() const
+{
+    BoxClip clip = BoxClip::Media;
+    parseBoxClip(boxClipComboBox->currentData().toString(), &clip);
+    return clip;
+}
+
+
+// The document to compare and show for file which (0 or 1): the file, or
+// compared inside a page box, a copy of it rewritten to the box
+PdfDocument MainWindow::comparedPdf(const int which,
+                                    const QString &filename)
+{
+    PdfDocument pdf = getPdf(filename);
+    if (!pdf || pageBox() == PageBox::None)
+        return pdf;
+    BoxedFile &boxed = boxedFiles[which];
+    if (!boxed.isPreparedFor(filename, pageBox(), boxClip())) {
+        QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+        QString error;
+        const bool prepared = boxed.prepare(filename, pdf->numPages(),
+                                            pageBox(), boxClip(), &error);
+        QApplication::restoreOverrideCursor();
+        if (!prepared) {
+            QMessageBox::warning(this,
+                    tr("%1 — Error").arg(AboutForm::ProgramName),
+                    tr("Cannot compare inside the page boxes of '%1': %2")
+                    .arg(filename, error));
+            return PdfDocument();
+        }
+    }
+    return boxed.load();
+}
+
+
+// Compared inside a page box: the views that show it on the whole page
+bool MainWindow::boxedViews(BoxedView *view1, BoxedView *view2)
+{
+    return pageBox() != PageBox::None &&
+           boxedFiles[0].isPreparedFor(filename1LineEdit->text(), pageBox(),
+                                       boxClip()) &&
+           boxedFiles[1].isPreparedFor(filename2LineEdit->text(), pageBox(),
+                                       boxClip()) &&
+           boxedFiles[0].view(view1) && boxedFiles[1].view(view2);
+}
+
+
+// Logs the page box warnings for comparing pages1 with pages2 if verbose,
+// and counts them for the status
+void MainWindow::logBoxWarnings(const QList<int> &pages1,
+                                const QList<int> &pages2, const bool verbose)
+{
+    boxWarningCount = 0;
+    if (pageBox() == PageBox::None)
+        return;
+    const QVector<BoxWarning> warnings = boxWarnings(
+            boxedFiles[0].boxes(), boxedFiles[0].regions(), pages1,
+            boxedFiles[1].boxes(), boxedFiles[1].regions(), pages2,
+            pageBox());
+    boxWarningCount = warnings.count();
+    if (verbose)
+        for (const BoxWarning &warning : warnings)
+            writeLine(tr("<font color=darkorange>Warning: %1.</font>")
+                      .arg(warning.message.toHtmlEscaped()));
+}
+
+
+// A new page box or clip: the comparison was made inside another one
+void MainWindow::pageBoxChanged()
+{
+    if (sender() == pageBoxComboBox)
+        pageBoxFromCommandLine = false;
+    else
+        boxClipFromCommandLine = false;
+    forgetComparison();
+    if (!filename1LineEdit->text().isEmpty() &&
+        !filename2LineEdit->text().isEmpty()) {
+        page1Label->setText(tr("<p style='font-size: xx-large;"
+                "color: darkgreen'>%1: Click Compare.</p>")
+                .arg(AboutForm::ProgramName));
+        page2Label->clear();
+        statusLabel->setText(tr("Ready to compare"));
+    }
+    updateUi();
+}
+
+
+void MainWindow::restoreDefaultPageBox()
+{
+    pageBoxComboBox->setCurrentIndex(
+            pageBoxComboBox->findData(pageBoxName(PageBox::None)));
+}
+
+
 // The settings for finding and showing differences, from the widgets and
 // the Options dialog's settings
 RenderSettings MainWindow::renderSettings() const
@@ -1147,6 +1345,8 @@ RenderSettings MainWindow::renderSettings() const
     render.bottomMargin = bottomMarginSpinBox->value();
     render.leftMargin = leftMarginSpinBox->value();
     render.rightMargin = rightMarginSpinBox->value();
+    render.box = pageBox();
+    render.boxClip = boxClip();
     render.compositionMode = currentCompareIndex == CompareAppearance
             ? showComboBox->itemData(showComboBox->currentIndex()).toInt()
             : -1;
@@ -1292,11 +1492,11 @@ void MainWindow::runComparison(const bool verbose, const int pairIndexToShow)
     currentCompareIndex = compareComboBox->currentIndex() ;
     cancel = false;
     QString filename1 = filename1LineEdit->text();
-    PdfDocument pdf1 = getPdf(filename1);
+    PdfDocument pdf1 = comparedPdf(0, filename1);
     if (!pdf1)
         return;
     QString filename2 = filename2LineEdit->text();
-    PdfDocument pdf2 = getPdf(filename2);
+    PdfDocument pdf2 = comparedPdf(1, filename2);
     if (!pdf2) {
         return;
     }
@@ -1408,6 +1608,13 @@ const QPair<int, int> MainWindow::comparePages(const QString &filename1,
     options.bottomMargin = bottomMarginSpinBox->value();
     options.leftMargin = leftMarginSpinBox->value();
     options.rightMargin = rightMarginSpinBox->value();
+    if (pageBox() != PageBox::None) {
+        options.boxedDocument1 = boxedFiles[0].data();
+        options.boxedDocument2 = boxedFiles[1].data();
+        options.boxKey = pageBoxName(pageBox()) + "/" +
+                         boxClipName(boxClip());
+    }
+    logBoxWarnings(pairPages1, pairPages2, verbose);
     // 0 keeps one comparison worker per core; a positive value caps them,
     // which also caps peak memory, since every worker opens its own pair
     // of documents.  There is no GUI control: set it in the settings file.
@@ -1538,6 +1745,9 @@ void MainWindow::compareUpdateUi(const QPair<int, int> &pair,
     else
         comparisonSummary = tr("%1 differ %2/%3 compared").arg(differ)
                 .arg(pair.first).arg(pair.second);
+    if (boxWarningCount > 0)
+        comparisonSummary += " " + tr("(%n page box warning(s): see the "
+                                      "log)", "", boxWarningCount);
     statusLabel->setText(comparisonSummary);
     saveButton->setEnabled(true);
     QApplication::restoreOverrideCursor();
@@ -1573,6 +1783,7 @@ void MainWindow::forgetComparison()
     comparedOffset = 0;
     pairDifference.clear();
     viewedPairIndex = -1;
+    shownBox[0] = shownBox[1] = QRect();
     const QSignalBlocker blocker(offsetSpinBox);
     offsetSpinBox->setValue(0);
     // The results shown have to go as well.  Left behind, the View box
@@ -1718,11 +1929,11 @@ void MainWindow::save()
     SaveForm form(currentPath, &saveFilename, &saveAll, &savePages, this);
     if (form.exec()) {
         QString filename1 = filename1LineEdit->text();
-        PdfDocument pdf1 = getPdf(filename1);
+        PdfDocument pdf1 = comparedPdf(0, filename1);
         if (!pdf1)
             return;
         QString filename2 = filename2LineEdit->text();
-        PdfDocument pdf2 = getPdf(filename2);
+        PdfDocument pdf2 = comparedPdf(1, filename2);
         if (!pdf2)
             return;
         saveButton->setEnabled(false);
@@ -1771,6 +1982,9 @@ void MainWindow::saveAsImages(const int start, const int end,
         const QString &header)
 {
     const DifferenceRenderer renderer(renderSettings());
+    BoxedView view1;
+    BoxedView view2;
+    const bool whole = boxedViews(&view1, &view2);
     PdfPage page1 = pdf1->page(0);
     if (!page1)
         return;
@@ -1818,7 +2032,8 @@ void MainWindow::saveAsImages(const int start, const int end,
         if (!renderer.paintPair(&painter, pdf1, filename1LineEdit->text(),
                                 pdf2, filename2LineEdit->text(), pair,
                                 header, savePages, rect, leftRect,
-                                rightRect))
+                                rightRect, whole ? &view1 : nullptr,
+                                whole ? &view2 : nullptr))
             continue;
         QString filename = imageFilename;
         filename = filename.arg(++count);
@@ -1849,9 +2064,13 @@ bool MainWindow::saveAsPdf(const int start, const int end,
         writeError(tr("Nothing to save: no page pair is selected."));
         return false;
     }
+    BoxedView view1;
+    BoxedView view2;
+    const bool whole = boxedViews(&view1, &view2);
     if (!DifferenceRenderer(renderSettings()).saveAsPdf(saveFilename,
             pdf1, filename1LineEdit->text(), pdf2,
-            filename2LineEdit->text(), pairs, header, savePages)) {
+            filename2LineEdit->text(), pairs, header, savePages,
+            whole ? &view1 : nullptr, whole ? &view2 : nullptr)) {
         writeError(tr("Failed to save %1").arg(saveFilename));
         return false;
     }
@@ -1885,29 +2104,33 @@ void MainWindow::showZones()
         return;
     const PagePair pair = pairAt(viewedPairIndex);
     QString filename1 = filename1LineEdit->text();
-    PdfDocument pdf1 = getPdf(filename1);
+    PdfDocument pdf1 = comparedPdf(0, filename1);
     if (!pdf1)
         return;
     PdfPage page1 = pdf1->page(pair.left);
     if (!page1)
         return;
     const TextBoxList list1 = getTextBoxes(page1);
-    showZones(page1->pageSize().width(), list1, page1Label);
+    showZones(page1->pageSize().width(), list1, page1Label,
+              shownBox[0].topLeft());
 
     QString filename2 = filename2LineEdit->text();
-    PdfDocument pdf2 = getPdf(filename2);
+    PdfDocument pdf2 = comparedPdf(1, filename2);
     if (!pdf2)
         return;
     PdfPage page2 = pdf2->page(pair.right);
     if (!page2)
         return;
     const TextBoxList list2 = getTextBoxes(page2);
-    showZones(page2->pageSize().width(), list2, page2Label);
+    showZones(page2->pageSize().width(), list2, page2Label,
+              shownBox[1].topLeft());
 }
 
 
+// The zones are found on the page compared, which inside a page box is
+// shown at origin on the label's pixmap
 void MainWindow::showZones(const int Width, const TextBoxList &list,
-                           QLabel *label)
+                           QLabel *label, const QPoint &origin)
 {
     if (!label || !label->pixmap() || label->pixmap().isNull())
         return;
@@ -1924,6 +2147,7 @@ void MainWindow::showZones(const int Width, const TextBoxList &list,
             (zoomSpinBox->value() / 100.0));
     QPixmap pixmap = label->pixmap().copy();
     QPainter painter(&pixmap);
+    painter.translate(origin);
     painter.setPen(Qt::green);
     for (int i = 0; i < paths.count(); ++i) {
         const QPainterPath &path = paths.at(i);
@@ -1944,12 +2168,14 @@ void MainWindow::showMargins()
         topMarginSpinBox->value() == 0 &&
         bottomMarginSpinBox->value() == 0)
         return;
-    showMargins(page1Label);
-    showMargins(page2Label);
+    showMargins(page1Label, shownBox[0]);
+    showMargins(page2Label, shownBox[1]);
 }
 
 
-void MainWindow::showMargins(QLabel *label)
+// The margins are measured from the edges of box, where the page box is
+// on the pixmap, or of the whole pixmap if it is null
+void MainWindow::showMargins(QLabel *label, const QRect &box)
 {
     if (!label || !label->pixmap() || label->pixmap().isNull())
         return;
@@ -1957,28 +2183,31 @@ void MainWindow::showMargins(QLabel *label)
                 (zoomSpinBox->value() / 100.0));
     QPixmap pixmap = label->pixmap().copy();
     QPainter painter(&pixmap);
+    const QRect area = box.isNull() ? pixmap.rect() : box;
+    painter.translate(area.topLeft());
+    painter.setClipRect(QRect(QPoint(0, 0), area.size()));
     painter.setPen(Qt::cyan);
     int left = leftMarginSpinBox->value();
     if (left) {
         const int x = pixelOffsetForPointValue(DPI, left);
-        painter.drawLine(x, 0, x, pixmap.height());
+        painter.drawLine(x, 0, x, area.height());
     }
     int right = rightMarginSpinBox->value();
     if (right) {
-        const int x = pixmap.width() -
+        const int x = area.width() -
             pixelOffsetForPointValue(DPI, right);
-        painter.drawLine(x, 0, x, pixmap.height());
+        painter.drawLine(x, 0, x, area.height());
     }
     int top = topMarginSpinBox->value();
     if (top) {
         const int y = pixelOffsetForPointValue(DPI, top);
-        painter.drawLine(0, y, pixmap.width(), y);
+        painter.drawLine(0, y, area.width(), y);
     }
     int bottom = bottomMarginSpinBox->value();
     if (bottom) {
-        const int y = pixmap.height() -
+        const int y = area.height() -
             pixelOffsetForPointValue(DPI, bottom);
-        painter.drawLine(0, y, pixmap.width(), y);
+        painter.drawLine(0, y, area.width(), y);
     }
     painter.end();
     label->setPixmap(pixmap);
@@ -1992,9 +2221,17 @@ void MainWindow::setAMargin(const QPoint &pos)
         return;
     const int DPI = static_cast<int>(POINTS_PER_INCH *
                 (zoomSpinBox->value() / 100.0));
-    const QSize &size = page1Label->pixmap().size();
+    QSize size = page1Label->pixmap().size();
     int x = pos.x();
     int y = pos.y();
+    // Inside a page box, the margins are measured from it, on the page
+    // clicked
+    const QRect &box = shownBox[sender() == page2Label ? 1 : 0];
+    if (!box.isNull()) {
+        size = box.size();
+        x -= box.left();
+        y -= box.top();
+    }
     const int HorizontalMiddle = size.width() / 2;
     const int TopOffset = size.height() / 3;
     const int BottomOffset = size.height() - TopOffset;

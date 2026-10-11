@@ -76,6 +76,46 @@ struct BoxedView
     QVector<QRectF> boxRects;
 };
 
+// A file compared inside a page box: its boxes, the region compared on
+// each page, and copies of it rewritten to those regions, to compare, and
+// to their pages' display areas, to show them.  Shared by MainWindow and
+// BatchCompare.
+class BoxedFile
+{
+    Q_DECLARE_TR_FUNCTIONS(BoxedFile)
+
+public:
+    // Reads filename's boxes and rewrites it to the region of box, clipped
+    // as clip says, on every page.  pageCount is how many pages Poppler
+    // finds in it, which the copy must have too.  False, with *error set,
+    // if that cannot be done.
+    bool prepare(const QString &filename, const int pageCount,
+                 const PageBox box, const BoxClip clip, QString *error);
+    // Whether prepare() was last done for these, and the file is unchanged
+    bool isPreparedFor(const QString &filename, const PageBox box,
+                       const BoxClip clip) const;
+    void clear();
+
+    const QVector<PageBoxes> &boxes() const { return m_document.allBoxes(); }
+    const QVector<BoxRegion> &regions() const { return m_regions; }
+    const QByteArray &data() const { return m_data; }   // the copy compared
+    PdfDocument load() const;
+    // The copy shown, made the first time it is asked for; false if it
+    // cannot be made, when the boxes alone are shown
+    bool view(BoxedView *view);
+
+private:
+    static QString keyFor(const QString &filename, const PageBox box,
+                          const BoxClip clip);
+
+    QString m_key;
+    BoxedDocument m_document;
+    QVector<BoxRegion> m_regions;
+    QByteArray m_data;
+    QByteArray m_displayData;
+    QVector<QRectF> m_boxRects;
+};
+
 // Renders pairs of pages with their differences highlighted (or, in
 // Appearance mode, page 2 composed over page 1), for display and for
 // saving.  Rendered pixmaps are kept in QPixmapCache.

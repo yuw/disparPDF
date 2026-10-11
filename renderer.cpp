@@ -548,3 +548,90 @@ PdfDocument loadPdfData(const QByteArray &data, bool *locked)
 {
     return preparePdf(Poppler::Document::loadFromData(data), locked);
 }
+
+
+QString BoxedFile::keyFor(const QString &filename, const PageBox box,
+                          const BoxClip clip)
+{
+    return QString("%1\n%2/%3").arg(documentKey(filename))
+            .arg(pageBoxName(box), boxClipName(clip));
+}
+
+
+bool BoxedFile::prepare(const QString &filename, const int pageCount,
+                        const PageBox box, const BoxClip clip,
+                        QString *error)
+{
+    clear();
+    if (!m_document.load(filename, error))
+        return false;
+    // Pages are numbered the same in both, so they must agree on how many
+    // there are
+    if (m_document.pageCount() != pageCount) {
+        *error = tr("qpdf finds %1 pages and Poppler %2")
+                 .arg(m_document.pageCount()).arg(pageCount);
+        return false;
+    }
+    m_regions = m_document.regions(box, clip);
+    m_data = m_document.rewritten(m_regions, error);
+    if (m_data.isEmpty())
+        return false;
+    if (!load()) {
+        *error = tr("the rewritten copy cannot be read");
+        m_data.clear();
+        return false;
+    }
+    m_key = keyFor(filename, box, clip);
+    return true;
+}
+
+
+bool BoxedFile::isPreparedFor(const QString &filename, const PageBox box,
+                              const BoxClip clip) const
+{
+    return !m_key.isEmpty() && m_key == keyFor(filename, box, clip);
+}
+
+
+void BoxedFile::clear()
+{
+    m_key.clear();
+    m_document = BoxedDocument();
+    m_regions.clear();
+    m_data.clear();
+    m_displayData.clear();
+    m_boxRects.clear();
+}
+
+
+PdfDocument BoxedFile::load() const
+{
+    bool locked = false;
+    return loadPdfData(m_data, &locked);
+}
+
+
+bool BoxedFile::view(BoxedView *view)
+{
+    if (m_data.isEmpty())
+        return false;
+    if (m_displayData.isEmpty()) {
+        QVector<BoxRegion> areas;
+        QVector<QRectF> boxRects;
+        for (int page = 0; page < m_document.pageCount(); ++page) {
+            const BoxDisplay display = boxDisplay(m_document.boxes(page),
+                                                  m_regions.at(page));
+            BoxRegion area;
+            area.rect = display.area;
+            areas.append(area);
+            boxRects.append(display.boxRect);
+        }
+        QString error;
+        m_displayData = m_document.rewritten(areas, &error);
+        m_boxRects = boxRects;
+    }
+    bool locked = false;
+    view->display = loadPdfData(m_displayData, &locked);
+    view->boxRects = m_boxRects;
+    return view->display != nullptr;
+}

@@ -90,6 +90,8 @@ private slots:
     void showZones();
     void showMargins();
     void setAMargin(const QPoint &pos);
+    void pageBoxChanged();
+    void restoreDefaultPageBox();
 
 private:
     void createWidgets(const QString &filename1, const QString &filename2);
@@ -116,11 +118,17 @@ private:
     void writeLine(const QString &text);
     void writeError(const QString &text);
     PdfDocument getPdf(const QString &filename);
+    PageBox pageBox() const;
+    BoxClip boxClip() const;
+    PdfDocument comparedPdf(const int which, const QString &filename);
+    bool boxedViews(BoxedView *view1, BoxedView *view2);
+    void logBoxWarnings(const QList<int> &pages1, const QList<int> &pages2,
+                        const bool verbose);
     RenderSettings renderSettings() const;
     QList<int> getPageList(int which, const PdfDocument &pdf);
     void showZones(const int Width, const TextBoxList &list,
-            QLabel *label);
-    void showMargins(QLabel *label);
+            QLabel *label, const QPoint &origin);
+    void showMargins(QLabel *label, const QRect &box);
     bool saveAsPdf(const int start, const int end, const PdfDocument &pdf1,
             const PdfDocument &pdf2, const QString &header);
     void saveAsImages(const int start, const int end,
@@ -191,6 +199,12 @@ private:
     QSpinBox *rightMarginSpinBox;
     QBoxLayout *marginsLayout;
     QDockWidget *marginsDockWidget;
+    QLabel *pageBoxLabel;
+    QComboBox *pageBoxComboBox;
+    QLabel *boxClipLabel;
+    QComboBox *boxClipComboBox;
+    QPushButton *defaultPageBoxButton;
+    QDockWidget *pageBoxDockWidget;
 
     QBrush brush;
     QPen pen;
@@ -232,6 +246,18 @@ private:
     StartupParameters *_startupParameters;
     Status *_status;
     int currentCompareIndex;
+    // Comparing inside a page box: the two files rewritten to it, made
+    // when first needed for the box chosen, and kept while it is
+    BoxedFile boxedFiles[2];
+    // The page box warnings of the last comparison
+    int boxWarningCount = 0;
+    // Where the box is in each page view's pixmap, in pixels (null when
+    // the whole page is compared): margins are measured from it
+    QRect shownBox[2];
+    // Set while the page box and clip are the ones --box and --box-clip
+    // gave, which are used but not saved
+    bool pageBoxFromCommandLine = false;
+    bool boxClipFromCommandLine = false;
 };
 
 #endif // MAINWINDOW_HPP

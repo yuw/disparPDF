@@ -206,24 +206,10 @@ bool BatchCompare::boxDocuments(PdfDocument *pdf1, PdfDocument *pdf2)
     const EError errors[] = {ErrorUnableToLoadFile1, ErrorUnableToLoadFile2};
     for (int i = 0; i < 2; ++i) {
         QString error;
-        bool locked = false;
         PdfDocument pdf;
-        if (boxed[i].load(filenames[i], &error)) {
-            regions[i] = boxed[i].regions(render.box, render.boxClip);
-            boxedData[i] = boxed[i].rewritten(regions[i], &error);
-            if (!boxedData[i].isEmpty()) {
-                pdf = loadPdfData(boxedData[i], &locked);
-                if (!pdf)
-                    error = tr("the rewritten copy cannot be read");
-            }
-        }
-        // Pages are numbered the same in both, so they must agree on how
-        // many there are
-        if (pdf && pdf->numPages() != (*pdfs[i])->numPages()) {
-            error = tr("qpdf finds %1 pages and Poppler %2")
-                    .arg(pdf->numPages()).arg((*pdfs[i])->numPages());
-            pdf.reset();
-        }
+        if (boxed[i].prepare(filenames[i], (*pdfs[i])->numPages(),
+                             render.box, render.boxClip, &error))
+            pdf = boxed[i].load();
         if (!pdf) {
             _status->setStatusWithDescription(errors[i],
                     tr("Cannot compare inside the page boxes of '%1': %2")
@@ -233,27 +219,6 @@ bool BatchCompare::boxDocuments(PdfDocument *pdf1, PdfDocument *pdf2)
         *pdfs[i] = std::move(pdf);
     }
     return true;
-}
-
-// The file (0 or 1) rewritten to its pages' display areas, for showing
-// what was compared inside a page box on the whole page; false if that
-// cannot be done, when the boxes alone are shown
-bool BatchCompare::boxedView(const int file, BoxedView *view)
-{
-    QVector<BoxRegion> areas;
-    for (int page = 0; page < boxed[file].pageCount(); ++page) {
-        const BoxDisplay display = boxDisplay(boxed[file].boxes(page),
-                                              regions[file].at(page));
-        BoxRegion area;
-        area.rect = display.area;
-        areas.append(area);
-        view->boxRects.append(display.boxRect);
-    }
-    QString error;
-    bool locked = false;
-    view->display = loadPdfData(boxed[file].rewritten(areas, &error),
-                                &locked);
-    return view->display != nullptr;
 }
 
 QList<int> BatchCompare::getPageListBatch( const int which, const PdfDocument &pdf, const int startPageSet)
@@ -310,14 +275,14 @@ void BatchCompare::comparePagesBatch(
     options.rightMargin = render.rightMargin;
     options.maxWorkers = compareThreads;
     if (render.box != PageBox::None) {
-        options.boxedDocument1 = boxedData[0];
-        options.boxedDocument2 = boxedData[1];
+        options.boxedDocument1 = boxed[0].data();
+        options.boxedDocument2 = boxed[1].data();
         options.boxKey = pageBoxName(render.box) + "/" +
                          boxClipName(render.boxClip);
         const int total = qMin(pages1.count(), pages2.count());
         for (const BoxWarning &warning : boxWarnings(
-                 boxed[0].allBoxes(), regions[0], pages1.mid(0, total),
-                 boxed[1].allBoxes(), regions[1], pages2.mid(0, total),
+                 boxed[0].boxes(), boxed[0].regions(), pages1.mid(0, total),
+                 boxed[1].boxes(), boxed[1].regions(), pages2.mid(0, total),
                  render.box))
             warn(warning);
     }
@@ -355,8 +320,8 @@ void BatchCompare::saveResultsBatch(Status *status, CompareResults &results, con
     // Compared inside a page box, the pages are shown whole around it
     BoxedView views[2];
     const bool wholePages = render.box != PageBox::None &&
-                            boxedView(0, &views[0]) &&
-                            boxedView(1, &views[1]);
+                            boxed[0].view(&views[0]) &&
+                            boxed[1].view(&views[1]);
     if (!DifferenceRenderer(render).saveAsPdf(
             _startupParameters->pdfDiffFilePath(), pdf1,
             _startupParameters->file1(), pdf2, _startupParameters->file2(),
