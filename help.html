@@ -162,15 +162,21 @@ BleedBox, TrimBox and ArtBox, the MediaBox for the CropBox. Text is
 judged character by character, so in a word that straddles the box's
 edge only the characters inside it count. The pages are lined up on the
 box's top left corner, so a page with bleed matches the same page
-trimmed. Each page is shown whole, the part outside the box dimmed and
-the box outlined in blue; nothing outside it is highlighted.
+trimmed. In the views, and in what is saved, each page is shown whole,
+the part outside the box dimmed and the box outlined in blue; nothing
+outside it is highlighted. In Appearance mode, the composing choices of
+<b>Show</b> compose page 2 over page 1 inside the boxes, where they are
+compared, shown on page 1's page. Boxes, like margins, are in default
+user space units: <tt>/UserUnit</tt> is not applied.
 
 <p>Changing the box or the clipping forgets the comparison: click
 <b>Compare</b> again. Warnings&mdash;a box missing, the two files' boxes
 in different places or of different sizes, a box past the CropBox or
 the MediaBox, or nothing left of it&mdash;go to the Log, and the status
 counts them; in batch mode they go to standard error and into the
-<tt>--xmlResult</tt> file, and leave the result code alone. The choice is kept for next time, except when it came from
+<tt>--xmlResult</tt> file, and leave the result code alone. In batch
+mode <tt>--box-clip</tt> without <tt>--box</tt> is ignored, with a
+warning. The choice is kept for next time, except when it came from
 <tt>--box</tt> or <tt>--box-clip</tt> and was not changed in the window.
 
 <h3 id="sav">Saving</h3>

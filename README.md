@@ -144,8 +144,10 @@ brew install yuw/disparPDF/poppler-qt6
 
 ### Build
 
-On macOS, CMake locates Homebrew's keg-only `qt@6` and `poppler-qt6` automatically,
-so no environment variables are needed:
+On macOS, CMake locates Homebrew's keg-only `qt@6` and `poppler-qt6`, and
+`qpdf`, automatically, so no environment variables are needed. Elsewhere it
+finds qpdf with pkg-config (`libqpdf`; e.g. the `libqpdf-dev` package on
+Debian and Ubuntu):
 
 ```sh
 cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -269,16 +271,31 @@ one of them. `none` compares whole pages, as without the option.
 - **The views and saved differences show the whole page**: the CropBox and
   the box together. Everything outside the box is dimmed, the box is
   outlined in blue, and nothing outside it is highlighted.
-- **Warnings** are given once per file, with the pages they apply to, when:
-  - the box is absent;
-  - the two files' boxes differ in size or position by more than 0.01pt;
-  - with `crop`, the box extends past the CropBox;
-  - with `none`, it extends past the MediaBox;
-  - nothing is left once it is clipped.
+- **Warnings** are given once per file, or for the pair, with the pages
+  they apply to, when:
+  - the box is absent (`absent`);
+  - with `crop`, the box extends past the CropBox (`beyond-crop`);
+  - with `none`, it extends past the MediaBox (`beyond-media`);
+  - nothing is left once it is clipped (`empty`);
+  - the two files' boxes differ in size or position on the page by more
+    than 0.01pt (`differ`, for the pair);
+  - `--box-clip` is given without `--box`, and so ignored
+    (`clip-without-box`).
 
-  `disparPDFc` writes them to standard error and into the `--xmlResult`
-  file, as `<warnings>`, and leaves the result code alone. The GUI writes
-  them to the log and counts them in the status line.
+  `disparPDFc` writes them to standard error and leaves the result code
+  alone. With `--xmlResult` they also go into the XML, as a `<warnings>`
+  element holding one `<warning>` per kind: `kind` is the name in brackets
+  above, `file` is 1 or 2 (left out for the pair), `pages` lists the pages,
+  e.g. `1-3, 5` (for `differ`, FILE1/FILE2 pairs such as `3/4` when the
+  page numbers differ), and `message` is the text. The GUI writes them to
+  the log and counts them in the status line.
+- **In the GUI**, changing the box or the clipping forgets the
+  comparison, which was made inside another box, so click Compare again.
+  The choice is kept for next time, but one given with `--box` or
+  `--box-clip` when starting the program is used without being saved,
+  unless it is changed in the window.
+- Boxes, like margins, are in default user space units: `/UserUnit`
+  (PDF 1.6) is not applied.
 - The boxes are read, and the pages rewritten to them, with
   [qpdf](https://qpdf.sourceforge.io/). A file qpdf cannot read is reported
   as unreadable (`-3` or `-4`) rather than compared whole.

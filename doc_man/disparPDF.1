@@ -39,7 +39,11 @@ bleed outside the trim box are ignored.  A page without the box uses its
 default (the CropBox, or for the CropBox the MediaBox); the box is
 clipped to the MediaBox unless
 .B \-\-box\-clip
-says otherwise.  Warnings, such as a missing box or boxes that differ
+says otherwise
+.RB ( \-\-box\-clip
+without
+.B \-\-box
+is ignored, with a warning).  Warnings, such as a missing box or boxes that differ
 between the files, go to standard error and into the
 .B \-\-xmlResult
 file, and do not change the result code.
