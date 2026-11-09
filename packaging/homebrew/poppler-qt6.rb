@@ -2,14 +2,16 @@ class PopplerQt6 < Formula
   desc "Qt6 bindings for the Poppler PDF rendering library"
   homepage "https://poppler.freedesktop.org/"
 
-  # keg が libpoppler を同梱するようになったため Homebrew の poppler とは独立だが、
-  # PDF 解析エンジンが古いまま取り残されないよう poppler formula に合わせて上げる
+  # kegがlibpopplerを同梱するようになったためHomebrewのpopplerとは独立だが，
+  # PDF解析エンジンが古いまま取り残されないようpoppler formulaに合わせて上げる
   url "https://poppler.freedesktop.org/poppler-26.09.0.tar.xz"
   sha256 "8059eadb6805340768f138c465b57f8164c92b4a0773c37ef031ea6c0d987b2e"
   license any_of: ["GPL-2.0-only", "GPL-3.0-only"]
+  # 1: poppler-data（CMapなど）をkegに同梱し，その場所をlibpopplerに焼き込むようにした
+  revision 1
 
-  # 以前は glib バインディングの mutex 初期化パッチを当てていたが、
-  # このformulaは -DENABLE_GLIB=OFF でビルドしており一行も効いていなかったため削除した。
+  # 以前はglibバインディングのmutex初期化パッチを当てていたが，
+  # このformulaは-DENABLE_GLIB=OFFでビルドしており一行も効いていなかったため削除した．
 
   depends_on "cmake"   => :build
   depends_on "pkgconf" => :build
@@ -41,6 +43,23 @@ class PopplerQt6 < Formula
     poppler_prefix = Formula["poppler"].opt_prefix
     qt6_prefix     = Formula["qt@6"].opt_prefix
 
+    # ── poppler-data ─────────────────────────────────────────────────────
+    # libpopplerはCMap・cidToUnicodeなどの置き場所をビルド時に焼き込む．
+    # CMakeLists.txtはpkg-configでpoppler-data.pcを見つけるとその
+    # poppler_datadirを使うが，Homebrewではそれが
+    # Cellar/poppler/<バージョン>/share/popplerというバージョン付きの
+    # パスになる．そのためpopplerが更新されて旧版がbrew cleanupで
+    # 消えると参照先がなくなり，「Missing language pack for
+    # 'Adobe-Japan1' mapping」で和文が描かれも抽出されもしなくなっていた
+    # （比較は和文を無視して「同じ」と答える）．
+    # libpoppler本体と同じくkeg内に同梱し，その場所を使わせる．
+    # -DPOPPLER_DATADIRはpkg-configの結果に上書きされるので，
+    # 上書きする行を取り除いておく（行が変わっていればinreplaceが失敗する）．
+    (share/"poppler").mkpath
+    cp_r Dir["#{Formula["poppler"].opt_share}/poppler/*"], share/"poppler"
+    inreplace "CMakeLists.txt",
+              'set(POPPLER_DATADIR "${_output_var}")', ""
+
     args = std_cmake_args + %W[
       -DCMAKE_PREFIX_PATH=#{qt6_prefix};#{poppler_prefix}
       -DBUILD_GTK_TESTS=OFF
@@ -53,6 +72,7 @@ class PopplerQt6 < Formula
       -DENABLE_UNSTABLE_API_ABI_HEADERS=ON
       -DWITH_GObjectIntrospection=OFF
       -DCMAKE_INSTALL_RPATH=#{rpath}
+      -DPOPPLER_DATADIR=#{share}/poppler
     ]
 
     system "cmake", "-S", ".", "-B", "build", *args
@@ -76,14 +96,14 @@ class PopplerQt6 < Formula
     end
 
     # ── ライブラリ ───────────────────────────────────────────────────────
-    # libpoppler-qt6 と、それがリンクしている libpoppler 本体の両方を keg に入れる。
+    # libpoppler-qt6と，それがリンクしているlibpoppler本体の両方をkegに入れる．
     #
-    # 以前は Homebrew の poppler formula の dylib を参照するよう書き換えていたが、
-    # poppler は ABI 安定性を保証しておらず soname (libpoppler.NNN.dylib) が
-    # バージョンごとに変わる。そのため poppler が更新されるたびに参照先が消え、
-    # 「Library not loaded: .../libpoppler.161.dylib」で起動できなくなっていた。
-    # ここでは同じソースツリーからビルドした libpoppler を keg 内に同梱し、
-    # Homebrew の poppler のバージョンから独立させる。
+    # 以前はHomebrewのpoppler formulaのdylibを参照するよう書き換えていたが，
+    # popplerはABI安定性を保証しておらずsoname (libpoppler.NNN.dylib)が
+    # バージョンごとに変わる．そのためpopplerが更新されるたびに参照先が消え，
+    # 「Library not loaded: .../libpoppler.161.dylib」で起動できなくなっていた．
+    # ここでは同じソースツリーからビルドしたlibpopplerをkeg内に同梱し，
+    # Homebrewのpopplerのバージョンから独立させる．
     lib.install Dir["build/qt6/src/libpoppler-qt6*"]
 
     core_dylibs = Dir["#{buildpath}/build/libpoppler.*.dylib"]
@@ -91,7 +111,7 @@ class PopplerQt6 < Formula
     odie "libpoppler dylib not found in the build tree" if core_dylibs.empty?
     lib.install core_dylibs
 
-    # 同梱した libpoppler の install name を keg 内の絶対パスにする
+    # 同梱したlibpopplerのinstall nameをkeg内の絶対パスにする
     Dir["#{lib}/libpoppler.*.dylib"].each do |core_dylib|
       next if File.symlink?(core_dylib)
 
@@ -100,9 +120,9 @@ class PopplerQt6 < Formula
       system "codesign", "--force", "--sign", "-", core_dylib
     end
 
-    # libpoppler-qt6 の @rpath 参照を、同梱した libpoppler の絶対パスへ書き換える。
-    # soname は poppler のバージョンごとに変わるため決め打ちせず、
-    # 実際のロードコマンドから読み取る。
+    # libpoppler-qt6の@rpath参照を，同梱したlibpopplerの絶対パスへ書き換える．
+    # sonameはpopplerのバージョンごとに変わるため決め打ちせず，
+    # 実際のロードコマンドから読み取る．
     Dir["#{lib}/libpoppler-qt6.*.*.*.dylib"].each do |qt6_dylib|
       refs = MachO::MachOFile.new(qt6_dylib).linked_dylibs
       refs.grep(%r{\A@rpath/libpoppler\.[0-9.]+\.dylib\z}).each do |ref|
@@ -112,9 +132,9 @@ class PopplerQt6 < Formula
     end
 
     # ── pkg-config ───────────────────────────────────────────────────────
-    # Qt6 バインディングのヘッダは自己完結しており poppler 本体の
-    # ヘッダを必要としないため、Requires: poppler は付けない。
-    # （付けると Homebrew の poppler の libpoppler も一緒にリンクされ、
+    # Qt6バインディングのヘッダは自己完結しておりpoppler本体の
+    # ヘッダを必要としないため，Requires: popplerは付けない．
+    # （付けるとHomebrewのpopplerのlibpopplerも一緒にリンクされ，
     #   同梱したものと二重にロードされてしまう）
     (lib/"pkgconfig/poppler-qt6.pc").write <<~PC
       prefix=#{prefix}
@@ -131,6 +151,12 @@ class PopplerQt6 < Formula
   end
 
   test do
+    # keg-onlyなので，kegのpkgconfigを明示しないと見つからない
+    ENV.prepend_path "PKG_CONFIG_PATH", lib/"pkgconfig"
     system Formula["pkgconf"].opt_bin/"pkg-config", "--exists", "poppler-qt6"
+    # 同梱したpoppler-dataがあり，libpopplerがその場所を参照していること
+    assert_predicate share/"poppler/cMap/Adobe-Japan1", :directory?
+    core_dylib = Dir["#{lib}/libpoppler.*.dylib"].reject { |f| File.symlink?(f) }.first
+    assert_match "#{share}/poppler", File.binread(core_dylib)
   end
 end
