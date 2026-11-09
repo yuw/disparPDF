@@ -210,6 +210,7 @@ set(COMMON_SOURCES
     helpform.cpp
     label.cpp
     lineedit.cpp
+    marginspinbox.cpp
     mainwindow.cpp
     pagecompare.cpp
     renderer.cpp
@@ -234,6 +235,7 @@ set(COMMON_HEADERS
     helpform.hpp
     label.hpp
     lineedit.hpp
+    marginspinbox.hpp
     mainwindow.hpp
     optionsform.hpp
     pagebox.h

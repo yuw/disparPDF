@@ -148,7 +148,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="+127"/>
+        <location filename="mainwindow.cpp" line="+141"/>
         <source>File #&amp;1...</source>
         <translation>Soubor #&amp;1...</translation>
     </message>
@@ -214,13 +214,13 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     </message>
     <message>
         <location line="+2"/>
-        <location line="+1413"/>
+        <location line="+1476"/>
         <location line="+198"/>
         <source>&amp;Compare</source>
         <translation>&amp;Porovnat</translation>
     </message>
     <message>
-        <location line="-1607"/>
+        <location line="-1670"/>
         <source>&lt;p&gt;Click to compare (or re-compare) the documents&amp;mdash;or to cancel a comparison that&apos;s in progress.</source>
         <translation>&lt;p&gt;Klepněte pro porovnání (nebo pro nové porovnání) dokumentu&amp;mdash; nebo pro zrušení probíhajícího porovnávání.</translation>
     </message>
@@ -261,13 +261,13 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     </message>
     <message>
         <location line="+8"/>
-        <location line="+1410"/>
+        <location line="+1473"/>
         <location line="+221"/>
         <source>(Not viewing)</source>
         <translation>(Nezobrazeno)</translation>
     </message>
     <message>
-        <location line="-1628"/>
+        <location line="-1691"/>
         <source>S&amp;how:</source>
         <translation>&amp;Ukázat:</translation>
     </message>
@@ -383,7 +383,52 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation>&amp;Ukázat oblasti</translation>
     </message>
     <message>
-        <location line="+1515"/>
+        <location line="+17"/>
+        <source>&lt;p&gt;The top margin, in the unit chosen below. Anything above this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Horní okraj v jednotce zvolené níže. Vše nad ním se bude přehlížet.</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>&lt;p&gt;The left margin, in the unit chosen below. Anything left of this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Levý okraj v jednotce zvolené níže. Vše nalevo od něj se bude přehlížet.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>&lt;p&gt;The right margin, in the unit chosen below. Anything right of this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Pravý okraj v jednotce zvolené níže. Vše napravo od něj se bude přehlížet.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Unit:</source>
+        <translation type="unfinished">Jednotka:</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Points (pt)</source>
+        <translation type="unfinished">Body (pt)</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Millimetres (mm)</source>
+        <translation type="unfinished">Milimetry (mm)</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>&lt;p&gt;The unit the margins are shown and typed in. They are kept in whole points whichever is chosen, so a margin typed in millimetres goes to the nearest point (20 mm is 57 pt, shown as 20.1 mm).</source>
+        <translation type="unfinished">&lt;p&gt;Jednotka, ve které se okraje zobrazují a zadávají. Bez ohledu na volbu se uchovávají v celých bodech, takže okraj zadaný v milimetrech se zaokrouhlí na nejbližší bod (20 mm je 57 pt, zobrazeno jako 20,1 mm).</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Reset to &amp;0</source>
+        <translation type="unfinished">Vynulovat na &amp;0</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>&lt;p&gt;Sets all four margins to 0.</source>
+        <translation type="unfinished">&lt;p&gt;Nastaví všechny čtyři okraje na 0.</translation>
+    </message>
+    <message>
+        <location line="+1509"/>
         <source>All files (*);;PDF files (*.pdf)</source>
         <translation type="unfinished">Všechny soubory (*);;Soubory PDF (*.pdf)</translation>
     </message>
@@ -404,7 +449,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">Není co uložit: není vybrána žádná dvojice stran.</translation>
     </message>
     <message>
-        <location line="-1803"/>
+        <location line="-1866"/>
         <source>&lt;p&gt;This shows the zones that are being used and may be helpful when adjusting tolerances. (Its original purpose was for debugging.)</source>
         <translation>&lt;p&gt;Toto ukazuje oblasti, které jsou používány, a může být užitečné při úpravách odchylek (Původním účelem tu bylo ladění.)</translation>
     </message>
@@ -424,42 +469,27 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation>&amp;Nahoře:</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>&lt;p&gt;The top margin in points. Anything above this will be ignored.</source>
-        <translation>&lt;p&gt;Horní okraj v bodech. Vše nad ním se bude přehlížet.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+11"/>
         <source>&amp;Bottom:</source>
         <translation>&amp;Dole:</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>&lt;p&gt;The bottom margin in points. Anything below this will be ignored.</source>
-        <translation>&lt;p&gt;Dolní okraj v bodech. Vše pod ním se bude přehlížet.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+10"/>
         <source>Le&amp;ft:</source>
         <translation>V&amp;levo:</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>&lt;p&gt;The left margin in points. Anything left of this will be ignored.</source>
-        <translation>&lt;p&gt;Levý okraj v bodech. Vše nalevo od něj se bude přehlížet.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+9"/>
         <source>R&amp;ight:</source>
         <translation>V&amp;pravo:</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>&lt;p&gt;The right margin in points. Anything right of this will be ignored.</source>
-        <translation>&lt;p&gt;Pravý okraj v bodech. Vše napravo od něj se bude přehlížet.</translation>
+        <location line="-13"/>
+        <source>&lt;p&gt;The bottom margin, in the unit chosen below. Anything below this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Dolní okraj v jednotce zvolené níže. Vše pod ním se bude přehlížet.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+43"/>
         <source>Page bo&amp;undary:</source>
         <translation type="unfinished">Rá&amp;meček strany:</translation>
     </message>
@@ -580,36 +610,36 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     </message>
     <message>
         <location line="+84"/>
-        <location line="+412"/>
+        <location line="+424"/>
         <source>Controls</source>
         <translation>Ovládání</translation>
     </message>
     <message>
-        <location line="-377"/>
-        <location line="+389"/>
+        <location line="-389"/>
+        <location line="+401"/>
         <source>Actions</source>
         <translation>Činnosti</translation>
     </message>
     <message>
-        <location line="-369"/>
-        <location line="+393"/>
+        <location line="-381"/>
+        <location line="+405"/>
         <source>Margins</source>
         <translation>Okraje</translation>
     </message>
     <message>
-        <location line="-367"/>
+        <location line="-371"/>
         <source>Page Box</source>
         <translation type="unfinished">Rámeček strany</translation>
     </message>
     <message>
         <location line="+16"/>
-        <location line="+339"/>
+        <location line="+343"/>
         <source>Zoning</source>
         <translation>Oblasti</translation>
     </message>
     <message>
-        <location line="-316"/>
-        <location line="+335"/>
+        <location line="-320"/>
+        <location line="+339"/>
         <source>Log</source>
         <translation>Zápis</translation>
     </message>
@@ -644,13 +674,13 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">%1 — Zápis</translation>
     </message>
     <message>
-        <location line="+188"/>
+        <location line="+190"/>
         <source>%1 — Choose File #1</source>
         <oldsource>DiffPDF — Choose File #1</oldsource>
         <translation type="unfinished">%1 — Vybrat soubor #1</translation>
     </message>
     <message numerus="yes">
-        <location line="+651"/>
+        <location line="+674"/>
         <source>(%n page box warning(s): see the log)</source>
         <translation type="unfinished">
             <numerusform>(%n varování k rámečkům stran: viz zápis)</numerusform>
@@ -664,7 +694,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation>Soubory PDF (*.pdf)</translation>
     </message>
     <message>
-        <location line="-671"/>
+        <location line="-694"/>
         <location line="+39"/>
         <location line="+34"/>
         <location line="+40"/>
@@ -693,12 +723,12 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     <message>
         <location line="+5"/>
         <location line="+39"/>
-        <location line="+307"/>
+        <location line="+330"/>
         <source>1-%1</source>
         <translation>1-%1</translation>
     </message>
     <message>
-        <location line="-341"/>
+        <location line="-364"/>
         <source>Choose second file</source>
         <translation>Vybrat druhý soubor</translation>
     </message>
@@ -758,7 +788,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">&lt;p style=&apos;font-size: xx-large;color: darkgreen&apos;&gt;%1: Klepněte na Porovnat.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location line="+58"/>
+        <location line="+81"/>
         <source>&lt;b&gt;%1&lt;/b&gt;</source>
         <translation>&lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
@@ -1240,7 +1270,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">Chyba při zápisu souboru s výsledky XML: %1</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="+277"/>
+        <location filename="main.cpp" line="+283"/>
         <source>unrecognized argument &apos;</source>
         <translation type="unfinished">nerozpoznaný argument &apos;</translation>
     </message>

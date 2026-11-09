@@ -146,7 +146,7 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="+127"/>
+        <location filename="mainwindow.cpp" line="+141"/>
         <source>File #&amp;1...</source>
         <translation>Datei #&amp;1...</translation>
     </message>
@@ -212,13 +212,13 @@
     </message>
     <message>
         <location line="+2"/>
-        <location line="+1413"/>
+        <location line="+1476"/>
         <location line="+198"/>
         <source>&amp;Compare</source>
         <translation>&amp;Vergleichen</translation>
     </message>
     <message>
-        <location line="-1607"/>
+        <location line="-1670"/>
         <source>&lt;p&gt;Click to compare (or re-compare) the documents&amp;mdash;or to cancel a comparison that&apos;s in progress.</source>
         <translation>&lt;p&gt;Startet den Vergleich der Dokumente &amp;mdash; oder bricht einen laufenden Vergleich ab.</translation>
     </message>
@@ -259,13 +259,13 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+1410"/>
+        <location line="+1473"/>
         <location line="+221"/>
         <source>(Not viewing)</source>
         <translation>(Keine Anzeige)</translation>
     </message>
     <message>
-        <location line="-1628"/>
+        <location line="-1691"/>
         <source>S&amp;how:</source>
         <translation>&amp;Anzeige:</translation>
     </message>
@@ -401,42 +401,72 @@
         <translation>&amp;Oben:</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>&lt;p&gt;The top margin in points. Anything above this will be ignored.</source>
-        <translation>&lt;p&gt;Der obere Abstand in Punkten. Alles innerhalb des Bereichs wird ignoriert.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+11"/>
         <source>&amp;Bottom:</source>
         <translation>&amp;Unten:</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>&lt;p&gt;The bottom margin in points. Anything below this will be ignored.</source>
-        <translation>&lt;p&gt;Der untere Abstand in Punkten. Alles innerhalb des Bereichs wird ignoriert.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+10"/>
         <source>Le&amp;ft:</source>
         <translation>&amp;Links:</translation>
     </message>
     <message>
-        <location line="+5"/>
-        <source>&lt;p&gt;The left margin in points. Anything left of this will be ignored.</source>
-        <translation>&lt;p&gt;Der linke Abstand in Punkten. Alles innerhalb des Bereichs wird ignoriert.</translation>
-    </message>
-    <message>
-        <location line="+3"/>
+        <location line="+9"/>
         <source>R&amp;ight:</source>
         <translation>&amp;Rechts:</translation>
     </message>
     <message>
-        <location line="+6"/>
-        <source>&lt;p&gt;The right margin in points. Anything right of this will be ignored.</source>
-        <translation>&lt;p&gt;Der rechte Abstand in Punkten. Alles innerhalb des Bereichs wird ignoriert.</translation>
+        <location line="-13"/>
+        <source>&lt;p&gt;The bottom margin, in the unit chosen below. Anything below this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Der untere Abstand in der unten gewählten Einheit. Alles unterhalb davon wird ignoriert.</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="-10"/>
+        <source>&lt;p&gt;The top margin, in the unit chosen below. Anything above this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Der obere Abstand in der unten gewählten Einheit. Alles oberhalb davon wird ignoriert.</translation>
+    </message>
+    <message>
+        <location line="+19"/>
+        <source>&lt;p&gt;The left margin, in the unit chosen below. Anything left of this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Der linke Abstand in der unten gewählten Einheit. Alles links davon wird ignoriert.</translation>
+    </message>
+    <message>
+        <location line="+10"/>
+        <source>&lt;p&gt;The right margin, in the unit chosen below. Anything right of this will be ignored.</source>
+        <translation type="unfinished">&lt;p&gt;Der rechte Abstand in der unten gewählten Einheit. Alles rechts davon wird ignoriert.</translation>
+    </message>
+    <message>
+        <location line="+6"/>
+        <source>Unit:</source>
+        <translation type="unfinished">Einheit:</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Points (pt)</source>
+        <translation type="unfinished">Punkt (pt)</translation>
+    </message>
+    <message>
+        <location line="+2"/>
+        <source>Millimetres (mm)</source>
+        <translation type="unfinished">Millimeter (mm)</translation>
+    </message>
+    <message>
+        <location line="+5"/>
+        <source>&lt;p&gt;The unit the margins are shown and typed in. They are kept in whole points whichever is chosen, so a margin typed in millimetres goes to the nearest point (20 mm is 57 pt, shown as 20.1 mm).</source>
+        <translation type="unfinished">&lt;p&gt;Die Einheit, in der die Abstände angezeigt und eingegeben werden. Gespeichert werden sie unabhängig davon in ganzen Punkten, daher wird ein in Millimetern eingegebener Abstand auf den nächsten Punkt gerundet (20 mm sind 57 pt, angezeigt als 20,1 mm).</translation>
+    </message>
+    <message>
+        <location line="+7"/>
+        <source>Reset to &amp;0</source>
+        <translation type="unfinished">Auf &amp;0 zurücksetzen</translation>
+    </message>
+    <message>
+        <location line="+1"/>
+        <source>&lt;p&gt;Sets all four margins to 0.</source>
+        <translation type="unfinished">&lt;p&gt;Setzt alle vier Abstände auf 0.</translation>
+    </message>
+    <message>
+        <location line="+1"/>
         <source>Page bo&amp;undary:</source>
         <translation type="unfinished">Seitenra&amp;hmen:</translation>
     </message>
@@ -557,36 +587,36 @@
     </message>
     <message>
         <location line="+84"/>
-        <location line="+412"/>
+        <location line="+424"/>
         <source>Controls</source>
         <translation>Steuerung</translation>
     </message>
     <message>
-        <location line="-377"/>
-        <location line="+389"/>
+        <location line="-389"/>
+        <location line="+401"/>
         <source>Actions</source>
         <translation>Aktionen</translation>
     </message>
     <message>
-        <location line="-369"/>
-        <location line="+393"/>
+        <location line="-381"/>
+        <location line="+405"/>
         <source>Margins</source>
         <translation>Randbereich</translation>
     </message>
     <message>
-        <location line="-367"/>
+        <location line="-371"/>
         <source>Page Box</source>
         <translation type="unfinished">Seitenrahmen</translation>
     </message>
     <message>
         <location line="+16"/>
-        <location line="+339"/>
+        <location line="+343"/>
         <source>Zoning</source>
         <translation>Einteilung (Zonen-Bildung)</translation>
     </message>
     <message>
-        <location line="-316"/>
-        <location line="+335"/>
+        <location line="-320"/>
+        <location line="+339"/>
         <source>Log</source>
         <translation>Log</translation>
     </message>
@@ -621,7 +651,7 @@
         <translation type="unfinished">%1 — Log</translation>
     </message>
     <message>
-        <location line="+865"/>
+        <location line="+890"/>
         <source>All files (*);;PDF files (*.pdf)</source>
         <translation type="unfinished">Alle Dateien (*);;PDF-Dateien (*.pdf)</translation>
     </message>
@@ -642,13 +672,13 @@
         <translation type="unfinished">Nichts zu speichern: Es ist kein Seitenpaar ausgewählt.</translation>
     </message>
     <message>
-        <location line="-966"/>
+        <location line="-989"/>
         <source>%1 — Choose File #1</source>
         <oldsource>ConfrontaPDF — Choose File #1</oldsource>
         <translation type="unfinished">%1 — Bitte Datei #1 auswählen</translation>
     </message>
     <message numerus="yes">
-        <location line="+651"/>
+        <location line="+674"/>
         <source>(%n page box warning(s): see the log)</source>
         <translation type="unfinished">
             <numerusform>(%n Warnung zu Seitenrahmen: siehe Log)</numerusform>
@@ -661,7 +691,7 @@
         <translation>PDF-Dateien (*.pdf)</translation>
     </message>
     <message>
-        <location line="-671"/>
+        <location line="-694"/>
         <location line="+39"/>
         <location line="+34"/>
         <location line="+40"/>
@@ -690,12 +720,12 @@
     <message>
         <location line="+5"/>
         <location line="+39"/>
-        <location line="+307"/>
+        <location line="+330"/>
         <source>1-%1</source>
         <translation>1-%1</translation>
     </message>
     <message>
-        <location line="-341"/>
+        <location line="-364"/>
         <source>Choose second file</source>
         <translation>Zweite Datei auswählen</translation>
     </message>
@@ -755,7 +785,7 @@
         <translation type="unfinished">&lt;p style=&apos;font-size: xx-large;color: darkgreen&apos;&gt;%1: Bitte Schaltfläche &quot;Vergleichen&quot; drücken.&lt;/p&gt;</translation>
     </message>
     <message>
-        <location line="+58"/>
+        <location line="+81"/>
         <source>&lt;b&gt;%1&lt;/b&gt;</source>
         <translation>&lt;b&gt;%1&lt;/b&gt;</translation>
     </message>
@@ -1243,7 +1273,7 @@
         <translation type="unfinished">Fehler beim Schreiben der XML-Ergebnisdatei: %1</translation>
     </message>
     <message>
-        <location filename="main.cpp" line="+277"/>
+        <location filename="main.cpp" line="+283"/>
         <source>unrecognized argument &apos;</source>
         <translation type="unfinished">unbekanntes Argument &apos;</translation>
     </message>

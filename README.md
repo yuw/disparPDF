@@ -333,6 +333,7 @@ under `MainWindow/` and `HelpForm/`), which batch mode ignores.
 | `InitialComparisonMode` | `2` | Compare box | Mode the GUI starts in: 0 appearance, 1 characters, 2 words. Batch mode ignores this and compares appearance unless `-a`, `-c` or `-w` is given |
 | `Margins/Exclude` | `false` | Exclude Margins | Ignore everything outside the margins below |
 | `Margins/Top`, `/Bottom`, `/Left`, `/Right` | `0` | Margins dock | Margin sizes, in points; inside a page box, from its edges. In the GUI each can be up to half the width or height, less 10pt, of the first page of the file chosen last, or inside a page box, of the smaller of the two files' boxes |
+| `Margins/Unit` | `pt` | Margins dock ▸ Unit | The unit the GUI shows margins in and reads them in: `pt` or `mm`. The margins themselves are still held and saved in whole points, so a margin typed in millimetres goes to the nearest point (20 mm is 57 pt, shown as 20.1 mm). Batch mode ignores this |
 | `PageBox/Box` | `none` | Page Box dock ▸ Page boundary | Compare only inside this page box: `none`, `media`, `crop`, `bleed`, `trim` or `art` (see [Comparing inside a page box](#comparing-inside-a-page-box)). `--box` overrides it |
 | `PageBox/Clip` | `media` | Page Box dock ▸ Clipped to | What that box is clipped to: `media`, `crop` or `none`. `--box-clip` overrides it |
 | `Zoning/Enable` | `false` | Zoning | Group text into zones before comparing |

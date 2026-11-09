@@ -14,6 +14,7 @@
 #include "helpform.hpp"
 #include "label.hpp"
 #include "lineedit.hpp"
+#include "marginspinbox.hpp"
 #include "optionsform.hpp"
 #include "mainwindow.hpp"
 #include "sequence_matcher.hpp"
@@ -118,6 +119,19 @@ MainWindow::MainWindow(const Debug debug,
     QMetaObject::invokeMethod(this, "initialize", Qt::QueuedConnection,
             Q_ARG(QString, filename1),
             Q_ARG(QString, filename2));
+}
+
+
+// A checkable group box set straight into a dock widget has its checkbox
+// on the line under the dock's title, where it reads as part of that
+// line and is easily missed -- macOS draws the two touching.  This puts
+// the box in a widget whose layout margins leave room around it.
+static QWidget *spacedFromTitleBar(QGroupBox *groupBox)
+{
+    QWidget *widget = new QWidget;
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->addWidget(groupBox);
+    return widget;
 }
 
 
@@ -316,45 +330,65 @@ void MainWindow::createWidgets(const QString &filename1,
     marginsGroupBox->setChecked(settings.value("Margins/Exclude",
                 false).toBool());
     topMarginLabel = new QLabel(tr("&Top:"));
-    topMarginSpinBox = new QSpinBox;
+    topMarginSpinBox = new MarginSpinBox;
     // Room for any saved value: QSpinBox's default maximum of 99 cut a
     // larger one before a file had set the range (updateMarginRanges())
     topMarginSpinBox->setRange(0, 9999);
-    topMarginSpinBox->setSuffix(" pt");
     topMarginSpinBox->setValue(settings.value("Margins/Top", 0).toInt());
     topMarginSpinBox->setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-    topMarginSpinBox->setToolTip(tr("<p>The top margin in points. "
-                "Anything above this will be ignored."));
+    topMarginSpinBox->setToolTip(tr("<p>The top margin, in the "
+                "unit chosen below. Anything above this will be "
+                "ignored."));
     topMarginLabel->setBuddy(topMarginSpinBox);
     bottomMarginLabel = new QLabel(tr("&Bottom:"));
-    bottomMarginSpinBox = new QSpinBox;
+    bottomMarginSpinBox = new MarginSpinBox;
     bottomMarginSpinBox->setRange(0, 9999);
-    bottomMarginSpinBox->setSuffix(" pt");
     bottomMarginSpinBox->setValue(settings.value("Margins/Bottom", 0)
             .toInt());
     bottomMarginSpinBox->setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-    bottomMarginSpinBox->setToolTip(tr("<p>The bottom margin in points. "
-                "Anything below this will be ignored."));
+    bottomMarginSpinBox->setToolTip(tr("<p>The bottom margin, in the "
+                "unit chosen below. Anything below this will be "
+                "ignored."));
     bottomMarginLabel->setBuddy(bottomMarginSpinBox);
     leftMarginLabel = new QLabel(tr("Le&ft:"));
-    leftMarginSpinBox = new QSpinBox;
+    leftMarginSpinBox = new MarginSpinBox;
     leftMarginSpinBox->setRange(0, 9999);
-    leftMarginSpinBox->setSuffix(" pt");
     leftMarginSpinBox->setValue(settings.value("Margins/Left", 0).toInt());
     leftMarginSpinBox->setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-    leftMarginSpinBox->setToolTip(tr("<p>The left margin in points. "
-                "Anything left of this will be ignored."));
+    leftMarginSpinBox->setToolTip(tr("<p>The left margin, in the "
+                "unit chosen below. Anything left of this will be "
+                "ignored."));
     leftMarginLabel->setBuddy(leftMarginSpinBox);
     rightMarginLabel = new QLabel(tr("R&ight:"));
-    rightMarginSpinBox = new QSpinBox;
+    rightMarginSpinBox = new MarginSpinBox;
     rightMarginSpinBox->setRange(0, 9999);
-    rightMarginSpinBox->setSuffix(" pt");
     rightMarginSpinBox->setValue(settings.value("Margins/Right", 0)
             .toInt());
     rightMarginSpinBox->setAlignment(Qt::AlignVCenter|Qt::AlignRight);
-    rightMarginSpinBox->setToolTip(tr("<p>The right margin in points. "
-                "Anything right of this will be ignored."));
+    rightMarginSpinBox->setToolTip(tr("<p>The right margin, in the "
+                "unit chosen below. Anything right of this will be "
+                "ignored."));
     rightMarginLabel->setBuddy(rightMarginSpinBox);
+    // The margins are held, saved and compared in whole points; the unit
+    // is only how the four boxes show them and read what is typed
+    marginUnitLabel = new QLabel(tr("Unit:"));
+    marginUnitComboBox = new QComboBox;
+    marginUnitComboBox->addItem(tr("Points (pt)"),
+            MarginSpinBox::unitName(MarginSpinBox::Points));
+    marginUnitComboBox->addItem(tr("Millimetres (mm)"),
+            MarginSpinBox::unitName(MarginSpinBox::Millimetres));
+    marginUnitComboBox->setCurrentIndex(qMax(0,
+            marginUnitComboBox->findData(settings.value("Margins/Unit",
+                    "pt").toString())));
+    marginUnitComboBox->setToolTip(tr("<p>The unit the margins are shown "
+                "and typed in. They are kept in whole points whichever is "
+                "chosen, so a margin typed in millimetres goes to the "
+                "nearest point (20 mm is 57 pt, shown as 20.1 mm)."));
+    marginUnitLabel->setToolTip(marginUnitComboBox->toolTip());
+    marginUnitLabel->setBuddy(marginUnitComboBox);
+    marginUnitChanged();
+    resetMarginsButton = new QPushButton(tr("Reset to &0"));
+    resetMarginsButton->setToolTip(tr("<p>Sets all four margins to 0."));
     pageBoxLabel = new QLabel(tr("Page bo&undary:"));
     pageBoxComboBox = new QComboBox;
     pageBoxComboBox->addItem(tr("Whole page"), pageBoxName(PageBox::None));
@@ -583,9 +617,17 @@ void MainWindow::createDockWidgets()
     rightMarginLayout->addWidget(rightMarginLabel);
     rightMarginLayout->addWidget(rightMarginSpinBox);
     marginsLayout->addLayout(rightMarginLayout);
+    QHBoxLayout *marginUnitLayout = new QHBoxLayout;
+    marginUnitLayout->addWidget(marginUnitLabel);
+    marginUnitLayout->addWidget(marginUnitComboBox, 1);
+    marginsLayout->addLayout(marginUnitLayout);
+    QHBoxLayout *resetMarginsLayout = new QHBoxLayout;
+    resetMarginsLayout->addStretch();
+    resetMarginsLayout->addWidget(resetMarginsButton);
+    marginsLayout->addLayout(resetMarginsLayout);
     marginsLayout->addStretch();
     marginsGroupBox->setLayout(marginsLayout);
-    marginsDockWidget->setWidget(marginsGroupBox);
+    marginsDockWidget->setWidget(spacedFromTitleBar(marginsGroupBox));
     addDockWidget(marginsDockArea, marginsDockWidget);
 
     pageBoxDockWidget = new QDockWidget(tr("Page Box"), this);
@@ -624,7 +666,7 @@ void MainWindow::createDockWidgets()
     zoningLayout->addWidget(showZonesCheckBox);
     zoningLayout->addStretch();
     zoningGroupBox->setLayout(zoningLayout);
-    zoningDockWidget->setWidget(zoningGroupBox);
+    zoningDockWidget->setWidget(spacedFromTitleBar(zoningGroupBox));
     addDockWidget(zoningDockArea, zoningDockWidget);
 
     logDockWidget = new QDockWidget(tr("Log"), this);
@@ -719,6 +761,10 @@ void MainWindow::createConnections()
             this, SLOT(updateViews()));
     connect(bottomMarginSpinBox, SIGNAL(valueChanged(int)),
             this, SLOT(updateViews()));
+    connect(marginUnitComboBox, SIGNAL(currentIndexChanged(int)),
+            this, SLOT(marginUnitChanged()));
+    connect(resetMarginsButton, &QPushButton::clicked,
+            this, &MainWindow::resetMargins);
     connect(pageBoxComboBox, SIGNAL(currentIndexChanged(int)),
             this, SLOT(pageBoxChanged()));
     connect(boxClipComboBox, SIGNAL(currentIndexChanged(int)),
@@ -1099,6 +1145,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
     settings.setValue("Margins/Right", rightMarginSpinBox->value());
     settings.setValue("Margins/Top", topMarginSpinBox->value());
     settings.setValue("Margins/Bottom", bottomMarginSpinBox->value());
+    settings.setValue("Margins/Unit",
+                      marginUnitComboBox->currentData().toString());
     // Not what --box or --box-clip gave, unless changed since
     if (!pageBoxFromCommandLine)
         settings.setValue("PageBox/Box", pageBoxName(pageBox()));
@@ -1381,6 +1429,29 @@ void MainWindow::restoreDefaultPageBox()
 {
     pageBoxComboBox->setCurrentIndex(
             pageBoxComboBox->findData(pageBoxName(PageBox::None)));
+}
+
+
+void MainWindow::marginUnitChanged()
+{
+    const MarginSpinBox::Unit unit = MarginSpinBox::unitFromName(
+            marginUnitComboBox->currentData().toString());
+    for (MarginSpinBox *spinBox : {topMarginSpinBox, bottomMarginSpinBox,
+                                   leftMarginSpinBox, rightMarginSpinBox})
+        spinBox->setUnit(unit);
+}
+
+
+void MainWindow::resetMargins()
+{
+    // Blocked, so that the views are redrawn once rather than once for
+    // each box that changes
+    for (MarginSpinBox *spinBox : {topMarginSpinBox, bottomMarginSpinBox,
+                                   leftMarginSpinBox, rightMarginSpinBox}) {
+        const QSignalBlocker blocker(spinBox);
+        spinBox->setValue(0);
+    }
+    updateViews();
 }
 
 

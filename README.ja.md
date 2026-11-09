@@ -317,6 +317,7 @@ disparPDFc -a --settings=mysettings.ini a.pdf b.pdf
 | `InitialComparisonMode` | `2` | Compare（比較モード） | GUIの起動時モード．0=外観，1=文字，2=単語．バッチモードはこれを見ず，`-a`・`-c`・`-w`のいずれも指定しなければ外観比較になる |
 | `Margins/Exclude` | `false` | Exclude Margins（マージンを除外） | 下記マージンの外側を比較対象から外す |
 | `Margins/Top`・`/Bottom`・`/Left`・`/Right` | `0` | Marginsのドック | マージンの大きさ（ポイント）．ページボックスの中で比べるときは，ボックスの辺から測る．GUIでは，それぞれ最後に選んだファイルの1ページ目（ページボックスの中で比べるときは，2つのファイルのボックスの小さいほう）の幅か高さの半分から10ptを引いた値までにできる |
+| `Margins/Unit` | `pt` | Marginsのドック ▸ Unit | GUIでマージンを表示・入力する単位．`pt`か`mm`．マージンそのものは整数のポイントで持ち，保存するので，ミリで入力した値はいちばん近いポイントに丸める（20mmは57ptになり，20.1mmと表示される）．バッチモードでは使わない |
 | `PageBox/Box` | `none` | Page Boxのドック ▸ Page boundary（ページボックス） | このページボックスの中だけを比較する．`none`・`media`・`crop`・`bleed`・`trim`・`art`のいずれか（[ページボックスの中だけを比較する](#ページボックスの中だけを比較する)を参照）．`--box`で上書きできる |
 | `PageBox/Clip` | `media` | Page Boxのドック ▸ Clipped to（切り抜き方） | そのボックスを何で切り抜くか．`media`・`crop`・`none`のいずれか．`--box-clip`で上書きできる |
 | `Zoning/Enable` | `false` | Zoning（ゾーニング） | 比較前にテキストをゾーンにまとめる |

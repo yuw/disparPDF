@@ -10,7 +10,7 @@
     for more details.
 */
 
-// Tests of the window's page box controls, driving MainWindow on Qt's
+// Tests of the window's page box and margin controls, driving MainWindow on Qt's
 // offscreen platform, on the PDFs in data/ (see data/make-test-pdfs.sh):
 //
 //   guitest DATA_DIRECTORY
@@ -20,12 +20,16 @@
 
 #include "../label.hpp"
 #include "../lineedit.hpp"
+#include "../marginspinbox.hpp"
 #include "../mainwindow.hpp"
 #include <QApplication>
 #include <QComboBox>
 #include <QGroupBox>
 #include <QLabel>
+#include <QLineEdit>
+#include <QLocale>
 #include <QPlainTextEdit>
+#include <QPushButton>
 #include <QSettings>
 #include <QSpinBox>
 #include <QTemporaryDir>
@@ -81,8 +85,16 @@ public:
     {
         w->marginsGroupBox->setChecked(exclude);
     }
-    QSpinBox *top() const { return w->topMarginSpinBox; }
-    QSpinBox *left() const { return w->leftMarginSpinBox; }
+    MarginSpinBox *top() const { return w->topMarginSpinBox; }
+    MarginSpinBox *bottom() const { return w->bottomMarginSpinBox; }
+    MarginSpinBox *left() const { return w->leftMarginSpinBox; }
+    MarginSpinBox *right() const { return w->rightMarginSpinBox; }
+    void setUnit(const QString &unit)
+    {
+        w->marginUnitComboBox->setCurrentIndex(
+                w->marginUnitComboBox->findData(unit));
+    }
+    void resetMargins() { w->resetMarginsButton->click(); }
     void click(const QPoint &pos) { w->setAMargin(pos); }
     void forgetBoxShown() { w->shownBox[0] = QRect(); }
     void setBoxShown(const QRect &rect) { w->shownBox[0] = rect; }
@@ -282,6 +294,76 @@ int main(int argc, char *argv[])
         window.close();
     }
     check(saved() == "art", "changed after --box, saved: " + saved());
+
+    // The margins' unit: shown and typed in millimetres, held in points
+    {
+        StartupParameters parameters;
+        Status status;
+        MainWindow window(DebugOff, CompareAppearance, QString(), QString(),
+                          "en", &parameters, &status);
+        MainWindowTest t(&window);
+        MarginSpinBox *top = t.top();
+        const auto mm = [&](double value) {
+            return top->locale().toString(value, 'f', 1) + " mm";
+        };
+        top->setValue(57);
+        t.setUnit("mm");
+        check(top->unit() == MarginSpinBox::Millimetres,
+              "the unit is millimetres");
+        check(top->text() == mm(20.1) && top->value() == 57,
+              QString("57pt shown as %1, held as %2pt").arg(top->text())
+                      .arg(top->value()));
+        // Typed in millimetres, to the nearest point
+        QLineEdit *edit = top->findChild<QLineEdit *>();
+        edit->setText(top->locale().toString(10.0, 'f', 1) + " mm");
+        top->interpretText();
+        check(top->value() == 28 && top->text() == mm(9.9),
+              QString("10 mm typed: %1pt, shown as %2").arg(top->value())
+                      .arg(top->text()));
+        // A step is a millimetre, and every one moves
+        top->setValue(0);
+        top->stepBy(1);
+        const int one = top->value();
+        top->stepBy(1);
+        const int two = top->value();
+        top->stepBy(-2);
+        check(one == 3 && two == 6 && top->value() == 0,
+              QString("steps of a millimetre: %1pt, %2pt, back to %3pt")
+                      .arg(one).arg(two).arg(top->value()));
+        // Back in points, the same margin
+        top->setValue(57);
+        t.setUnit("pt");
+        check(top->text() == "57 pt",
+              QString("57pt shown as %1 again").arg(top->text()));
+        t.setUnit("mm");
+
+        // Reset to 0 clears all four
+        t.excludeMargins(true);
+        top->setValue(100);
+        t.bottom()->setValue(20);
+        t.left()->setValue(30);
+        t.right()->setValue(40);
+        t.resetMargins();
+        check(top->value() == 0 && t.bottom()->value() == 0 &&
+              t.left()->value() == 0 && t.right()->value() == 0,
+              QString("after Reset to 0: %1, %2, %3, %4")
+                      .arg(top->value()).arg(t.bottom()->value())
+                      .arg(t.left()->value()).arg(t.right()->value()));
+        window.close();
+    }
+    check(QSettings().value("Margins/Unit").toString() == "mm",
+          "the unit saved: " + QSettings().value("Margins/Unit").toString());
+    {
+        StartupParameters parameters;
+        Status status;
+        MainWindow window(DebugOff, CompareAppearance, QString(), QString(),
+                          "en", &parameters, &status);
+        MainWindowTest t(&window);
+        check(t.top()->unit() == MarginSpinBox::Millimetres &&
+              t.left()->unit() == MarginSpinBox::Millimetres,
+              "the unit is restored next time");
+        window.close();
+    }
 
     if (failures)
         out << failures << " failed\n";

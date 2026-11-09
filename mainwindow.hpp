@@ -30,6 +30,7 @@ class AboutForm;
 class HelpForm;
 class Label;
 class LineEdit;
+class MarginSpinBox;
 class QBoxLayout;
 class QCheckBox;
 class QComboBox;
@@ -94,6 +95,8 @@ private slots:
     void setAMargin(const QPoint &pos);
     void pageBoxChanged();
     void restoreDefaultPageBox();
+    void marginUnitChanged();
+    void resetMargins();
 
 private:
     void createWidgets(const QString &filename1, const QString &filename2);
@@ -194,13 +197,16 @@ private:
     QDockWidget *zoningDockWidget;
     QGroupBox *marginsGroupBox;
     QLabel *topMarginLabel;
-    QSpinBox *topMarginSpinBox;
+    MarginSpinBox *topMarginSpinBox;
     QLabel *bottomMarginLabel;
-    QSpinBox *bottomMarginSpinBox;
+    MarginSpinBox *bottomMarginSpinBox;
     QLabel *leftMarginLabel;
-    QSpinBox *leftMarginSpinBox;
+    MarginSpinBox *leftMarginSpinBox;
     QLabel *rightMarginLabel;
-    QSpinBox *rightMarginSpinBox;
+    MarginSpinBox *rightMarginSpinBox;
+    QLabel *marginUnitLabel;
+    QComboBox *marginUnitComboBox;
+    QPushButton *resetMarginsButton;
     QBoxLayout *marginsLayout;
     QDockWidget *marginsDockWidget;
     QLabel *pageBoxLabel;
