@@ -46,6 +46,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSettings>
+#include <QShortcut>
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QSplitter>
@@ -92,6 +93,7 @@ MainWindow::MainWindow(const Debug debug,
     createCentralArea();
     createDockWidgets();
     createConnections();
+    createShortcuts();
 
     restoreGeometry(settings.value("MainWindow/Geometry").toByteArray());
     restoreState(settings.value("MainWindow/State").toByteArray());
@@ -119,6 +121,20 @@ MainWindow::MainWindow(const Debug debug,
     QMetaObject::invokeMethod(this, "initialize", Qt::QueuedConnection,
             Q_ARG(QString, filename1),
             Q_ARG(QString, filename2));
+}
+
+
+// The window's keyboard shortcuts (see createShortcuts()), here so that
+// the tooltips can name them
+static QKeySequence previousPairKey() { return Qt::CTRL | Qt::Key_Up; }
+static QKeySequence nextPairKey() { return Qt::CTRL | Qt::Key_Down; }
+static QKeySequence zoomInKey() { return Qt::CTRL | Qt::Key_Plus; }
+static QKeySequence zoomOutKey() { return Qt::CTRL | Qt::Key_Minus; }
+static QKeySequence zoomResetKey() { return Qt::CTRL | Qt::Key_0; }
+
+static QString keyName(const QKeySequence &key)
+{
+    return key.toString(QKeySequence::NativeText);
 }
 
 
@@ -247,11 +263,12 @@ void MainWindow::createWidgets(const QString &filename1,
     showLabel->setBuddy(showComboBox);
     showComboBox->setToolTip(showLabel->toolTip());
     previousButton = new QPushButton(tr("Previo&us"));
-    previousButton->setToolTip(
-            "<p>Navigate to the previous pair of pages.");
+    previousButton->setToolTip(tr("<p>Navigate to the previous pair of "
+                "pages (%1).").arg(keyName(previousPairKey())));
     previousButton->setIcon(QIcon(":/left.png"));
     nextButton = new QPushButton(tr("Ne&xt"));
-    nextButton->setToolTip("<p>Navigate to the next pair of pages.");
+    nextButton->setToolTip(tr("<p>Navigate to the next pair of pages "
+                "(%1).").arg(keyName(nextPairKey())));
     nextButton->setIcon(QIcon(":/right.png"));
     offsetLabel = new QLabel(tr("Offset:"));
     offsetLabel->setToolTip(tr("<p>Pairs each page of file #1 with the "
@@ -269,7 +286,9 @@ void MainWindow::createWidgets(const QString &filename1,
     offsetSpinBox->setToolTip(offsetLabel->toolTip());
     zoomLabel = new QLabel(tr("&Zoom:"));
     zoomLabel->setToolTip(tr("<p>Determines the scale at which the "
-                "pages are shown."));
+                "pages are shown. %1 and %2 zoom in and out, and %3 goes "
+                "back to 100%.").arg(keyName(zoomInKey()),
+                        keyName(zoomOutKey()), keyName(zoomResetKey())));
     zoomSpinBox = new QSpinBox;
     zoomLabel->setBuddy(zoomSpinBox);
     zoomSpinBox->setRange(20, 800);
@@ -574,6 +593,10 @@ void MainWindow::createDockWidgets()
     QWidget *widget = new QWidget;
     widget->setLayout(controlLayout);
     controlDockWidget->setWidget(widget);
+    // For clicks that give the keyboard back to the View box (see
+    // eventFilter())
+    controlDockWidget->installEventFilter(this);
+    widget->installEventFilter(this);
     addDockWidget(controlDockArea, controlDockWidget);
 
     actionDockWidget = new QDockWidget(tr("Actions"), this);
@@ -1012,6 +1035,64 @@ void MainWindow::logTopLevelChanged(bool floating)
 }
 
 
+void MainWindow::createShortcuts()
+{
+    // On the window, so that they work wherever the keyboard is in it.
+    // (A text box keeps the keys it edits with: in a file name, say,
+    // these move the cursor as they always did.)
+    auto shortcut = [this](const QKeySequence &key,
+                           const std::function<void()> &action) {
+        connect(new QShortcut(key, this), &QShortcut::activated, this,
+                action);
+    };
+    shortcut(previousPairKey(), [this] { previousPages(); });
+    shortcut(nextPairKey(), [this] { nextPages(); });
+
+    const int ZoomStep = 25; // percent
+    auto zoomBy = [this](const int step) {
+        zoomSpinBox->setValue(zoomSpinBox->value() + step);
+    };
+    // The plus sign is a shifted key on most keyboards, and which key it
+    // shares differs: = in the US, ; in Japan.  Those work unshifted too.
+    for (const QKeySequence &key : {zoomInKey(),
+             QKeySequence(Qt::CTRL | Qt::Key_Equal),
+             QKeySequence(Qt::CTRL | Qt::Key_Semicolon)})
+        shortcut(key, [=] { zoomBy(ZoomStep); });
+    shortcut(zoomOutKey(), [=] { zoomBy(-ZoomStep); });
+    shortcut(zoomResetKey(), [this] { zoomSpinBox->setValue(100); });
+
+    // Moving the views, as the same keys without Alt do when the
+    // keyboard is in one of them.  The two scroll together, so moving
+    // the first moves both.
+    struct Scroll
+    {
+        Qt::Key key;
+        Qt::Orientation orientation;
+        QAbstractSlider::SliderAction action;
+    };
+    const Scroll scrolls[] = {
+        {Qt::Key_Up, Qt::Vertical, QAbstractSlider::SliderSingleStepSub},
+        {Qt::Key_Down, Qt::Vertical, QAbstractSlider::SliderSingleStepAdd},
+        {Qt::Key_Left, Qt::Horizontal,
+         QAbstractSlider::SliderSingleStepSub},
+        {Qt::Key_Right, Qt::Horizontal,
+         QAbstractSlider::SliderSingleStepAdd},
+        {Qt::Key_PageUp, Qt::Vertical, QAbstractSlider::SliderPageStepSub},
+        {Qt::Key_PageDown, Qt::Vertical,
+         QAbstractSlider::SliderPageStepAdd},
+        {Qt::Key_Home, Qt::Vertical, QAbstractSlider::SliderToMinimum},
+        {Qt::Key_End, Qt::Vertical, QAbstractSlider::SliderToMaximum},
+    };
+    for (const Scroll &scroll : scrolls)
+        shortcut(Qt::ALT | scroll.key, [this, scroll] {
+            QScrollBar *bar = scroll.orientation == Qt::Vertical
+                    ? area1->verticalScrollBar()
+                    : area1->horizontalScrollBar();
+            bar->triggerAction(scroll.action);
+        });
+}
+
+
 void MainWindow::previousPages()
 {
     int i = viewDiffComboBox->currentIndex();
@@ -1160,6 +1241,15 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
 {
     if (event->type() == QEvent::ToolTip && !showToolTips)
         return true;
+    // A click on the Controls dock, anywhere but on one of its controls,
+    // gives the keyboard back to the View box, where the arrow keys go
+    // from one pair of pages to the next.  A click on a page takes it
+    // away -- the arrow keys scroll there -- and the only way back was
+    // to click the box itself, which opens its list.
+    if (event->type() == QEvent::MouseButtonPress &&
+        (object == controlDockWidget ||
+         object == controlDockWidget->widget()))
+        viewDiffComboBox->setFocus(Qt::MouseFocusReason);
     return QMainWindow::eventFilter(object, event);
 }
 

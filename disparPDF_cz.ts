@@ -109,7 +109,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
 <context>
     <name>BoxedFile</name>
     <message>
-        <location filename="renderer.cpp" line="+571"/>
+        <location filename="renderer.cpp" line="+588"/>
         <source>qpdf finds %1 pages and Poppler %2</source>
         <translation type="unfinished">qpdf nachází %1 stran a Poppler %2</translation>
     </message>
@@ -122,7 +122,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
 <context>
     <name>DifferenceRenderer</name>
     <message>
-        <location line="-417"/>
+        <location line="-434"/>
         <source>%1: Page Sizes Differ</source>
         <translation type="unfinished">%1: Velikosti stran se liší</translation>
     </message>
@@ -148,7 +148,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="+141"/>
+        <location filename="mainwindow.cpp" line="+157"/>
         <source>File #&amp;1...</source>
         <translation>Soubor #&amp;1...</translation>
     </message>
@@ -214,13 +214,13 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     </message>
     <message>
         <location line="+2"/>
-        <location line="+1476"/>
+        <location line="+1550"/>
         <location line="+198"/>
         <source>&amp;Compare</source>
         <translation>&amp;Porovnat</translation>
     </message>
     <message>
-        <location line="-1670"/>
+        <location line="-1744"/>
         <source>&lt;p&gt;Click to compare (or re-compare) the documents&amp;mdash;or to cancel a comparison that&apos;s in progress.</source>
         <translation>&lt;p&gt;Klepněte pro porovnání (nebo pro nové porovnání) dokumentu&amp;mdash; nebo pro zrušení probíhajícího porovnávání.</translation>
     </message>
@@ -261,13 +261,13 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     </message>
     <message>
         <location line="+8"/>
-        <location line="+1473"/>
+        <location line="+1547"/>
         <location line="+221"/>
         <source>(Not viewing)</source>
         <translation>(Nezobrazeno)</translation>
     </message>
     <message>
-        <location line="-1691"/>
+        <location line="-1765"/>
         <source>S&amp;how:</source>
         <translation>&amp;Ukázat:</translation>
     </message>
@@ -312,7 +312,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation>&amp;Další</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Offset:</source>
         <translation type="unfinished">Posun:</translation>
     </message>
@@ -327,12 +327,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation>&amp;Zvětšení:</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>&lt;p&gt;Determines the scale at which the pages are shown.</source>
-        <translation>&lt;p&gt;Určuje měřítko, v jakém se strany ukazují.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source> %</source>
         <translation> %</translation>
     </message>
@@ -428,7 +423,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">&lt;p&gt;Nastaví všechny čtyři okraje na 0.</translation>
     </message>
     <message>
-        <location line="+1509"/>
+        <location line="+1580"/>
         <source>All files (*);;PDF files (*.pdf)</source>
         <translation type="unfinished">Všechny soubory (*);;Soubory PDF (*.pdf)</translation>
     </message>
@@ -449,7 +444,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">Není co uložit: není vybrána žádná dvojice stran.</translation>
     </message>
     <message>
-        <location line="-1866"/>
+        <location line="-1937"/>
         <source>&lt;p&gt;This shows the zones that are being used and may be helpful when adjusting tolerances. (Its original purpose was for debugging.)</source>
         <translation>&lt;p&gt;Toto ukazuje oblasti, které jsou používány, a může být užitečné při úpravách odchylek (Původním účelem tu bylo ladění.)</translation>
     </message>
@@ -489,7 +484,22 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">&lt;p&gt;Dolní okraj v jednotce zvolené níže. Vše pod ním se bude přehlížet.</translation>
     </message>
     <message>
-        <location line="+43"/>
+        <location line="-102"/>
+        <source>&lt;p&gt;Navigate to the previous pair of pages (%1).</source>
+        <translation type="unfinished">&lt;p&gt;Přejít na předchozí dvojici stran (%1).</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>&lt;p&gt;Navigate to the next pair of pages (%1).</source>
+        <translation type="unfinished">&lt;p&gt;Přejít na další dvojici stran (%1).</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>&lt;p&gt;Determines the scale at which the pages are shown. %1 and %2 zoom in and out, and %3 goes back to 100%.</source>
+        <translation type="unfinished">&lt;p&gt;Určuje měřítko, v jakém se strany ukazují. %1 a %2 zobrazení zvětší a zmenší, %3 je vrátí na 100 %.</translation>
+    </message>
+    <message>
+        <location line="+123"/>
         <source>Page bo&amp;undary:</source>
         <translation type="unfinished">Rá&amp;meček strany:</translation>
     </message>
@@ -610,7 +620,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
     </message>
     <message>
         <location line="+84"/>
-        <location line="+424"/>
+        <location line="+428"/>
         <source>Controls</source>
         <translation>Ovládání</translation>
     </message>
@@ -674,7 +684,7 @@ Tento program je šířen v naději, že bude užitečný, ale BEZ JAKÉKOLI ZÁ
         <translation type="unfinished">%1 — Zápis</translation>
     </message>
     <message>
-        <location line="+190"/>
+        <location line="+257"/>
         <source>%1 — Choose File #1</source>
         <oldsource>DiffPDF — Choose File #1</oldsource>
         <translation type="unfinished">%1 — Vybrat soubor #1</translation>

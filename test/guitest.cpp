@@ -10,7 +10,8 @@
     for more details.
 */
 
-// Tests of the window's page box and margin controls, driving MainWindow on Qt's
+// Tests of the window's page box and margin controls and its keyboard
+// shortcuts, driving MainWindow on Qt's
 // offscreen platform, on the PDFs in data/ (see data/make-test-pdfs.sh):
 //
 //   guitest DATA_DIRECTORY
@@ -24,13 +25,18 @@
 #include "../mainwindow.hpp"
 #include <QApplication>
 #include <QComboBox>
+#include <QDockWidget>
 #include <QGroupBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
+#include <QMouseEvent>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
+#include <QShortcut>
 #include <QSpinBox>
 #include <QTemporaryDir>
 #include <QTextStream>
@@ -95,6 +101,37 @@ public:
                 w->marginUnitComboBox->findData(unit));
     }
     void resetMargins() { w->resetMarginsButton->click(); }
+    QComboBox *view() const { return w->viewDiffComboBox; }
+    int zoom() const { return w->zoomSpinBox->value(); }
+    QScrollBar *vertical() const { return w->area1->verticalScrollBar(); }
+    QWidget *controls() const { return w->controlDockWidget->widget(); }
+    // Presses KEY as the shortcut for it would be: false if the window
+    // has no such shortcut
+    bool press(const QKeySequence &key)
+    {
+        for (QShortcut *shortcut : w->findChildren<QShortcut *>())
+            if (shortcut->key() == key) {
+                QMetaObject::invokeMethod(shortcut, "activated");
+                QApplication::processEvents();
+                return true;
+            }
+        return false;
+    }
+    // A click with the left button in the middle of WIDGET
+    void clickOn(QWidget *widget)
+    {
+        const QPointF pos(widget->width() / 2.0, widget->height() / 2.0);
+        QMouseEvent press(QEvent::MouseButtonPress, pos,
+                          widget->mapToGlobal(pos), Qt::LeftButton,
+                          Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(widget, &press);
+        QMouseEvent release(QEvent::MouseButtonRelease, pos,
+                            widget->mapToGlobal(pos), Qt::LeftButton,
+                            Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(widget, &release);
+        QApplication::processEvents();
+    }
+    QWidget *pageView() const { return w->area1; }
     void click(const QPoint &pos) { w->setAMargin(pos); }
     void forgetBoxShown() { w->shownBox[0] = QRect(); }
     void setBoxShown(const QRect &rect) { w->shownBox[0] = rect; }
@@ -387,6 +424,75 @@ int main(int argc, char *argv[])
         t.compare();
         check(t.differing() == 1,
               QString("another sign: %1 differ").arg(t.differing()));
+        window.close();
+    }
+
+    // The keyboard: shortcuts on the window, and the View box getting
+    // the keyboard back from a click on the Controls dock
+    {
+        StartupParameters parameters;
+        Status status;
+        MainWindow window(DebugOff, CompareWords, QString(), QString(),
+                          "en", &parameters, &status);
+        window.resize(900, 500);
+        window.show();
+        window.activateWindow();
+        QApplication::processEvents();
+        MainWindowTest t(&window);
+        t.setUnit("pt");
+        // Pages 2 and 3 of base.pdf against 3 and 4 of inserted.pdf differ
+        t.setFiles(data + "/base.pdf", data + "/inserted.pdf");
+        t.compare();
+        QApplication::processEvents();
+        check(t.differing() == 2,
+              QString("base and inserted: %1 pairs differ")
+                      .arg(t.differing()));
+        check(t.view()->currentIndex() == 1, "the first is shown");
+        check(t.press(Qt::CTRL | Qt::Key_Down) &&
+              t.view()->currentIndex() == 2,
+              QString("Ctrl+Down: pair %1").arg(t.view()->currentIndex()));
+        check(t.press(Qt::CTRL | Qt::Key_Up) &&
+              t.view()->currentIndex() == 1,
+              QString("Ctrl+Up: pair %1").arg(t.view()->currentIndex()));
+        const int zoom = t.zoom();
+        check(t.press(Qt::CTRL | Qt::Key_Plus) && t.zoom() == zoom + 25,
+              QString("Ctrl++: zoom %1").arg(t.zoom()));
+        check(t.press(Qt::CTRL | Qt::Key_Equal) &&
+              t.press(Qt::CTRL | Qt::Key_Semicolon) &&
+              t.zoom() == zoom + 75,
+              QString("Ctrl+= and Ctrl+;: zoom %1").arg(t.zoom()));
+        check(t.press(Qt::CTRL | Qt::Key_Minus) && t.zoom() == zoom + 50,
+              QString("Ctrl+-: zoom %1").arg(t.zoom()));
+        // Large enough to scroll, then the views move
+        for (int i = 0; i < 6; ++i)
+            t.press(Qt::CTRL | Qt::Key_Plus);
+        QScrollBar *bar = t.vertical();
+        check(bar->maximum() > 0 && bar->value() == 0,
+              QString("the view can scroll: 0..%1").arg(bar->maximum()));
+        check(t.press(Qt::ALT | Qt::Key_Down) && bar->value() > 0,
+              QString("Alt+Down: at %1").arg(bar->value()));
+        const int step = bar->value();
+        check(t.press(Qt::ALT | Qt::Key_PageDown) && bar->value() > step,
+              QString("Alt+PageDown: at %1").arg(bar->value()));
+        check(t.press(Qt::ALT | Qt::Key_End) &&
+              bar->value() == bar->maximum(), "Alt+End: the bottom");
+        check(t.press(Qt::ALT | Qt::Key_Home) && bar->value() == 0,
+              "Alt+Home: the top");
+        check(t.press(Qt::CTRL | Qt::Key_0) && t.zoom() == 100,
+              QString("Ctrl+0: zoom %1").arg(t.zoom()));
+
+        // A click on a page takes the keyboard to its view, and one on
+        // the Controls dock gives it back to the View box
+        check(t.view()->hasFocus(),
+              "after comparing the keyboard is in the View box");
+        // (a click made here does not move the keyboard as a real one
+        // does, so put it where that would)
+        t.pageView()->setFocus(Qt::MouseFocusReason);
+        check(!t.view()->hasFocus(),
+              "in a page view, the keyboard is not in the View box");
+        t.clickOn(t.controls());
+        check(t.view()->hasFocus(),
+              "a click on the Controls dock gives it back");
         window.close();
     }
 

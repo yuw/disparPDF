@@ -103,6 +103,7 @@ private:
     void createCentralArea();
     void createDockWidgets();
     void createConnections();
+    void createShortcuts();
     void runComparison(const bool verbose, const int pairIndexToShow);
     const QPair<int, int> comparePages(const QString &filename1,
             const PdfDocument &pdf1, const QString &filename2,

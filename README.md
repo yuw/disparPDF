@@ -216,6 +216,23 @@ open /Applications/disparPDF.app
 disparPDF a.pdf b.pdf
 ```
 
+Keyboard shortcuts, which work wherever the keyboard is in the window
+(on macOS, Ctrl is ⌘ and Alt is Option):
+
+| Keys | Action |
+|---|---|
+| Ctrl+Up, Ctrl+Down | The previous and the next pair of differing pages |
+| Ctrl++, Ctrl+- | Zoom in and out by 25% (Ctrl+= and Ctrl+; zoom in too, for keyboards where + is a shifted key) |
+| Ctrl+0 | Zoom back to 100% |
+| Alt+arrow keys | Move the page views a little |
+| Alt+Page Up, Alt+Page Down | Move them up and down by what they show |
+| Alt+Home, Alt+End | Go to the top and the bottom |
+
+After a comparison the keyboard is in the View box, where Up and Down
+alone go from one pair to the next. A click on a page moves it to the
+page views, where the arrow keys scroll; a click on the Controls dock,
+anywhere but on one of its controls, gives it back to the View box.
+
 In the Characters and Words modes, a character that Poppler cannot map
 to Unicode (a glyph whose name is in no glyph list comes back as a
 control character) is compared by how it looks: where such a text and

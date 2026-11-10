@@ -107,7 +107,7 @@
 <context>
     <name>BoxedFile</name>
     <message>
-        <location filename="renderer.cpp" line="+571"/>
+        <location filename="renderer.cpp" line="+588"/>
         <source>qpdf finds %1 pages and Poppler %2</source>
         <translation type="unfinished">qpdf findet %1 Seiten und Poppler %2</translation>
     </message>
@@ -120,7 +120,7 @@
 <context>
     <name>DifferenceRenderer</name>
     <message>
-        <location line="-417"/>
+        <location line="-434"/>
         <source>%1: Page Sizes Differ</source>
         <translation type="unfinished">%1: Seitengrößen unterscheiden sich</translation>
     </message>
@@ -146,7 +146,7 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="+141"/>
+        <location filename="mainwindow.cpp" line="+157"/>
         <source>File #&amp;1...</source>
         <translation>Datei #&amp;1...</translation>
     </message>
@@ -212,13 +212,13 @@
     </message>
     <message>
         <location line="+2"/>
-        <location line="+1476"/>
+        <location line="+1550"/>
         <location line="+198"/>
         <source>&amp;Compare</source>
         <translation>&amp;Vergleichen</translation>
     </message>
     <message>
-        <location line="-1670"/>
+        <location line="-1744"/>
         <source>&lt;p&gt;Click to compare (or re-compare) the documents&amp;mdash;or to cancel a comparison that&apos;s in progress.</source>
         <translation>&lt;p&gt;Startet den Vergleich der Dokumente &amp;mdash; oder bricht einen laufenden Vergleich ab.</translation>
     </message>
@@ -259,13 +259,13 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+1473"/>
+        <location line="+1547"/>
         <location line="+221"/>
         <source>(Not viewing)</source>
         <translation>(Keine Anzeige)</translation>
     </message>
     <message>
-        <location line="-1691"/>
+        <location line="-1765"/>
         <source>S&amp;how:</source>
         <translation>&amp;Anzeige:</translation>
     </message>
@@ -310,7 +310,7 @@
         <translation>&amp;Nächste</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Offset:</source>
         <translation type="unfinished">Versatz:</translation>
     </message>
@@ -325,12 +325,7 @@
         <translation>&amp;Vergrößerung:</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>&lt;p&gt;Determines the scale at which the pages are shown.</source>
-        <translation>&lt;p&gt;Legt die Skalierung fest in welcher die Seiten angezeigt werden.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source> %</source>
         <translation> %</translation>
     </message>
@@ -421,7 +416,22 @@
         <translation type="unfinished">&lt;p&gt;Der untere Abstand in der unten gewählten Einheit. Alles unterhalb davon wird ignoriert.</translation>
     </message>
     <message>
-        <location line="-10"/>
+        <location line="-102"/>
+        <source>&lt;p&gt;Navigate to the previous pair of pages (%1).</source>
+        <translation type="unfinished">&lt;p&gt;Zum vorherigen Seitenpaar wechseln (%1).</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>&lt;p&gt;Navigate to the next pair of pages (%1).</source>
+        <translation type="unfinished">&lt;p&gt;Zum nächsten Seitenpaar wechseln (%1).</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>&lt;p&gt;Determines the scale at which the pages are shown. %1 and %2 zoom in and out, and %3 goes back to 100%.</source>
+        <translation type="unfinished">&lt;p&gt;Legt die Skalierung fest, in der die Seiten angezeigt werden. %1 und %2 vergrößern und verkleinern, %3 stellt wieder 100 % ein.</translation>
+    </message>
+    <message>
+        <location line="+70"/>
         <source>&lt;p&gt;The top margin, in the unit chosen below. Anything above this will be ignored.</source>
         <translation type="unfinished">&lt;p&gt;Der obere Abstand in der unten gewählten Einheit. Alles oberhalb davon wird ignoriert.</translation>
     </message>
@@ -587,7 +597,7 @@
     </message>
     <message>
         <location line="+84"/>
-        <location line="+424"/>
+        <location line="+428"/>
         <source>Controls</source>
         <translation>Steuerung</translation>
     </message>
@@ -651,7 +661,7 @@
         <translation type="unfinished">%1 — Log</translation>
     </message>
     <message>
-        <location line="+890"/>
+        <location line="+957"/>
         <source>All files (*);;PDF files (*.pdf)</source>
         <translation type="unfinished">Alle Dateien (*);;PDF-Dateien (*.pdf)</translation>
     </message>

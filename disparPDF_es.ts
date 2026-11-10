@@ -107,7 +107,7 @@
 <context>
     <name>BoxedFile</name>
     <message>
-        <location filename="renderer.cpp" line="+571"/>
+        <location filename="renderer.cpp" line="+588"/>
         <source>qpdf finds %1 pages and Poppler %2</source>
         <translation type="unfinished">qpdf encuentra %1 páginas y Poppler %2</translation>
     </message>
@@ -120,7 +120,7 @@
 <context>
     <name>DifferenceRenderer</name>
     <message>
-        <location line="-417"/>
+        <location line="-434"/>
         <source>%1: Page Sizes Differ</source>
         <translation type="unfinished">%1: los tamaños de página difieren</translation>
     </message>
@@ -146,7 +146,7 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="+141"/>
+        <location filename="mainwindow.cpp" line="+157"/>
         <source>File #&amp;1...</source>
         <translation type="unfinished">Archivo n.º &amp;1...</translation>
     </message>
@@ -212,13 +212,13 @@
     </message>
     <message>
         <location line="+2"/>
-        <location line="+1476"/>
+        <location line="+1550"/>
         <location line="+198"/>
         <source>&amp;Compare</source>
         <translation type="unfinished">&amp;Comparar</translation>
     </message>
     <message>
-        <location line="-1670"/>
+        <location line="-1744"/>
         <source>&lt;p&gt;Click to compare (or re-compare) the documents&amp;mdash;or to cancel a comparison that&apos;s in progress.</source>
         <translation type="unfinished">&lt;p&gt;Haga clic para comparar (o volver a comparar) los documentos&amp;mdash;o para cancelar una comparación en curso.</translation>
     </message>
@@ -259,13 +259,13 @@
     </message>
     <message>
         <location line="+8"/>
-        <location line="+1473"/>
+        <location line="+1547"/>
         <location line="+221"/>
         <source>(Not viewing)</source>
         <translation type="unfinished">(Sin visualizar)</translation>
     </message>
     <message>
-        <location line="-1691"/>
+        <location line="-1765"/>
         <source>S&amp;how:</source>
         <translation type="unfinished">Mo&amp;strar:</translation>
     </message>
@@ -310,7 +310,7 @@
         <translation type="unfinished">Sig&amp;uiente</translation>
     </message>
     <message>
-        <location line="+3"/>
+        <location line="+4"/>
         <source>Offset:</source>
         <translation type="unfinished">Desplazamiento:</translation>
     </message>
@@ -325,12 +325,7 @@
         <translation type="unfinished">&amp;Zoom:</translation>
     </message>
     <message>
-        <location line="+1"/>
-        <source>&lt;p&gt;Determines the scale at which the pages are shown.</source>
-        <translation type="unfinished">&lt;p&gt;Determina la escala a la que se muestran las páginas.</translation>
-    </message>
-    <message>
-        <location line="+5"/>
+        <location line="+8"/>
         <source> %</source>
         <translation type="unfinished"> %</translation>
     </message>
@@ -421,7 +416,22 @@
         <translation type="unfinished">&lt;p&gt;El margen inferior, en la unidad elegida abajo. Todo lo que quede por debajo se ignorará.</translation>
     </message>
     <message>
-        <location line="-10"/>
+        <location line="-102"/>
+        <source>&lt;p&gt;Navigate to the previous pair of pages (%1).</source>
+        <translation type="unfinished">&lt;p&gt;Ir al par de páginas anterior (%1).</translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>&lt;p&gt;Navigate to the next pair of pages (%1).</source>
+        <translation type="unfinished">&lt;p&gt;Ir al par de páginas siguiente (%1).</translation>
+    </message>
+    <message>
+        <location line="+18"/>
+        <source>&lt;p&gt;Determines the scale at which the pages are shown. %1 and %2 zoom in and out, and %3 goes back to 100%.</source>
+        <translation type="unfinished">&lt;p&gt;Determina la escala a la que se muestran las páginas. %1 y %2 amplían y reducen, y %3 vuelve al 100 %.</translation>
+    </message>
+    <message>
+        <location line="+70"/>
         <source>&lt;p&gt;The top margin, in the unit chosen below. Anything above this will be ignored.</source>
         <translation type="unfinished">&lt;p&gt;El margen superior, en la unidad elegida abajo. Todo lo que quede por encima se ignorará.</translation>
     </message>
@@ -587,7 +597,7 @@
     </message>
     <message>
         <location line="+84"/>
-        <location line="+424"/>
+        <location line="+428"/>
         <source>Controls</source>
         <translation type="unfinished">Controles</translation>
     </message>
@@ -651,7 +661,7 @@
         <translation type="unfinished">%1 — Registro</translation>
     </message>
     <message>
-        <location line="+1077"/>
+        <location line="+1144"/>
         <source>%5 %1 %2 vs. %3 %1 %4</source>
         <translation type="unfinished">%5 %1 %2 vs. %3 %1 %4</translation>
     </message>
