@@ -67,6 +67,17 @@ It also treats all hyphens (soft-hyphen, minus sign, etc.),
 the same, that is, as a plain hyphen. 
 This mode is best for logographic languages like Chinese and Japanese.
 
+<p>In both text modes, a character that cannot be read is compared by
+how it looks. A glyph that Poppler cannot map to Unicode&mdash;one whose
+name is in no glyph list, such as the &ldquo;ohm&rdquo; that some
+versions of a font call their Omega&mdash;comes back as a control
+character, so the same sign can be one character in one file and
+another in the other. Where such a text and the text in the same place
+on the other page differ, the two are rendered, and count as the same
+if they look the same. The text modes still compare characters, not
+shapes: a letter set in another typeface is the same letter, and only
+Appearance mode shows it.
+
 <h3 id="vis">Appearance Comparison Mode</h3>
 <p>The Appearance comparison mode 
 can be used to detect changes in fonts, diagrams, or any other visual 

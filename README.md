@@ -216,6 +216,14 @@ open /Applications/disparPDF.app
 disparPDF a.pdf b.pdf
 ```
 
+In the Characters and Words modes, a character that Poppler cannot map
+to Unicode (a glyph whose name is in no glyph list comes back as a
+control character) is compared by how it looks: where such a text and
+the one in the same place on the other page differ, they count as the
+same if their renderings are the same. Otherwise these modes compare
+characters, not shapes, so a letter set in another typeface is found
+only by the Appearance mode.
+
 ### Command line (batch mode)
 
 ```sh

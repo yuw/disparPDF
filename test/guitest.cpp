@@ -365,6 +365,31 @@ int main(int argc, char *argv[])
         window.close();
     }
 
+    // A sign Poppler reads in one file and not in the other, looking the
+    // same: no difference, the second time as well, when the pages' words
+    // come from the cache and the pages have to be opened to look at it
+    {
+        StartupParameters parameters;
+        Status status;
+        MainWindow window(DebugOff, CompareWords, QString(), QString(),
+                          "en", &parameters, &status);
+        window.show();
+        QApplication::processEvents();
+        MainWindowTest t(&window);
+        t.setFiles(data + "/sign-read.pdf", data + "/sign-unread.pdf");
+        t.compare();
+        const int first = t.differing();
+        t.compare();
+        check(first == 0 && t.differing() == 0,
+              QString("the same sign, read and unread: %1 differ, then %2")
+                      .arg(first).arg(t.differing()));
+        t.setFiles(data + "/sign-read.pdf", data + "/sign-other.pdf");
+        t.compare();
+        check(t.differing() == 1,
+              QString("another sign: %1 differ").arg(t.differing()));
+        window.close();
+    }
+
     if (failures)
         out << failures << " failed\n";
     return failures ? 1 : 0;

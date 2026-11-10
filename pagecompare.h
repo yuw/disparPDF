@@ -87,6 +87,28 @@ PageDifference compareFingerprints(const PageFingerprint &fingerprint1,
                                    const PageFingerprint &fingerprint2,
                                    const bool compareAppearance);
 
+// Text that Poppler could not read.  A glyph it cannot map to Unicode --
+// one whose name is in no glyph list, say, like the "ohm" that some
+// versions of Latin Modern call their Omega -- comes back as its
+// character code, which in the fonts TeX subsets is usually a control
+// character.  Such a "character" says nothing about what is on the
+// page: the same Omega is U+001F from one file and U+2126 from another.
+bool hasUnmappedCharacter(const QString &text);
+
+// The pairs (index in texts1, index in texts2) of texts that are in the
+// same place on the two pages, differ, have an unmapped character in at
+// least one of them, and look the same: where the text cannot say
+// whether two things are the same, their renderings can.  The pages are
+// rendered as an Appearance comparison renders them, at 72 DPI, once
+// each and only if there is such a pair to look at.  Texts that look
+// different are left out, so nothing that has changed is passed over.
+// Both the comparison and the highlighting treat the pairs returned as
+// the same text.
+QVector<QPair<int, int>> sameLookingUnmappedTexts(
+        const QStringList &texts1, const QList<QRectF> &rects1,
+        const QStringList &texts2, const QList<QRectF> &rects2,
+        const PdfPage &page1, const PdfPage &page2);
+
 // Compares page pages1[i] of pdf1 with page pages2[i] of pdf2, for each i,
 // and returns the results in that order.  The pairs are shared out among
 // one worker thread per core, or options.maxWorkers if that is set; a

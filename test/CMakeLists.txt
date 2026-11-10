@@ -88,6 +88,20 @@ foreach(mode characters words)
                    ${DATA}/rewritten-original.pdf ${DATA}/rewritten-gs.pdf)
 endforeach()
 
+# A sign that Poppler reads in one file and not in the other, where its
+# glyph has a name in no glyph list: the same if it looks the same, in
+# every mode; different if it is another sign, or a word has changed
+foreach(mode appearance characters words)
+    disparpdf_test(sign-unread-${mode} 0 0 -- --${mode}
+                   ${DATA}/sign-read.pdf ${DATA}/sign-unread.pdf)
+    disparpdf_test(sign-unread-first-${mode} 0 0 -- --${mode}
+                   ${DATA}/sign-unread.pdf ${DATA}/sign-read.pdf)
+    disparpdf_test(sign-other-${mode} 1 1 -- --${mode}
+                   ${DATA}/sign-read.pdf ${DATA}/sign-other.pdf)
+    disparpdf_test(sign-word-${mode} 1 1 -- --${mode}
+                   ${DATA}/sign-unread.pdf ${DATA}/sign-read-word.pdf)
+endforeach()
+
 # A line drawn twice looks bolder
 disparpdf_test(bold-words 0 0 -- --words ${DATA}/base.pdf ${DATA}/bold.pdf)
 disparpdf_test(bold-appearance 1 1 -- --appearance

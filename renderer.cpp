@@ -242,7 +242,24 @@ void DifferenceRenderer::computeTextHighlights(QPainterPath *highlighted1,
         items2.debug(2, ToleranceY, ComparingWords, Yx);
     }
 
-    SequenceMatcher matcher(items1.texts(), items2.texts());
+    // Texts Poppler could not read are matched by how they look, as the
+    // comparison matches them (see sameLookingUnmappedTexts()): left to
+    // the matcher, an Omega that is U+001F from one file and U+2126 from
+    // the other would be highlighted although nothing about it changed
+    const QStringList texts1 = items1.texts();
+    QStringList texts2 = items2.texts();
+    const auto unmapped = [](const QStringList &texts) {
+        return std::any_of(texts.cbegin(), texts.cend(),
+                           hasUnmappedCharacter);
+    };
+    if (unmapped(texts1) || unmapped(texts2)) {
+        const QVector<QPair<int, int>> same = sameLookingUnmappedTexts(
+                texts1, items1.rects(), texts2, items2.rects(), page1,
+                page2);
+        for (const QPair<int, int> &pair : same)
+            texts2[pair.second] = texts1.at(pair.first);
+    }
+    SequenceMatcher matcher(texts1, texts2);
     RangesPair rangesPair = computeRanges(&matcher);
     rangesPair = invertRanges(rangesPair.first, items1.count(),
                               rangesPair.second, items2.count());

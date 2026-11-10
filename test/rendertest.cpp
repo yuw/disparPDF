@@ -156,6 +156,47 @@ int main(int argc, char *argv[])
         check(!bluish(image.pixel(30, 300)), "rotated: no outline inside");
     }
 
+    // sign-unread.pdf and sign-read-word.pdf: the sign at 72..96, 86..149
+    // is U+001F from one and U+2126 from the other but looks the same,
+    // and a word has changed on the line at 163..175.  Only the word is
+    // highlighted, in Words and in Characters mode.
+    for (const int mode : {CompareWords, CompareCharacters}) {
+        RenderSettings text;
+        text.compareMode = mode;
+        text.pen.setStyle(Qt::NoPen);
+        text.pen.setColor(Qt::red);
+        text.brush = QBrush(Qt::red);
+        bool locked = false;
+        const PdfDocument unread = loadPdf(data + "/sign-unread.pdf",
+                                           &locked);
+        const PdfDocument word = loadPdf(data + "/sign-read-word.pdf",
+                                         &locked);
+        if (!unread || !word) {
+            check(false, "loading the sign PDFs");
+            break;
+        }
+        const DifferenceRenderer renderer(text);
+        const PagePair pair(0, 0, false, true);
+        const QImage image = renderer.pixmaps(unread->page(0),
+                QString("sign-unread-%1").arg(mode), word->page(0),
+                QString("sign-read-word-%1").arg(mode), pair)
+                .first.toImage();
+        int onSign = 0;
+        int onLine = 0;
+        for (int y = 0; y < image.height(); ++y)
+            for (int x = 0; x < image.width(); ++x)
+                if (reddish(image.pixel(x, y))) {
+                    if (y < 155)
+                        ++onSign;
+                    else if (y < 180)
+                        ++onLine;
+                }
+        check(onSign == 0 && onLine > 0,
+              QString("mode %1: %2 highlighted pixels on the sign, %3 on "
+                      "the changed word").arg(mode).arg(onSign)
+                      .arg(onLine));
+    }
+
     if (failures)
         out << failures << " failed\n";
     return failures ? 1 : 0;

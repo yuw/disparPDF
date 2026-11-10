@@ -138,6 +138,127 @@ PageDifference compareFingerprints(const PageFingerprint &fingerprint1,
 }
 
 
+bool hasUnmappedCharacter(const QString &text)
+{
+    for (const QChar c : text) {
+        if (c.isSpace())
+            continue;
+        if (c == QChar::ReplacementCharacter)
+            return true;
+        switch (c.category()) {
+        case QChar::Other_Control:
+        case QChar::Other_PrivateUse:
+        case QChar::Other_NotAssigned:
+            return true;
+        default:
+            break;
+        }
+    }
+    return false;
+}
+
+
+QVector<QPair<int, int>> sameLookingUnmappedTexts(
+        const QStringList &texts1, const QList<QRectF> &rects1,
+        const QStringList &texts2, const QList<QRectF> &rects2,
+        const PdfPage &page1, const PdfPage &page2)
+{
+    QVector<QPair<int, int>> same;
+    if (!page1 || !page2)
+        return same;
+    // Two fonts may give the same glyph slightly different boxes, and
+    // what decides is the rendering, so this can be generous
+    const qreal Tolerance = 1.0; // points
+    auto inSamePlace = [&](const QRectF &a, const QRectF &b) {
+        return qAbs(a.left() - b.left()) <= Tolerance &&
+               qAbs(a.top() - b.top()) <= Tolerance &&
+               qAbs(a.right() - b.right()) <= Tolerance &&
+               qAbs(a.bottom() - b.bottom()) <= Tolerance;
+    };
+    QVector<bool> used1(texts1.count(), false);
+    QVector<bool> used2(texts2.count(), false);
+    QImage image1;
+    QImage image2;
+    auto looksSame = [&](const QRectF &rect1, const QRectF &rect2) {
+        if (image1.isNull()) {
+            const int DPI = POINTS_PER_INCH; // so a point is a pixel
+            image1 = page1->renderToImage(DPI, DPI);
+            image2 = page2->renderToImage(DPI, DPI);
+        }
+        // A pixel more all round, for antialiasing beyond the box
+        const QRect rect = rect1.united(rect2).toAlignedRect()
+                .adjusted(-1, -1, 1, 1)
+                .intersected(image1.rect()).intersected(image2.rect());
+        return !rect.isEmpty() && image1.copy(rect) == image2.copy(rect);
+    };
+    // Tries text i of the first page (or, if swapped, of the second)
+    // against whatever is in its place on the other
+    auto pairUp = [&](const int i, const bool swapped) {
+        const QStringList &texts = swapped ? texts2 : texts1;
+        const QStringList &others = swapped ? texts1 : texts2;
+        const QList<QRectF> &rects = swapped ? rects2 : rects1;
+        const QList<QRectF> &otherRects = swapped ? rects1 : rects2;
+        QVector<bool> &used = swapped ? used2 : used1;
+        QVector<bool> &otherUsed = swapped ? used1 : used2;
+        if (used[i] || !hasUnmappedCharacter(texts.at(i)))
+            return;
+        for (int j = 0; j < others.count(); ++j) {
+            if (otherUsed[j] ||
+                !inSamePlace(rects.at(i), otherRects.at(j)))
+                continue;
+            if (texts.at(i) != others.at(j) &&
+                looksSame(rects.at(i), otherRects.at(j))) {
+                used[i] = otherUsed[j] = true;
+                same.append(swapped ? qMakePair(j, i) : qMakePair(i, j));
+            }
+            // One text to a place, whether or not it looked the same
+            return;
+        }
+    };
+    for (int i = 0; i < texts1.count(); ++i)
+        pairUp(i, false);
+    for (int j = 0; j < texts2.count(); ++j)
+        pairUp(j, true);
+    return same;
+}
+
+
+static bool anyUnmapped(const QVector<PageWord> &words)
+{
+    for (const PageWord &word : words)
+        if (hasUnmappedCharacter(word.text))
+            return true;
+    return false;
+}
+
+
+// Gives the words of words2 that sameLookingUnmappedTexts() pairs with
+// words of words1 those words' texts; false if there are none
+static bool reconcileUnmappedWords(const QVector<PageWord> &words1,
+                                   QVector<PageWord> *words2,
+                                   const PdfPage &page1,
+                                   const PdfPage &page2)
+{
+    QStringList texts1;
+    QStringList texts2;
+    QList<QRectF> rects1;
+    QList<QRectF> rects2;
+    for (const PageWord &word : words1) {
+        texts1 << word.text;
+        rects1 << word.rect;
+    }
+    for (const PageWord &word : std::as_const(*words2)) {
+        texts2 << word.text;
+        rects2 << word.rect;
+    }
+    const QVector<QPair<int, int>> same = sameLookingUnmappedTexts(
+            texts1, rects1, texts2, rects2, page1, page2);
+    for (const QPair<int, int> &pair : same)
+        (*words2)[pair.second].text = words1.at(pair.first).text;
+    return !same.isEmpty();
+}
+
+
 // Every Poppler::Document::RenderHint, listed explicitly rather than
 // walked by bit-shifting: that assumed the hints occupy consecutive bits
 // and that HideAnnotations is the highest one, so a hint added above it
@@ -273,6 +394,28 @@ QVector<PagePairResult> comparePagesInParallel(
             } else {
                 result.difference = compareFingerprints(fingerprint1,
                         fingerprint2, false);
+                // Words that differ may be ones Poppler could not read
+                // (see hasUnmappedCharacter()); if those that are left
+                // differing all look the same, the pages do not differ
+                // textually after all.  The fingerprints keep the words
+                // as they were read: which of them look the same depends
+                // on the other page of the pair.
+                if (result.difference == TextualPageDifference &&
+                    (anyUnmapped(fingerprint1.words) ||
+                     anyUnmapped(fingerprint2.words))) {
+                    if (!page1 && doc1)
+                        page1 = doc1->page(job.page1);
+                    if (!page2 && doc2)
+                        page2 = doc2->page(job.page2);
+                    PageFingerprint seen2;
+                    seen2.readable = true;
+                    seen2.words = fingerprint2.words;
+                    if (page1 && page2 &&
+                        reconcileUnmappedWords(fingerprint1.words,
+                                &seen2.words, page1, page2))
+                        result.difference = compareFingerprints(
+                                fingerprint1, seen2, false);
+                }
                 // Only now is rendering worth it: the words match, so the
                 // pages can still differ in appearance
                 if (result.difference == NoPageDifference &&
@@ -305,8 +448,13 @@ QVector<PagePairResult> comparePagesInParallel(
                                 fingerprintPage(page2, options, true,
                                                 &fingerprint2);
                         }
-                        result.difference = compareFingerprints(fingerprint1,
-                                fingerprint2, true);
+                        // Not compareFingerprints(): the words have
+                        // been compared, and may have matched only after
+                        // looking at ones that could not be read
+                        if (fingerprint1.imageSize != fingerprint2.imageSize
+                            || fingerprint1.imageHash !=
+                               fingerprint2.imageHash)
+                            result.difference = VisualPageDifference;
                     }
                 }
             }

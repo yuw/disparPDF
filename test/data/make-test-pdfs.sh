@@ -28,6 +28,15 @@
 #                  MediaBox, the TrimBox where plain.pdf's page was, and a
 #                  mark in the bleed
 #
+# These have one page with a sign from a Type 3 font between two lines of
+# text, for text that Poppler cannot read (hasUnmappedCharacter() in
+# pagecompare.h).  A glyph called Omega is read as U+2126; one whose name
+# is in no glyph list comes back as its character code, U+001F:
+#   sign-read.pdf       a triangle, called Omega
+#   sign-unread.pdf     the same triangle, called unreadablesign
+#   sign-other.pdf      a square, called unreadablesign
+#   sign-read-word.pdf  sign-read.pdf with a word of the last line changed
+#
 # (The other files here are described in README.)
 #
 # Requires ps2pdf (Ghostscript).
@@ -154,6 +163,45 @@ bled_page() {
     echo showpage
 }
 
+# sign_page GLYPH SHAPE WORD: a line, a sign drawn by SHAPE in a Type 3
+# font whose only glyph is called GLYPH, and a line with WORD in it
+sign_page() {
+    show 700 'A sign from a font of its own:'
+    cat <<EOF
+10 dict dup begin
+  /FontType 3 def
+  /FontMatrix [.001 0 0 .001 0 0] def
+  /FontBBox [0 0 1000 1000] def
+  /Encoding 256 array def
+  0 1 255 { Encoding exch /.notdef put } for
+  Encoding 31 /$1 put
+  /CharProcs 2 dict def
+  CharProcs begin
+    /.notdef { } def
+    /$1 { $2 } def
+  end
+  /BuildGlyph {
+    1000 0 0 0 1000 1000 setcachedevice
+    exch /CharProcs get exch
+    2 copy known not { pop /.notdef } if
+    get exec
+  } bind def
+  /BuildChar {
+    1 index /Encoding get exch get
+    1 index /BuildGlyph get exec
+  } bind def
+end
+/Sign exch definefont pop
+/Sign findfont 24 scalefont setfont
+72 660 moveto <1F> show
+/Helvetica findfont 12 scalefont setfont
+EOF
+    show 620 "and a $3 after it."
+    echo showpage
+}
+triangle='100 0 moveto 900 0 lineto 500 800 lineto closepath fill'
+square='100 0 moveto 900 0 lineto 900 800 lineto 100 800 lineto closepath fill'
+
 generate() {
     name=$1
     shift
@@ -187,3 +235,7 @@ generate trim trimmed_page 10
 generate trim-mark trimmed_page 590
 generate trim-word trimmed_page 10 word
 generate bleed bled_page
+generate sign-read sign_page Omega "$triangle" line
+generate sign-unread sign_page unreadablesign "$triangle" line
+generate sign-other sign_page unreadablesign "$square" line
+generate sign-read-word sign_page Omega "$triangle" word
